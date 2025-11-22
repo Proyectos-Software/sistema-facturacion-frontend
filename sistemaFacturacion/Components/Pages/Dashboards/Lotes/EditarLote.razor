@@ -10,110 +10,178 @@
 @inject CurrieTechnologies.Razor.SweetAlert2.SweetAlertService Swal
 @attribute [Authorize]
 
-<h2 class="page-title fw-semibold fs-20 mb-2">Editar lote</h2>
-<p class="text-muted mb-3">Actualiza los datos del lote y guarda los cambios.</p>
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h1 class="page-title fw-semibold fs-20 mb-0">Editar lote</h1>
+            <div class="text-muted fs-13">
+                Actualice los datos del lote. Los cambios impactan en inventario y precios de venta.
+            </div>
+        </div>
+        <div class="btn-list">
+            <button type="button"
+                    class="btn btn-secondary-light btn-wave"
+                    @onclick="Volver">
+                <i class="ri-arrow-go-back-line me-1 align-middle"></i>
+                Volver al listado
+            </button>
+        </div>
+    </div>
+</div>
 
 @if (isLoading)
 {
-    <div class="card border-0 shadow-sm"><div class="card-body">Cargando…</div></div>
+    <div class="card custom-card border-0 shadow-sm">
+        <div class="card-body d-flex align-items-center gap-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <div>
+                <p class="fw-semibold mb-1">Cargando información del lote…</p>
+                <p class="text-muted small mb-0">Por favor, espere mientras se obtienen los datos.</p>
+            </div>
+        </div>
+    </div>
 }
 else if (!string.IsNullOrEmpty(error))
 {
-    <div class="card border-0 shadow-sm"><div class="card-body text-danger">@error</div></div>
+    <div class="card custom-card border-0 shadow-sm">
+        <div class="card-body d-flex align-items-center">
+            <i class="ri-error-warning-line text-danger fs-20 me-2"></i>
+            <div>
+                <p class="fw-semibold text-danger mb-1">No se pudo cargar el lote</p>
+                <p class="text-muted small mb-0">@error</p>
+            </div>
+        </div>
+    </div>
 }
 else
 {
-    <EditForm Model="@vm" OnValidSubmit="@Guardar">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-
-        <!-- Identificación -->
-        <div class="card mb-3 border-0 shadow-sm">
-            <div class="card-header bg-transparent"><strong>Identificación</strong></div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3 col-12">
-                        <label class="form-label">ID Lote</label>
-                        <input class="form-control" value="@vm.Id" disabled />
-                    </div>
-
-                    <div class="col-md-9 col-12">
-                        <label class="form-label">Producto</label>
-                        <InputSelect class="form-select"
-                                     value="@vm.IdPro"
-                                     @onchange="OnProductoChanged">
-                            <option value="0">— Selecciona un producto —</option>
-                            @foreach (var p in productos)
-                            {
-                                <option value="@p.Id">@p.Nombre</option>
-                            }
-                        </InputSelect>
-                        <small class="text-muted d-block mt-1">
-                            Selecciona el producto; el valor guardado será su ID.
-                        </small>
-                        <ValidationMessage For="@(() => vm.IdPro)" />
-                    </div>
-
-                    <div class="col-md-6 col-12">
-                        <label class="form-label">Nombre (referencia)</label>
-                        <input class="form-control" value="@vm.NombreProducto" disabled />
-                    </div>
-                    <div class="col-md-6 col-12">
-                        <label class="form-label">Tipo (referencia)</label>
-                        <input class="form-control" value="@vm.TipoProducto" disabled />
-                    </div>
+    <!-- Resumen del lote -->
+    <div class="card custom-card mb-3 border-0 shadow-sm">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-primary-light d-flex align-items-center justify-content-center p-3">
+                    <i class="ri-archive-2-line fs-4 text-primary"></i>
+                </div>
+                <div>
+                    <h5 class="mb-0">@vm.NombreProducto</h5>
+                    <small class="text-muted d-block">
+                        @(string.IsNullOrWhiteSpace(vm.NombreCategoria) ? "Sin categoría" : vm.NombreCategoria)
+                    </small>
+                    <small class="text-muted d-block">
+                        Código producto:
+                        <span class="fw-semibold">@vm.CodigoProducto</span>
+                    </small>
+                    <small class="text-muted d-block">
+                        Código lote:
+                        <span class="fw-semibold">@vm.CodLot</span>
+                    </small>
                 </div>
             </div>
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="badge" style="@EstadoBadgeStyle">@EstadoTexto</span>
+            </div>
         </div>
+    </div>
 
-        <!-- Fechas -->
-        <div class="card mb-3 border-0 shadow-sm">
-            <div class="card-header bg-transparent"><strong>Fechas</strong></div>
+    <EditForm Model="@vm" OnValidSubmit="@Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="alert alert-danger small mb-3" />
+
+        <!-- Card: Datos generales (solo fechas) -->
+        <div class="card custom-card mb-3 border-0 shadow-sm">
+            <div class="card-header justify-content-between">
+                <div class="card-title mb-0">Datos generales</div>
+                <span class="text-muted small">
+                    Defina las fechas de compra y expiración del lote.
+                </span>
+            </div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-4 col-12">
-                        <label class="form-label">Fecha de compra</label>
-                        <InputDate class="form-control" @bind-Value="vm.FecCom" />
+                        <label class="form-label">
+                            Fecha de compra <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="ri-calendar-2-line"></i>
+                            </span>
+                            <InputDate class="form-control" @bind-Value="vm.FecCom" />
+                        </div>
                         <ValidationMessage For="@(() => vm.FecCom)" />
                     </div>
                     <div class="col-md-4 col-12">
-                        <label class="form-label">Fecha de expiración</label>
-                        <InputDate class="form-control" @bind-Value="vm.FecExp" />
+                        <label class="form-label">
+                            Fecha de expiración <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="ri-timer-2-line"></i>
+                            </span>
+                            <InputDate class="form-control" @bind-Value="vm.FecExp" />
+                        </div>
                         <ValidationMessage For="@(() => vm.FecExp)" />
                     </div>
                     <div class="col-md-4 col-12">
-                        <label class="form-label">Estado actual</label>
-                        <input class="form-control" value="@(vm.EstLot ? "Activo" : "Inactivo")" disabled />
+                        <label class="form-label">Vigencia estimada</label>
+                        <input class="form-control" disabled
+                               value="@($"Desde {vm.FecCom:dd/MM/yyyy} hasta {vm.FecExp:dd/MM/yyyy}")" />
+                        <small class="text-muted d-block mt-1">
+                            Resumen de la ventana de venta del lote.
+                        </small>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Cantidades y precios -->
-        <div class="card mb-3 border-0 shadow-sm">
-            <div class="card-header bg-transparent"><strong>Cantidades y precios</strong></div>
+        <!-- Card: Cantidades y precios -->
+        <div class="card custom-card mb-3 border-0 shadow-sm">
+            <div class="card-header justify-content-between">
+                <div class="card-title mb-0">Cantidades y precios</div>
+                <span class="text-muted small">
+                    Ajuste la disponibilidad y los precios respetando el rango sugerido.
+                </span>
+            </div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-3 col-12">
-                        <label class="form-label">Cantidad del lote</label>
+                        <label class="form-label">
+                            Cantidad del lote <span class="text-danger">*</span>
+                        </label>
                         <InputNumber class="form-control" @bind-Value="vm.CanLot" />
                         <ValidationMessage For="@(() => vm.CanLot)" />
+                        <small class="text-muted d-block mt-1">
+                            Unidades totales asociadas a este lote.
+                        </small>
                     </div>
                     <div class="col-md-3 col-12">
-                        <label class="form-label">Disponible</label>
+                        <label class="form-label">
+                            Disponible <span class="text-danger">*</span>
+                        </label>
                         <InputNumber class="form-control" @bind-Value="vm.CanDis" />
                         <ValidationMessage For="@(() => vm.CanDis)" />
+                        <small class="text-muted d-block mt-1">
+                            Unidades actualmente disponibles para venta.
+                        </small>
                     </div>
                     <div class="col-md-3 col-12">
-                        <label class="form-label">Precio compra ($)</label>
+                        <label class="form-label">
+                            Precio compra ($) <span class="text-danger">*</span>
+                        </label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
                             <InputNumber class="form-control" @bind-Value="vm.PreCom" />
                         </div>
                         <ValidationMessage For="@(() => vm.PreCom)" />
+                        <small class="text-muted d-block mt-1">
+                            Costo unitario actual del producto en este lote.
+                        </small>
                     </div>
                     <div class="col-md-3 col-12">
-                        <label class="form-label">Precio venta ($)</label>
+                        <label class="form-label">
+                            Precio venta ($) <span class="text-danger">*</span>
+                        </label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
                             <InputNumber class="form-control" @bind-Value="vm.PreVen" />
@@ -121,19 +189,32 @@ else
                         <ValidationMessage For="@(() => vm.PreVen)" />
                         @if (precioMinSugerido.HasValue && precioMaxSugerido.HasValue)
                         {
-                            <small class="text-muted">
-                                Rango sugerido: $@precioMinSugerido.Value:0.00 – $@precioMaxSugerido.Value:0.00
+                            <small class="text-muted d-block mt-1">
+                                @($"Rango sugerido: ${precioMinSugerido.Value:0.00} – ${precioMaxSugerido.Value:0.00}")
                             </small>
                         }
                     </div>
                 </div>
             </div>
 
-            <div class="card-footer d-flex justify-content-end gap-2 bg-transparent">
-                <button type="button" class="btn btn-light" @onclick="Volver">Cancelar</button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="ri-save-3-line me-1"></i> Guardar cambios
-                </button>
+            <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2 bg-transparent">
+                <div class="text-muted small d-flex align-items-center">
+                    <i class="ri-error-warning-line me-1"></i>
+                    Verifique cantidades y precios antes de guardar los cambios.
+                </div>
+                <div class="btn-list">
+                    <button type="button"
+                            class="btn btn-light btn-wave"
+                            @onclick="Volver">
+                        <i class="ri-close-line me-1 align-middle"></i>
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                            class="btn btn-primary btn-wave">
+                        <i class="ri-save-3-line me-1 align-middle"></i>
+                        Guardar cambios
+                    </button>
+                </div>
             </div>
         </div>
     </EditForm>
@@ -145,14 +226,18 @@ else
     private bool isLoading = true;
     private string? error;
     private LoteVM vm = new();
-    private List<ProductoDto> productos = new();
 
-    // Política de precios
     private const decimal MargenBase = 0.30m;
     private const decimal FactorDemanda = 0.10m;
 
     private decimal? precioMinSugerido;
     private decimal? precioMaxSugerido;
+
+    private string EstadoTexto => vm?.EstLot == true ? "Con stock" : "Sin stock";
+
+    private string EstadoBadgeStyle => vm?.EstLot == true
+        ? "background:#16a34a;color:#fff;border-radius:9999px;padding:.25rem .6rem;font-weight:700;letter-spacing:.02em"
+        : "background:#ef4444;color:#fff;border-radius:9999px;padding:.25rem .6rem;font-weight:700;letter-spacing:.02em";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -171,9 +256,10 @@ else
             vm = new LoteVM
             {
                 Id = dto.Id,
+                CodLot = dto.CodLot ?? "",
                 IdPro = dto.IdPro,
                 NombreProducto = dto.NombreProducto ?? "",
-                TipoProducto = dto.TipoProducto ?? "",
+                NombreCategoria = dto.NombreCategoria ?? "",
                 FecCom = dto.FecCom,
                 FecExp = dto.FecExp,
                 CanLot = dto.CanLot,
@@ -183,15 +269,21 @@ else
                 EstLot = dto.EstLot
             };
 
-            productos = await ProductosApi.GetAllAsync();
-
-            var pSel = productos.FirstOrDefault(p => p.Id == vm.IdPro);
-            if (pSel is not null)
+            // Refrescar datos del producto, incluyendo código
+            try
             {
-                vm.NombreProducto = pSel.Nombre;
-                vm.TipoProducto = pSel.NombreCategoria;
+                var producto = await ProductosApi.GetByIdAsync(vm.IdPro);
+                if (producto is not null)
+                {
+                    vm.NombreProducto = producto.Nombre;
+                    vm.NombreCategoria = producto.NombreCategoria;
+                    vm.CodigoProducto = producto.Codigo; // Ajustar si la propiedad se llama distinto
+                }
             }
-
+            catch
+            {
+                // Si falla la consulta del producto, se mantienen los datos del DTO del lote
+            }
 
             await ObtenerRangoPrecioAsync();
         }
@@ -205,33 +297,14 @@ else
         }
     }
 
-    private async Task OnProductoChanged(ChangeEventArgs e)
-    {
-        if (!int.TryParse(e?.Value?.ToString(), out var nuevoId)) nuevoId = 0;
-
-        vm.IdPro = nuevoId;
-
-        if (nuevoId <= 0)
-        {
-            vm.NombreProducto = "";
-            vm.TipoProducto = "";
-            precioMinSugerido = precioMaxSugerido = null;
-            return;
-        }
-
-        var p = productos.FirstOrDefault(x => x.Id == nuevoId) ?? await ProductosApi.GetByIdAsync(nuevoId);
-        vm.NombreProducto = p?.Nombre ?? "";
-        vm.TipoProducto = p?.NombreCategoria ?? "";
-
-
-        await ObtenerRangoPrecioAsync();
-    }
-
     private async Task<bool> ValidarCamposAsync()
     {
         if (vm.IdPro <= 0)
         {
-            await Alert("Producto requerido", "Selecciona un producto válido.");
+            await Alert(
+                "Producto no asociado",
+                "El lote no tiene un producto asociado. Contacte al administrador del sistema."
+            );
             return false;
         }
 
@@ -323,7 +396,6 @@ else
         }
         else
         {
-            // Caso en el que este lote es el único del producto
             costoFifo = vm.PreCom;
             ultimoCosto = vm.PreCom;
             costoBase = vm.PreCom;
@@ -407,11 +479,15 @@ else
     {
         public int Id { get; set; }
 
-        [Range(1, int.MaxValue, ErrorMessage = "Selecciona un producto")]
+        public string CodLot { get; set; } = "";
+
+        // Id del producto (se usa internamente, no se muestra en UI)
+        [Range(1, int.MaxValue, ErrorMessage = "Debe existir un producto asociado.")]
         public int IdPro { get; set; }
 
+        public string CodigoProducto { get; set; } = "";
         public string NombreProducto { get; set; } = "";
-        public string TipoProducto { get; set; } = "";
+        public string NombreCategoria { get; set; } = "";
 
         [Required] public DateTime FecCom { get; set; }
         [Required] public DateTime FecExp { get; set; }

@@ -11,8 +11,10 @@ public class LoteDto
     [JsonPropertyName("nombreProducto")]
     public string? NombreProducto { get; set; }
 
-    [JsonPropertyName("tipoProducto")]
-    public string? TipoProducto { get; set; }
+    [JsonPropertyName("nomCatPro")]
+    public string NombreCategoria { get; set; } = string.Empty;
+    [JsonPropertyName("nomTipTrib")]
+    public string NombreTipoTributario { get; set; } = string.Empty;
 
     [JsonPropertyName("fecCom")]
     public DateTime FecCom { get; set; }
@@ -34,4 +36,7 @@ public class LoteDto
 
     [JsonPropertyName("estLot")]
     public bool EstLot { get; set; }
+
+    [JsonPropertyName("codLot")]
+    public string CodLot { get; set; } = string.Empty;
 }

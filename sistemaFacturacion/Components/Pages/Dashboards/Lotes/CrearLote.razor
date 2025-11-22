@@ -11,62 +11,176 @@
 @inject IJSRuntime JSRuntime
 @attribute [Authorize]
 
-<h2 class="titulo-form">Crear lote desde producto</h2>
-<p class="descripcion-form">Completa los campos del lote. El lote se creará con estado <strong>Activo</strong>.</p>
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h1 class="page-title fw-semibold fs-20 mb-0">Crear lote</h1>
+            <div class="text-muted fs-13">
+                Registre un nuevo lote para el producto seleccionado. El lote se creará con estado <strong>Activo</strong>.
+            </div>
+        </div>
+        <div class="btn-list">
+            <button type="button"
+                    class="btn btn-light btn-wave"
+                    @onclick="Cancelar">
+                <i class="ri-arrow-go-back-line me-1 align-middle"></i>
+                Volver a lotes
+            </button>
+        </div>
+    </div>
+</div>
 
 <EditForm Model="@lote" OnValidSubmit="@Guardar">
     <DataAnnotationsValidator />
-    <ValidationSummary />
+    <div class="mb-3">
+        <ValidationSummary />
+    </div>
 
-    <div class="card border-0 shadow-sm">
+    <div class="card custom-card border-0 shadow-sm">
+        <div class="card-header justify-content-between">
+            <div class="card-title mb-0">
+                Información del lote
+            </div>
+            <span class="badge bg-success-transparent text-success">
+                <i class="ri-checkbox-circle-line me-1 align-middle"></i>
+                Estado inicial: Activo
+            </span>
+        </div>
+
         <div class="card-body">
+            <div class="alert alert-secondary d-flex align-items-center mb-4 border-0 px-3 py-2">
+                <i class="ri-information-line fs-18 me-2"></i>
+                <span class="small mb-0">
+                    Complete los campos obligatorios marcados con <span class="text-danger">*</span>.
+                    Verifique especialmente fechas, cantidades y precios antes de guardar.
+                </span>
+            </div>
+
             <div class="row g-3">
 
-                <!-- Producto -->
-                <div class="col-md-4 col-12">
-                    <label class="form-label">ID Producto</label>
-                    <input class="form-control" value="@lote.IdPro" disabled />
-                </div>
-                <div class="col-md-8 col-12">
-                    <label class="form-label">Producto</label>
-                    <input class="form-control" value="@ProductoNombreMostrada" disabled />
+                <!-- Sección: Producto -->
+                <div class="col-12">
+                    <h6 class="text-uppercase text-muted fs-11 mb-1">Producto</h6>
                 </div>
 
-                <!-- Fechas -->
                 <div class="col-md-4 col-12">
-                    <label class="form-label">Fecha de compra</label>
-                    <InputDate class="form-control" @bind-Value="lote.FecCom" />
+                    <label class="form-label">
+                        ID Producto <span class="text-danger">*</span>
+                    </label>
+                    <input class="form-control" value="@lote.IdPro" disabled />
+                    <small class="text-muted d-block mt-1">
+                        Identificador interno del producto.
+                    </small>
+                </div>
+
+                <div class="col-md-8 col-12">
+                    <label class="form-label">
+                        Producto <span class="text-danger">*</span>
+                    </label>
+                    <input class="form-control" value="@ProductoNombreMostrada" disabled />
+                    <small class="text-muted d-block mt-1">
+                        Nombre de referencia del producto asociado al lote.
+                    </small>
+                </div>
+
+                <!-- Sección: Fechas -->
+                <div class="col-12 mt-2">
+                    <h6 class="text-uppercase text-muted fs-11 mb-1">Fechas del lote</h6>
+                    <p class="text-muted fs-12 mb-0">
+                        Utilice fechas coherentes para asegurar una correcta trazabilidad del inventario.
+                    </p>
+                </div>
+
+                <div class="col-md-4 col-12">
+                    <label class="form-label">
+                        Fecha de compra <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="ri-calendar-2-line"></i>
+                        </span>
+                        <InputDate class="form-control" @bind-Value="lote.FecCom" />
+                    </div>
                     <ValidationMessage For="@(() => lote.FecCom)" />
                 </div>
+
                 <div class="col-md-4 col-12">
-                    <label class="form-label">Fecha de expiración</label>
-                    <InputDate class="form-control" @bind-Value="lote.FecExp" />
+                    <label class="form-label">
+                        Fecha de expiración <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="ri-timer-2-line"></i>
+                        </span>
+                        <InputDate class="form-control" @bind-Value="lote.FecExp" />
+                    </div>
                     <ValidationMessage For="@(() => lote.FecExp)" />
                 </div>
 
-                <!-- Cantidades -->
-                <div class="col-md-2 col-12">
-                    <label class="form-label">Cant. lote</label>
-                    <InputNumber class="form-control" @bind-Value="lote.CanLot" />
-                    <ValidationMessage For="@(() => lote.CanLot)" />
-                </div>
-                <div class="col-md-2 col-12">
-                    <label class="form-label">Disponible</label>
-                    <InputNumber class="form-control" @bind-Value="lote.CanDis" />
-                    <ValidationMessage For="@(() => lote.CanDis)" />
+                <div class="col-md-4 col-12">
+                    <label class="form-label">
+                        Vigencia estimada
+                    </label>
+                    <input class="form-control" disabled
+                           value="Desde @lote.FecCom.ToShortDateString() hasta @lote.FecExp.ToShortDateString()" />
                 </div>
 
-                <!-- Precios -->
+                <!-- Sección: Cantidades -->
+                <div class="col-12 mt-2">
+                    <h6 class="text-uppercase text-muted fs-11 mb-1">Inventario</h6>
+                    <p class="text-muted fs-12 mb-0">
+                        Defina la cantidad total del lote y la disponibilidad inicial.
+                    </p>
+                </div>
+
+                <div class="col-md-2 col-12">
+                    <label class="form-label">
+                        Cant. lote <span class="text-danger">*</span>
+                    </label>
+                    <InputNumber class="form-control" @bind-Value="lote.CanLot" />
+                    <ValidationMessage For="@(() => lote.CanLot)" />
+                    <small class="text-muted d-block mt-1">
+                        Unidades totales recibidas en el lote.
+                    </small>
+                </div>
+
+                <div class="col-md-2 col-12">
+                    <label class="form-label">
+                        Disponible <span class="text-danger">*</span>
+                    </label>
+                    <InputNumber class="form-control" @bind-Value="lote.CanDis" />
+                    <ValidationMessage For="@(() => lote.CanDis)" />
+                    <small class="text-muted d-block mt-1">
+                        Unidades disponibles para venta.
+                    </small>
+                </div>
+
+                <!-- Sección: Precios -->
+                <div class="col-12 mt-2">
+                    <h6 class="text-uppercase text-muted fs-11 mb-1">Política de precios</h6>
+                    <p class="text-muted fs-12 mb-0">
+                        El sistema aplicará la política de margen y demanda para sugerir un rango de precio de venta.
+                    </p>
+                </div>
+
                 <div class="col-md-3 col-12">
-                    <label class="form-label">Precio compra ($)</label>
+                    <label class="form-label">
+                        Precio compra ($) <span class="text-danger">*</span>
+                    </label>
                     <div class="input-group">
                         <span class="input-group-text">$</span>
                         <InputNumber class="form-control" @bind-Value="lote.PreCom" />
                     </div>
                     <ValidationMessage For="@(() => lote.PreCom)" />
+                    <small class="text-muted d-block mt-1">
+                        Costo unitario del producto en este lote.
+                    </small>
                 </div>
+
                 <div class="col-md-3 col-12">
-                    <label class="form-label">Precio venta ($)</label>
+                    <label class="form-label">
+                        Precio venta ($) <span class="text-danger">*</span>
+                    </label>
                     <div class="input-group">
                         <span class="input-group-text">$</span>
                         <InputNumber class="form-control" @bind-Value="lote.PreVen" />
@@ -74,7 +188,7 @@
                     <ValidationMessage For="@(() => lote.PreVen)" />
                     @if (precioMinSugerido.HasValue && precioMaxSugerido.HasValue)
                     {
-                        <small class="text-muted">
+                        <small class="text-muted d-block mt-1">
                             @($"Rango sugerido: ${precioMinSugerido.Value:0.00} – ${precioMaxSugerido.Value:0.00}")
                         </small>
                     }
@@ -83,11 +197,24 @@
             </div>
         </div>
 
-        <div class="card-footer d-flex justify-content-end gap-2 bg-transparent">
-            <button type="button" class="btn btn-light" @onclick="Cancelar">Cancelar</button>
-            <button type="submit" class="btn btn-primary">
-                <i class="ri-save-3-line me-1"></i> Guardar
-            </button>
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2 bg-transparent">
+            <div class="text-muted small d-flex align-items-center">
+                <i class="ri-error-warning-line me-1"></i>
+                Revise los datos antes de guardar. Los cambios afectarán el stock y la rentabilidad.
+            </div>
+            <div class="btn-list">
+                <button type="button"
+                        class="btn btn-light btn-wave"
+                        @onclick="Cancelar">
+                    <i class="ri-close-line me-1 align-middle"></i>
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="btn btn-primary btn-wave">
+                    <i class="ri-save-3-line me-1 align-middle"></i>
+                    Guardar lote
+                </button>
+            </div>
         </div>
     </div>
 </EditForm>

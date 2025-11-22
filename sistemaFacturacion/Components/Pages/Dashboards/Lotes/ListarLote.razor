@@ -2,147 +2,479 @@
 @using Microsoft.AspNetCore.Authorization
 @using sistemaFacturacion.Models
 @using sistemaFacturacion.Services
-@inject NavigationManager Nav
-@inject ILotesApiClient LotesApi
 @attribute [Authorize]
 
-<h2 class="page-title fw-semibold fs-20 mb-2">Listado de Lotes</h2>
-<p class="text-muted mb-3">Búsqueda, filtros y agrupación por tipo de producto.</p>
+@inject ILotesApiClient LotesApi
+@inject NavigationManager Navigation
 
-<div class="card mb-3 border-0 shadow-sm">
-    <div class="card-body">
-        <div class="row g-3 align-items-end">
-            <div class="col-md-4 col-12">
-                <label class="form-label">Buscar</label>
-                <input class="form-control"
-                       placeholder="ID lote, ID producto, producto, tipo…"
-                       @bind="filtroTexto" @bind:event="oninput" />
+<div class="page-header mb-4">
+    <h1 class="page-title fw-semibold fs-20">Listado de Lotes</h1>
+    <p class="text-muted fs-13">Consulta, filtrado avanzado y agrupación por categoría de producto</p>
+</div>
+
+@if (cargando)
+{
+    <div class="alert alert-info">
+        <span class="spinner-border spinner-border-sm me-2"></span> Cargando lotes...
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="alert alert-danger">
+        <i class="ri-error-warning-line me-2"></i>@error
+    </div>
+}
+else
+{
+    <div class="card mb-3 border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-4 col-12">
+                    <label class="form-label">
+                        Búsqueda rápida (código lote, producto, categoría)
+                    </label>
+                    <input class="form-control"
+                           @bind="FiltroTexto"
+                           @bind:event="oninput"
+                           placeholder="Escribe para filtrar en varios campos..." />
+                </div>
+
+                <div class="col-lg-2 col-6">
+                    <label class="form-label">Estado</label>
+                    <select class="form-select" @bind="FiltroEstado">
+                        <option value="">Todos</option>
+                        <option value="activos">Activos</option>
+                        <option value="inactivos">Inactivos</option>
+                    </select>
+                </div>
+
+                <div class="col-lg-2 col-6">
+                    <label class="form-label">Por página</label>
+                    <select class="form-select" @bind="pageSize">
+                        <option>5</option>
+                        <option>10</option>
+                        <option>20</option>
+                    </select>
+                </div>
+
+                <div class="col-lg-4 d-grid d-lg-flex justify-content-lg-end col-12 gap-2">
+                    <button type="button"
+                            class="btn btn-primary"
+                            @onclick="@(() => Navigation.NavigateTo("/dashboards/lotes"))">
+                        <i class="ri-add-line me-1"></i>Nuevo lote
+                    </button>
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            @onclick="Recargar">
+                        <i class="ri-refresh-line me-1"></i>Recargar
+                    </button>
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            @onclick="LimpiarFiltros">
+                        <i class="ri-filter-off-line me-1"></i>Limpiar
+                    </button>
+                </div>
             </div>
 
-            <div class="col-md-3 col-6">
-                <label class="form-label">Estado</label>
-                <select class="form-select" @bind="filtroEstado">
-                    <option value="Todos">Todos</option>
-                    <option value="Activo">Activo</option>
-                    <option value="Inactivo">Inactivo</option>
-                </select>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <button type="button"
+                        class="btn btn-sm btn-link px-0"
+                        @onclick="ToggleFiltrosAvanzados">
+                    <i class="ri-filter-3-line me-1"></i>
+                    @(mostrarFiltrosAvanzados ? "Ocultar filtros avanzados" : "Mostrar filtros avanzados")
+                </button>
+                <span class="text-muted small">
+                    Filtros específicos con autocompletado, rangos de cantidades, precios y fechas.
+                </span>
             </div>
 
-            <div class="col-md-3 col-6">
-                <label class="form-label">Rango (desde)</label>
-                <InputDate class="form-control" @bind-Value="filtroDesde" />
-            </div>
-            <div class="col-md-3 col-6">
-                <label class="form-label">Rango (hasta)</label>
-                <InputDate class="form-control" @bind-Value="filtroHasta" />
-            </div>
+            @if (mostrarFiltrosAvanzados)
+            {
+                <!-- Texto con autocompletado -->
+                <div class="row g-3 mt-2">
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Código lote</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@filtroCodLote"
+                                   @oninput="OnCodLoteInput"
+                                   placeholder="Filtrar por código de lote..."
+                                   autocomplete="off" />
+                            @if (sugerenciasCodLote.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasCodLote)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaCodLote(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
 
-            <div class="col-md-2 d-grid col-12">
-                <button class="btn btn-light" @onclick="LimpiarFiltros">
-                    <i class="ri-eraser-line me-1"></i> Limpiar
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Producto</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@filtroProducto"
+                                   @oninput="OnProductoInput"
+                                   placeholder="Filtrar por nombre de producto..."
+                                   autocomplete="off" />
+                            @if (sugerenciasProducto.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasProducto)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaProducto(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rangos de cantidades -->
+                <div class="row g-3 mt-1">
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Cantidad de lote (rango)</label>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-6">
+                                <input type="number"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroCantLoteMin"
+                                       @bind:event="oninput"
+                                       placeholder="Desde" />
+                            </div>
+                            <div class="col-6">
+                                <input type="number"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroCantLoteMax"
+                                       @bind:event="oninput"
+                                       placeholder="Hasta" />
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            Deja vacío uno de los campos para filtrar solo por mínimo o máximo.
+                        </small>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Cantidad disponible (rango)</label>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-6">
+                                <input type="number"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroCantDispMin"
+                                       @bind:event="oninput"
+                                       placeholder="Desde" />
+                            </div>
+                            <div class="col-6">
+                                <input type="number"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroCantDispMax"
+                                       @bind:event="oninput"
+                                       placeholder="Hasta" />
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            Rango flexible de stock disponible.
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Rangos de precios -->
+                <div class="row g-3 mt-1">
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Precio de compra (rango)</label>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-6">
+                                <input type="number"
+                                       step="0.01"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroPrecioComMin"
+                                       @bind:event="oninput"
+                                       placeholder="Desde" />
+                            </div>
+                            <div class="col-6">
+                                <input type="number"
+                                       step="0.01"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroPrecioComMax"
+                                       @bind:event="oninput"
+                                       placeholder="Hasta" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Precio de venta (rango)</label>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-6">
+                                <input type="number"
+                                       step="0.01"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroPrecioVenMin"
+                                       @bind:event="oninput"
+                                       placeholder="Desde" />
+                            </div>
+                            <div class="col-6">
+                                <input type="number"
+                                       step="0.01"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroPrecioVenMax"
+                                       @bind:event="oninput"
+                                       placeholder="Hasta" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fechas -->
+                <div class="row g-3 mt-1">
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Fecha de compra</label>
+                        <select class="form-select form-select-sm"
+                                @bind="FiltroPeriodoCompra">
+                            <option value="">Todas</option>
+                            <option value="week">Últimos 7 días</option>
+                            <option value="month">Últimos 30 días</option>
+                            <option value="year">Últimos 12 meses</option>
+                            <option value="custom">Rango personalizado</option>
+                        </select>
+
+                        @if (FiltroPeriodoCompra == "custom")
+                        {
+                            <div class="d-flex mt-2 gap-2">
+                                <input type="date"
+                                       class="form-control form-control-sm"
+                                       @bind="PeriodoCompraDesde" />
+                                <input type="date"
+                                       class="form-control form-control-sm"
+                                       @bind="PeriodoCompraHasta" />
+                            </div>
+                            <small class="text-muted">Filtra por fecha de compra del lote.</small>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(FiltroPeriodoCompra))
+                        {
+                            <small class="text-muted d-block mt-1">
+                                Basado en la fecha de compra del lote.
+                            </small>
+                        }
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Fecha de expiración</label>
+                        <select class="form-select form-select-sm"
+                                @bind="FiltroPeriodoExp">
+                            <option value="">Todas</option>
+                            <option value="week">Próximos 7 días</option>
+                            <option value="month">Próximos 30 días</option>
+                            <option value="year">Próximos 12 meses</option>
+                            <option value="custom">Rango personalizado</option>
+                        </select>
+
+                        @if (FiltroPeriodoExp == "custom")
+                        {
+                            <div class="d-flex mt-2 gap-2">
+                                <input type="date"
+                                       class="form-control form-control-sm"
+                                       @bind="PeriodoExpDesde" />
+                                <input type="date"
+                                       class="form-control form-control-sm"
+                                       @bind="PeriodoExpHasta" />
+                            </div>
+                            <small class="text-muted">Filtra por fecha de expiración del lote.</small>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(FiltroPeriodoExp))
+                        {
+                            <small class="text-muted d-block mt-1">
+                                Basado en la fecha de expiración del lote.
+                            </small>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header d-flex align-items-center justify-content-between bg-transparent">
+            <div>
+                <h6 class="mb-0">Lotes (@FilteredCount resultados)</h6>
+                <small class="text-muted">
+                    Categoría seleccionada:
+                    @(string.IsNullOrWhiteSpace(categoriaSeleccionada) ? "-" : categoriaSeleccionada)
+                </small>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-light"
+                        title="Anterior"
+                        @onclick="PrevPage"
+                        disabled="@(pageIndex == 1)">
+                    <i class="ri-arrow-left-s-line"></i>
+                </button>
+                <span class="small text-muted">Página @pageIndex de @TotalPages</span>
+                <button class="btn btn-sm btn-light"
+                        title="Siguiente"
+                        @onclick="NextPage"
+                        disabled="@(pageIndex == TotalPages)">
+                    <i class="ri-arrow-right-s-line"></i>
                 </button>
             </div>
         </div>
-    </div>
-</div>
 
-<div class="card border-0 shadow-sm">
-    <div class="card-header d-flex align-items-center justify-content-between bg-transparent">
-        <h6 class="mb-0">Lotes por tipo de producto</h6>
-        <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-primary" @onclick="@(() => Nav.NavigateTo("/dashboards/lotes"))">
-                Crear lote (desde producto)
-            </button>
+        <div class="card-body px-3 pt-2 pb-0">
+            @if (categoriasProductos.Count > 0)
+            {
+                <nav class="nav nav-style-1 nav-pills mb-3" role="tablist">
+                    @foreach (var categoria in categoriasProductos)
+                    {
+                        var activo = !string.IsNullOrWhiteSpace(categoriaSeleccionada) &&
+                        string.Equals(categoria, categoriaSeleccionada, StringComparison.OrdinalIgnoreCase);
+
+                        <button type="button"
+                                class="nav-link @(activo ? "active" : "")"
+                                @onclick="@(() => SeleccionarCategoria(categoria))">
+                            @categoria
+                        </button>
+                    }
+                </nav>
+            }
         </div>
-    </div>
 
-    <div class="card-body p-0">
-        @if (isLoading)
-        {
-            <div class="text-muted p-4">Cargando lotes...</div>
-        }
-        else if (errorMessage != null)
-        {
-            <div class="text-danger p-4">Error: @errorMessage</div>
-        }
-        else
-        {
-            <div class="px-3 pt-3">
-                @if (tiposProductos.Count == 0)
-                {
-                    <div class="text-muted small mb-2">No hay tipos de producto registrados.</div>
-                }
-                else
-                {
-                    <nav class="nav nav-style-1 nav-pills mb-3" role="tablist">
-                        @foreach (var tipo in tiposProductos)
-                        {
-                            var activo = string.Equals(
-                            tipo, tipoSeleccionado,
-                            StringComparison.OrdinalIgnoreCase);
-
-                            <button type="button"
-                                    class="nav-link @(activo ? "active" : "")"
-                                    @onclick="@(() => SeleccionarTipo(tipo))">
-                                @tipo
-                            </button>
-                        }
-                    </nav>
-                }
-            </div>
-
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="mb-0 table align-middle">
-                    <thead class="text-muted">
+                <table class="table-hover mb-0 table align-middle">
+                    <thead class="table-light">
                         <tr>
-                            <th>ID Lote</th>
-                            <th>ID Prod</th>
-                            <th>Producto</th>
-                            <th>Tipo</th>
-                            <th>F. Compra</th>
-                            <th>F. Expira</th>
-                            <th>Cant. Lote</th>
-                            <th>Disponible</th>
-                            <th>Precio Venta</th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.CodLot)))"
+                                role="button"
+                                class="user-select-none">
+                                Código lote @IconoOrden(nameof(RowVM.CodLot))
+                            </th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.NombreProducto)))"
+                                role="button"
+                                class="user-select-none">
+                                Producto @IconoOrden(nameof(RowVM.NombreProducto))
+                            </th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.NombreCategoria)))"
+                                role="button"
+                                class="user-select-none">
+                                Categoría @IconoOrden(nameof(RowVM.NombreCategoria))
+                            </th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.FecCom)))"
+                                role="button"
+                                class="user-select-none">
+                                F. Compra @IconoOrden(nameof(RowVM.FecCom))
+                            </th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.FecExp)))"
+                                role="button"
+                                class="user-select-none">
+                                F. Expira @IconoOrden(nameof(RowVM.FecExp))
+                            </th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.CanLot)))"
+                                role="button"
+                                class="user-select-none">
+                                Cant. lote @IconoOrden(nameof(RowVM.CanLot))
+                            </th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.CanDis)))"
+                                role="button"
+                                class="user-select-none">
+                                Disponible @IconoOrden(nameof(RowVM.CanDis))
+                            </th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.PreCom)))"
+                                role="button"
+                                class="user-select-none">
+                                Precio compra @IconoOrden(nameof(RowVM.PreCom))
+                            </th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.PreVen)))"
+                                role="button"
+                                class="user-select-none">
+                                Precio venta @IconoOrden(nameof(RowVM.PreVen))
+                            </th>
                             <th>Estado</th>
                             <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @{
-                            var lista = LotesFiltrados().ToList();
-                        }
-
-                        @if (lista.Count == 0)
+                        @if (Paged.Count == 0)
                         {
                             <tr>
                                 <td colspan="11" class="text-muted py-4 text-center">
-                                    No hay lotes para el tipo seleccionado y filtros aplicados.
+                                    <i class="ri-inbox-line fs-3 d-block mb-2"></i>
+                                    No hay resultados con los filtros aplicados.
                                 </td>
                             </tr>
                         }
                         else
                         {
-                            @foreach (var l in lista)
+                            @foreach (var l in Paged)
                             {
-                                <tr>
-                                    <td>@l.Id</td>
-                                    <td>@l.IdPro</td>
+                                <tr @key="l.Id">
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(l.CodLot))
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary fw-semibold">
+                                                @l.CodLot
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
                                     <td>@l.NombreProducto</td>
-                                    <td>@l.TipoProducto</td>
-                                    <td>@l.FecCom.ToString("yyyy-MM-dd")</td>
-                                    <td>@l.FecExp.ToString("yyyy-MM-dd")</td>
+                                    <td>@l.NombreCategoria</td>
+                                    <td>
+                                        <small class="text-muted">
+                                            @l.FecCom.ToString("dd/MM/yyyy")
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            @l.FecExp.ToString("dd/MM/yyyy")
+                                        </small>
+                                    </td>
                                     <td>@l.CanLot</td>
                                     <td>@l.CanDis</td>
-                                    <td>$ @l.PreVen.ToString("0.00")</td>
+                                    <td><small>@FormatMoney(l.PreCom)</small></td>
+                                    <td><small>@FormatMoney(l.PreVen)</small></td>
                                     <td>
-                                        <span class="badge @(ClaseEstado(l.EstLot))">
-                                            @(l.EstLot ? "Activo" : "Inactivo")
-                                        </span>
+                                        @if (l.EstLot)
+                                        {
+                                            <span class="badge rounded-pill bg-success text-fixed-white d-inline-flex align-items-center gap-1 px-2 py-1">
+                                                <i class="ri-check-line fs-14"></i>
+                                                <span>Con stock</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge rounded-pill bg-danger text-fixed-white d-inline-flex align-items-center gap-1 px-2 py-1">
+                                                <i class="ri-close-line fs-14"></i>
+                                                <span>Sin stock</span>
+                                            </span>
+                                        }
                                     </td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-outline-primary"
-                                                @onclick="@(() => Nav.NavigateTo($"/dashboards/lotes/editar/{l.Id}"))"
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary"
+                                                @onclick="() => IrAEditar(l)"
                                                 title="Editar lote">
                                             <i class="ri-edit-line"></i>
                                         </button>
@@ -153,92 +485,721 @@
                     </tbody>
                 </table>
             </div>
-        }
+        </div>
     </div>
-</div>
+}
 
 @code {
-    private bool isLoading = true;
-    private string? errorMessage;
-    private List<LoteDto> lotes = new();
+    private List<RowVM> items = new();
+    private bool cargando = true;
+    private string? error;
 
-    private string filtroTexto = "";
-    private string filtroEstado = "Todos";
-    private DateTime? filtroDesde;
-    private DateTime? filtroHasta;
+    // Filtros rápidos
+    private string? _filtroTexto;
+    private string? _filtroEstado;
 
-    private readonly List<string> tiposProductos = new();
-    private string? tipoSeleccionado;
+    private string? FiltroTexto
+    {
+        get => _filtroTexto;
+        set
+        {
+            if (_filtroTexto != value)
+            {
+                _filtroTexto = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private string? FiltroEstado
+    {
+        get => _filtroEstado;
+        set
+        {
+            if (_filtroEstado != value)
+            {
+                _filtroEstado = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    // Filtros avanzados texto
+    private string? filtroCodLote;
+    private string? filtroProducto;
+
+    private bool mostrarFiltrosAvanzados;
+
+    private List<string> sugerenciasCodLote = new();
+    private List<string> sugerenciasProducto = new();
+
+    // Filtros numéricos (rangos)
+    private decimal? _filtroCantLoteMin;
+    private decimal? _filtroCantLoteMax;
+    private decimal? _filtroCantDispMin;
+    private decimal? _filtroCantDispMax;
+    private decimal? _filtroPrecioComMin;
+    private decimal? _filtroPrecioComMax;
+    private decimal? _filtroPrecioVenMin;
+    private decimal? _filtroPrecioVenMax;
+
+    private decimal? FiltroCantLoteMin
+    {
+        get => _filtroCantLoteMin;
+        set
+        {
+            if (_filtroCantLoteMin != value)
+            {
+                _filtroCantLoteMin = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroCantLoteMax
+    {
+        get => _filtroCantLoteMax;
+        set
+        {
+            if (_filtroCantLoteMax != value)
+            {
+                _filtroCantLoteMax = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroCantDispMin
+    {
+        get => _filtroCantDispMin;
+        set
+        {
+            if (_filtroCantDispMin != value)
+            {
+                _filtroCantDispMin = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroCantDispMax
+    {
+        get => _filtroCantDispMax;
+        set
+        {
+            if (_filtroCantDispMax != value)
+            {
+                _filtroCantDispMax = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroPrecioComMin
+    {
+        get => _filtroPrecioComMin;
+        set
+        {
+            if (_filtroPrecioComMin != value)
+            {
+                _filtroPrecioComMin = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroPrecioComMax
+    {
+        get => _filtroPrecioComMax;
+        set
+        {
+            if (_filtroPrecioComMax != value)
+            {
+                _filtroPrecioComMax = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroPrecioVenMin
+    {
+        get => _filtroPrecioVenMin;
+        set
+        {
+            if (_filtroPrecioVenMin != value)
+            {
+                _filtroPrecioVenMin = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroPrecioVenMax
+    {
+        get => _filtroPrecioVenMax;
+        set
+        {
+            if (_filtroPrecioVenMax != value)
+            {
+                _filtroPrecioVenMax = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    // Filtro periodo (fecha compra)
+    private string? _filtroPeriodoCompra;
+    private string? FiltroPeriodoCompra
+    {
+        get => _filtroPeriodoCompra;
+        set
+        {
+            if (_filtroPeriodoCompra != value)
+            {
+                _filtroPeriodoCompra = value;
+                if (_filtroPeriodoCompra != "custom")
+                {
+                    PeriodoCompraDesde = null;
+                    PeriodoCompraHasta = null;
+                }
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private DateTime? _periodoCompraDesde;
+    private DateTime? PeriodoCompraDesde
+    {
+        get => _periodoCompraDesde;
+        set
+        {
+            if (_periodoCompraDesde != value)
+            {
+                _periodoCompraDesde = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private DateTime? _periodoCompraHasta;
+    private DateTime? PeriodoCompraHasta
+    {
+        get => _periodoCompraHasta;
+        set
+        {
+            if (_periodoCompraHasta != value)
+            {
+                _periodoCompraHasta = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    // Filtro periodo (fecha expiración)
+    private string? _filtroPeriodoExp;
+    private string? FiltroPeriodoExp
+    {
+        get => _filtroPeriodoExp;
+        set
+        {
+            if (_filtroPeriodoExp != value)
+            {
+                _filtroPeriodoExp = value;
+                if (_filtroPeriodoExp != "custom")
+                {
+                    PeriodoExpDesde = null;
+                    PeriodoExpHasta = null;
+                }
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private DateTime? _periodoExpDesde;
+    private DateTime? PeriodoExpDesde
+    {
+        get => _periodoExpDesde;
+        set
+        {
+            if (_periodoExpDesde != value)
+            {
+                _periodoExpDesde = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private DateTime? _periodoExpHasta;
+    private DateTime? PeriodoExpHasta
+    {
+        get => _periodoExpHasta;
+        set
+        {
+            if (_periodoExpHasta != value)
+            {
+                _periodoExpHasta = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    // Paginación y ordenamiento
+    private int pageIndex = 1;
+    private int _pageSize = 10;
+
+    private int pageSize
+    {
+        get => _pageSize;
+        set
+        {
+            if (_pageSize != value)
+            {
+                _pageSize = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private string? sortBy;
+    private bool sortAsc = true;
+
+    // Categorías (pestañas)
+    private readonly List<string> categoriasProductos = new();
+    private string? categoriaSeleccionada;
 
     protected override async Task OnInitializedAsync()
     {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
         try
         {
-            isLoading = true;
-            lotes = await LotesApi.GetAllAsync();
+            cargando = true;
+            error = null;
 
-            var tipos = lotes
-                .Select(x => x.TipoProducto)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(x => x)
+            var lotes = await LotesApi.GetAllAsync();
+
+            items = lotes
+                .Select(l => new RowVM
+                {
+                    Id = l.Id,
+                    CodLot = l.CodLot,
+                    NombreProducto = l.NombreProducto ?? string.Empty,
+                    NombreCategoria = l.NombreCategoria,
+                    NombreTipoTributario = l.NombreTipoTributario,
+                    FecCom = l.FecCom,
+                    FecExp = l.FecExp,
+                    CanLot = l.CanLot,
+                    CanDis = l.CanDis,
+                    PreCom = l.PreCom,
+                    PreVen = l.PreVen,
+                    EstLot = l.EstLot
+                })
+                .OrderByDescending(r => r.FecCom)
                 .ToList();
 
-            tiposProductos.Clear();
-            tiposProductos.AddRange(tipos);
+            categoriasProductos.Clear();
+            categoriasProductos.AddRange(
+                items
+                    .Select(x => x.NombreCategoria)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(x => x)
+            );
 
-            if (tiposProductos.Count > 0)
-                tipoSeleccionado = tiposProductos[0];
+            if (categoriasProductos.Count > 0)
+            {
+                if (string.IsNullOrWhiteSpace(categoriaSeleccionada) ||
+                    !categoriasProductos.Contains(categoriaSeleccionada, StringComparer.OrdinalIgnoreCase))
+                {
+                    categoriaSeleccionada = categoriasProductos[0];
+                }
+            }
+            else
+            {
+                categoriaSeleccionada = null;
+            }
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
         {
-            errorMessage = ex.Message;
+            error = "Error al cargar lotes: " + ex.Message;
         }
         finally
         {
-            isLoading = false;
+            cargando = false;
         }
     }
 
-    private IEnumerable<LoteDto> LotesFiltrados()
+    private async Task Recargar()
     {
-        IEnumerable<LoteDto> q = lotes;
-
-        if (!string.IsNullOrWhiteSpace(tipoSeleccionado))
-            q = q.Where(x => string.Equals(
-                x.TipoProducto,
-                tipoSeleccionado,
-                StringComparison.OrdinalIgnoreCase));
-
-        if (!string.IsNullOrWhiteSpace(filtroTexto))
-            q = q.Where(x => ($"{x.Id} {x.IdPro} {x.NombreProducto} {x.TipoProducto}")
-                 .Contains(filtroTexto, StringComparison.OrdinalIgnoreCase));
-
-        if (filtroEstado != "Todos")
-            q = q.Where(x => filtroEstado == "Activo" ? x.EstLot : !x.EstLot);
-
-        if (filtroDesde is not null)
-            q = q.Where(x => x.FecCom.Date >= filtroDesde.Value.Date);
-
-        if (filtroHasta is not null)
-            q = q.Where(x => x.FecCom.Date <= filtroHasta.Value.Date);
-
-        return q.OrderByDescending(x => x.Id);
-    }
-
-    private void SeleccionarTipo(string tipo)
-    {
-        tipoSeleccionado = tipo;
+        await CargarDatos();
+        pageIndex = 1;
     }
 
     private void LimpiarFiltros()
     {
-        filtroTexto = "";
-        filtroEstado = "Todos";
-        filtroDesde = filtroHasta = null;
+        FiltroTexto = null;
+        FiltroEstado = null;
+
+        filtroCodLote = null;
+        filtroProducto = null;
+
+        sugerenciasCodLote.Clear();
+        sugerenciasProducto.Clear();
+
+        FiltroCantLoteMin = null;
+        FiltroCantLoteMax = null;
+        FiltroCantDispMin = null;
+        FiltroCantDispMax = null;
+        FiltroPrecioComMin = null;
+        FiltroPrecioComMax = null;
+        FiltroPrecioVenMin = null;
+        FiltroPrecioVenMax = null;
+
+        FiltroPeriodoCompra = null;
+        PeriodoCompraDesde = null;
+        PeriodoCompraHasta = null;
+
+        FiltroPeriodoExp = null;
+        PeriodoExpDesde = null;
+        PeriodoExpHasta = null;
+
+        sortBy = null;
+        sortAsc = true;
+
+        if (categoriasProductos.Count > 0)
+        {
+            categoriaSeleccionada = categoriasProductos[0];
+        }
+        else
+        {
+            categoriaSeleccionada = null;
+        }
+
+        pageIndex = 1;
     }
 
-    private static string ClaseEstado(bool estLot) =>
-        estLot ? "bg-success-subtle text-success"
-               : "bg-danger-subtle text-danger";
+    private void ToggleFiltrosAvanzados()
+    {
+        mostrarFiltrosAvanzados = !mostrarFiltrosAvanzados;
+    }
+
+    // Autocompletado texto
+    private void OnCodLoteInput(ChangeEventArgs e)
+    {
+        filtroCodLote = e.Value?.ToString();
+        sugerenciasCodLote = CalcularSugerencias(filtroCodLote, x => x.CodLot);
+        pageIndex = 1;
+    }
+
+    private void OnProductoInput(ChangeEventArgs e)
+    {
+        filtroProducto = e.Value?.ToString();
+        sugerenciasProducto = CalcularSugerencias(filtroProducto, x => x.NombreProducto);
+        pageIndex = 1;
+    }
+
+    private void SeleccionarSugerenciaCodLote(string valor)
+    {
+        filtroCodLote = valor;
+        sugerenciasCodLote.Clear();
+        pageIndex = 1;
+    }
+
+    private void SeleccionarSugerenciaProducto(string valor)
+    {
+        filtroProducto = valor;
+        sugerenciasProducto.Clear();
+        pageIndex = 1;
+    }
+
+    private List<string> CalcularSugerencias(string? valor, Func<RowVM, string?> selector)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+            return new List<string>();
+
+        var query = valor.Trim();
+        if (query.Length < 2)
+            return new List<string>();
+
+        return items
+            .Select(selector)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(s => s.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
+            .OrderBy(s => s)
+            .Take(8)
+            .ToList();
+    }
+
+    // Filtrado
+    private List<RowVM> Filtered
+    {
+        get
+        {
+            var r = items.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(categoriaSeleccionada))
+            {
+                var cat = categoriaSeleccionada;
+                r = r.Where(x =>
+                    string.Equals(x.NombreCategoria, cat, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(_filtroTexto))
+            {
+                var q = _filtroTexto.Trim();
+                r = r.Where(x =>
+                    ContainsIgnoreCase(x.CodLot, q) ||
+                    ContainsIgnoreCase(x.NombreProducto, q) ||
+                    ContainsIgnoreCase(x.NombreCategoria, q));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filtroCodLote))
+            {
+                var q = filtroCodLote.Trim();
+                r = r.Where(x => ContainsIgnoreCase(x.CodLot, q));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filtroProducto))
+            {
+                var q = filtroProducto.Trim();
+                r = r.Where(x => ContainsIgnoreCase(x.NombreProducto, q));
+            }
+
+            r = AplicarFiltroRangoDecimal(r, x => (decimal?)x.CanLot, FiltroCantLoteMin, FiltroCantLoteMax);
+            r = AplicarFiltroRangoDecimal(r, x => (decimal?)x.CanDis, FiltroCantDispMin, FiltroCantDispMax);
+            r = AplicarFiltroRangoDecimal(r, x => x.PreCom, FiltroPrecioComMin, FiltroPrecioComMax);
+            r = AplicarFiltroRangoDecimal(r, x => x.PreVen, FiltroPrecioVenMin, FiltroPrecioVenMax);
+
+            if (!string.IsNullOrWhiteSpace(_filtroEstado))
+            {
+                var activo = _filtroEstado == "activos";
+                r = r.Where(x => x.EstLot == activo);
+            }
+
+            // Fecha compra
+            if (!string.IsNullOrWhiteSpace(_filtroPeriodoCompra) ||
+                PeriodoCompraDesde.HasValue || PeriodoCompraHasta.HasValue)
+            {
+                var now = DateTime.Now;
+                DateTime? from = null;
+                DateTime? to = null;
+
+                switch (_filtroPeriodoCompra)
+                {
+                    case "week":
+                        from = now.AddDays(-7).Date;
+                        break;
+                    case "month":
+                        from = now.AddDays(-30).Date;
+                        break;
+                    case "year":
+                        from = now.AddYears(-1).Date;
+                        break;
+                    case "custom":
+                        if (PeriodoCompraDesde.HasValue)
+                            from = PeriodoCompraDesde.Value.Date;
+                        if (PeriodoCompraHasta.HasValue)
+                            to = PeriodoCompraHasta.Value.Date;
+                        break;
+                }
+
+                if (string.IsNullOrWhiteSpace(_filtroPeriodoCompra) &&
+                    (PeriodoCompraDesde.HasValue || PeriodoCompraHasta.HasValue))
+                {
+                    from ??= PeriodoCompraDesde?.Date;
+                    to ??= PeriodoCompraHasta?.Date;
+                }
+
+                if (from.HasValue || to.HasValue)
+                {
+                    r = r.Where(x =>
+                    {
+                        var fecha = x.FecCom.Date;
+                        if (from.HasValue && fecha < from.Value) return false;
+                        if (to.HasValue && fecha > to.Value) return false;
+                        return true;
+                    });
+                }
+            }
+
+            // Fecha expiración
+            if (!string.IsNullOrWhiteSpace(_filtroPeriodoExp) ||
+                PeriodoExpDesde.HasValue || PeriodoExpHasta.HasValue)
+            {
+                var now = DateTime.Now;
+                DateTime? from = null;
+                DateTime? to = null;
+
+                switch (_filtroPeriodoExp)
+                {
+                    case "week":
+                        from = now.Date;
+                        to = now.AddDays(7).Date;
+                        break;
+                    case "month":
+                        from = now.Date;
+                        to = now.AddDays(30).Date;
+                        break;
+                    case "year":
+                        from = now.Date;
+                        to = now.AddYears(1).Date;
+                        break;
+                    case "custom":
+                        if (PeriodoExpDesde.HasValue)
+                            from = PeriodoExpDesde.Value.Date;
+                        if (PeriodoExpHasta.HasValue)
+                            to = PeriodoExpHasta.Value.Date;
+                        break;
+                }
+
+                if (string.IsNullOrWhiteSpace(_filtroPeriodoExp) &&
+                    (PeriodoExpDesde.HasValue || PeriodoExpHasta.HasValue))
+                {
+                    from ??= PeriodoExpDesde?.Date;
+                    to ??= PeriodoExpHasta?.Date;
+                }
+
+                if (from.HasValue || to.HasValue)
+                {
+                    r = r.Where(x =>
+                    {
+                        var fecha = x.FecExp.Date;
+                        if (from.HasValue && fecha < from.Value) return false;
+                        if (to.HasValue && fecha > to.Value) return false;
+                        return true;
+                    });
+                }
+            }
+
+            r = Ordenar(r);
+            return r.ToList();
+        }
+    }
+
+    private IEnumerable<RowVM> AplicarFiltroRangoDecimal(
+        IEnumerable<RowVM> src,
+        Func<RowVM, decimal?> selector,
+        decimal? min,
+        decimal? max)
+    {
+        var tieneMin = min.HasValue;
+        var tieneMax = max.HasValue;
+
+        if (!tieneMin && !tieneMax) return src;
+
+        return src.Where(x =>
+        {
+            var v = selector(x);
+            if (!v.HasValue) return false;
+            if (tieneMin && v.Value < min.Value) return false;
+            if (tieneMax && v.Value > max.Value) return false;
+            return true;
+        });
+    }
+
+    private int FilteredCount => Filtered.Count;
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredCount / (double)pageSize));
+
+    private List<RowVM> Paged =>
+        Filtered
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+    // Ordenamiento
+    private IEnumerable<RowVM> Ordenar(IEnumerable<RowVM> src)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+            return src;
+
+        Func<RowVM, object?> key = sortBy switch
+        {
+            nameof(RowVM.CodLot) => x => x.CodLot ?? string.Empty,
+            nameof(RowVM.NombreProducto) => x => x.NombreProducto ?? string.Empty,
+            nameof(RowVM.NombreCategoria) => x => x.NombreCategoria ?? string.Empty,
+            nameof(RowVM.FecCom) => x => x.FecCom.Ticks,
+            nameof(RowVM.FecExp) => x => x.FecExp.Ticks,
+            nameof(RowVM.CanLot) => x => x.CanLot,
+            nameof(RowVM.CanDis) => x => x.CanDis,
+            nameof(RowVM.PreCom) => x => x.PreCom,
+            nameof(RowVM.PreVen) => x => x.PreVen,
+            _ => x => x.CodLot ?? string.Empty
+        };
+
+        return sortAsc ? src.OrderBy(key) : src.OrderByDescending(key);
+    }
+
+    private void OrdenarPor(string prop)
+    {
+        if (sortBy == prop)
+        {
+            sortAsc = !sortAsc;
+        }
+        else
+        {
+            sortBy = prop;
+            sortAsc = true;
+        }
+
+        pageIndex = 1;
+    }
+
+    private string IconoOrden(string prop) =>
+        sortBy != prop ? string.Empty : (sortAsc ? "↑" : "↓");
+
+    private void PrevPage()
+    {
+        if (pageIndex > 1) pageIndex--;
+    }
+
+    private void NextPage()
+    {
+        if (pageIndex < TotalPages) pageIndex++;
+    }
+
+    // Navegación
+    private void IrAEditar(RowVM r)
+    {
+        if (r.Id <= 0) return;
+        Navigation.NavigateTo($"/dashboards/lotes/editar/{r.Id}");
+    }
+
+    private void SeleccionarCategoria(string categoria)
+    {
+        categoriaSeleccionada = categoria;
+        pageIndex = 1;
+    }
+
+    // Utilidades
+    private static bool ContainsIgnoreCase(string? source, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(value))
+            return false;
+
+        return source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static string FormatMoney(decimal v) => v.ToString("N2");
+
+    private sealed class RowVM
+    {
+        public int Id { get; init; }
+        public string? CodLot { get; init; }
+        public string NombreProducto { get; init; } = string.Empty;
+        public string NombreCategoria { get; init; } = string.Empty;
+        public string NombreTipoTributario { get; init; } = string.Empty;
+        public DateTime FecCom { get; init; }
+        public DateTime FecExp { get; init; }
+        public int CanLot { get; init; }
+        public int CanDis { get; init; }
+        public decimal PreCom { get; init; }
+        public decimal PreVen { get; init; }
+        public bool EstLot { get; set; }
+    }
 }
