@@ -1,0 +1,198 @@
+﻿@using sistemaFacturacion.Models
+@using sistemaFacturacion.Services
+@inject IFacturasApiClient FacturasApi
+@namespace sistemaFacturacion.Components.Pages.Dashboards.Facturas.Steps
+
+<div class="row justify-content-center">
+    <div class="col-xl-10">
+
+        <h5 class="mb-3 text-primary">
+            <i class="ri-checkbox-circle-line me-1"></i> Confirmar y Emitir Factura
+        </h5>
+
+        <!-- Si YA se creó la factura -->
+        @if (_facturaCreada != null)
+        {
+            <div class="text-center py-4">
+                <div class="mb-3">
+                    <span class="avatar avatar-xl bg-success-subtle rounded-circle">
+                        <i class="ri-check-line fs-1 text-success"></i>
+                    </span>
+                </div>
+
+                <h4 class="fw-bold text-success">¡Factura generada exitosamente!</h4>
+                <p class="text-muted">La factura fue registrada correctamente en el sistema.</p>
+
+                <div class="card bg-light shadow-sm mb-4">
+                    <div class="card-body text-start">
+                        <p><strong>N° Factura:</strong> @_facturaCreada.NumFac</p>
+                        <p><strong>Fecha:</strong> @_facturaCreada.FecFac.ToString("dd/MM/yyyy HH:mm")</p>
+                        <p><strong>Cliente:</strong> @_facturaCreada.Cliente?.NomCli</p>
+                        <p><strong>Total:</strong> $@_facturaCreada.TotFac.ToString("N2")</p>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary me-2">
+                    <i class="ri-printer-line"></i> Imprimir
+                </button>
+
+                <button class="btn btn-outline-primary me-2">
+                    <i class="ri-download-line"></i> Descargar PDF
+                </button>
+
+                <button class="btn btn-success"
+                        @onclick="NuevaFactura">
+                    <i class="ri-add-line"></i> Nueva factura
+                </button>
+            </div>
+        }
+        else
+        {
+            <!-- Vista previa antes de emitir -->
+            <div class="card border shadow-sm">
+                <div class="card-header bg-light fw-semibold">
+                    Verificación Final
+                </div>
+
+                <div class="card-body">
+
+                    @if (!FacturaCompleta)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="ri-alert-line me-1"></i>
+                            Falta información para emitir la factura:
+                            <ul class="mt-2">
+                                <li>Seleccione un cliente</li>
+                                <li>Agregue al menos un ítem</li>
+                                <li>Debe tener IdEmpleado e IdUsuario</li>
+                            </ul>
+                        </div>
+                    }
+
+                    <!-- Resumen cliente -->
+                    <h6 class="fw-bold mt-3">Cliente</h6>
+                    <p><strong>@Factura.NombreCliente</strong></p>
+                    <p>Documento: @Factura.DocumentoCliente</p>
+                    <p>Correo: @Factura.CorreoCliente</p>
+
+                    <!-- Tabla -->
+                    <h6 class="fw-bold mt-4">Detalles</h6>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Producto</th>
+                                    <th>Lote</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-end">P.Unit</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Factura.Detalles.Select((d, i) => new { d, i }))
+                                {
+                                    <tr>
+                                        <td>@(item.i + 1)</td>
+                                        <td>@item.d.NombreProducto</td>
+                                        <td>@item.d.CodigoLote</td>
+                                        <td class="text-center">@item.d.Cantidad</td>
+                                        <td class="text-end">@item.d.PrecioUnitario.ToString("0.00")</td>
+                                        <td class="text-end">@item.d.Subtotal.ToString("0.00")</td>
+                                    </tr>
+                                }
+                            </tbody>
+
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="5" class="text-end fw-semibold">Subtotal:</td>
+                                    <td class="text-end">@Factura.Subtotal.ToString("0.00")</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="5" class="text-end fw-semibold">IVA (12%):</td>
+                                    <td class="text-end">@Factura.Iva.ToString("0.00")</td>
+                                </tr>
+                                <tr class="table-primary fw-bold">
+                                    <td colspan="5" class="text-end">TOTAL:</td>
+                                    <td class="text-end">@Factura.Total.ToString("0.00")</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_error))
+                    {
+                        <div class="alert alert-danger mt-3">@_error</div>
+                    }
+
+                    <div class="d-flex justify-content-end mt-3">
+                        <button class="btn btn-primary"
+                                disabled="@_enviando || !FacturaCompleta"
+                                @onclick="EnviarFactura">
+                            @if (_enviando)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            Emitir Factura
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    [Parameter] public FacturaDraft Factura { get; set; } = default!;
+    [Parameter] public EventCallback OnNuevaFactura { get; set; }
+
+    private FacturaDto? _facturaCreada;
+    private bool _enviando = false;
+    private string? _error;
+
+    private bool FacturaCompleta =>
+        Factura.IdCliente.HasValue &&
+        Factura.IdUsuario.HasValue &&
+        Factura.IdEmpleado.HasValue &&
+        Factura.Detalles.Count > 0;
+
+    private async Task EnviarFactura()
+    {
+        _error = null;
+        _enviando = true;
+
+        try
+        {
+            var request = Factura.ToCreateRequest();  // ya lo tienes definido
+            var result = await FacturasApi.CreateAsync(request);
+
+            if (result is null)
+            {
+                _error = "No se pudo crear la factura.";
+            }
+            else
+            {
+                _facturaCreada = result;
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = "Error al emitir factura: " + ex.Message;
+        }
+        finally
+        {
+            _enviando = false;
+        }
+    }
+
+    private async Task NuevaFactura()
+    {
+        _facturaCreada = null;
+        _error = null;
+
+        if (OnNuevaFactura.HasDelegate)
+            await OnNuevaFactura.InvokeAsync();
+    }
+}

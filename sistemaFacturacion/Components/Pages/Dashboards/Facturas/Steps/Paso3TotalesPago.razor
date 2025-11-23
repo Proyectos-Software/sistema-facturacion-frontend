@@ -1,0 +1,79 @@
+﻿@using sistemaFacturacion.Models
+@namespace sistemaFacturacion.Components.Pages.Dashboards.Facturas.Steps
+
+<div class="row justify-content-center">
+    <div class="col-xl-8">
+
+        <h6 class="mb-3 text-primary">
+            <i class="ri-money-dollar-circle-line me-1"></i> Resumen de Totales
+        </h6>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+
+                @if (Factura.Detalles.Count == 0)
+                {
+                    <div class="alert alert-warning">
+                        No hay productos agregados. Agrega ítems antes de continuar.
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-3">
+
+                        <!-- SUBTOTAL -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Subtotal</label>
+                            <input class="form-control text-end"
+                                   disabled
+                                   value="@Factura.Subtotal.ToString("0.00")" />
+                        </div>
+
+                        <!-- IVA -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">IVA (12%)</label>
+                            <input class="form-control text-end"
+                                   disabled
+                                   value="@Factura.Iva.ToString("0.00")" />
+                        </div>
+
+                        <!-- TOTAL -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Total</label>
+                            <input class="form-control text-end fw-bold"
+                                   disabled
+                                   value="@Factura.Total.ToString("0.00")" />
+                        </div>
+
+                        <!-- FORMA DE PAGO (opcional) -->
+                        <div class="col-md-6 mt-3">
+                            <label class="form-label fw-semibold">Forma de Pago</label>
+                            <select class="form-select" @bind="_formaPago">
+                                <option value="EFECTIVO">Efectivo</option>
+                                <option value="TRANSFERENCIA">Transferencia</option>
+                                <option value="TARJETA">Tarjeta</option>
+                            </select>
+                        </div>
+
+                        <!-- OBSERVACIONES (opcional) -->
+                        <div class="col-md-12 mt-3">
+                            <label class="form-label fw-semibold">Observaciones</label>
+                            <textarea class="form-control" rows="2" @bind="_observaciones"></textarea>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@code {
+
+    [Parameter] public FacturaDraft Factura { get; set; } = default!;
+
+    // Campos opcionales (puedes eliminarlos si no quieres)
+    private string _formaPago = "EFECTIVO";
+    private string _observaciones = "";
+}
+ 
