@@ -105,9 +105,22 @@ else if (form is not null)
                     <i class="ri-id-card-line fs-4"></i>
                 </div>
                 <div>
-                    <h5 class="mb-0">@form.Nombre @form.Apellido</h5>
+                    <h5 class="mb-0">
+                        @if (EsEmpresa)
+                        {
+                            @form.Nombre
+                        }
+                        else
+                        {
+                            @($"{form.Nombre} {form.Apellido}")
+                        }
+                    </h5>
                     <small class="text-muted">
                         @form.TipoIdentificacion: <strong>@form.Identificacion</strong>
+                        @if (EsEmpresa)
+                        {
+                            <span class="ms-2">· Persona jurídica</span>
+                        }
                     </small>
                 </div>
             </div>
@@ -146,15 +159,19 @@ else if (form is not null)
                                 <small class="text-muted">Campo no editable.</small>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Nombre</label>
+                                <label class="form-label">@((EsEmpresa ? "Nombre / Razón social" : "Nombre"))</label>
                                 <InputText class="form-control" @bind-Value="form.Nombre" readonly />
                                 <small class="text-muted">Campo no editable.</small>
                             </div>
-                            <div>
-                                <label class="form-label">Apellido</label>
-                                <InputText class="form-control" @bind-Value="form.Apellido" readonly />
-                                <small class="text-muted">Campo no editable.</small>
-                            </div>
+
+                            @if (!EsEmpresa)
+                            {
+                                <div>
+                                    <label class="form-label">Apellido</label>
+                                    <InputText class="form-control" @bind-Value="form.Apellido" readonly />
+                                    <small class="text-muted">Campo no editable.</small>
+                                </div>
+                            }
                         </div>
                     </div>
 
@@ -288,6 +305,10 @@ else if (yaBusco)
     private bool yaBusco = false;
     private int? clienteId;
     private bool _initDone = false;
+
+    private bool EsEmpresa =>
+        (form?.TipoIdentificacion ?? "").Trim().ToUpperInvariant() == "RUC" &&
+        string.Equals((form?.Apellido ?? "").Trim(), "-", StringComparison.Ordinal);
 
     private string? TipoSeleccionado
     {

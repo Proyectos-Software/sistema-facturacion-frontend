@@ -1,9 +1,13 @@
 ﻿@page "/dashboards/clientes/crear"
+@using System.Collections.Generic
 @using System.ComponentModel.DataAnnotations
+@using System.Linq
+@using System.Text.RegularExpressions
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Forms
-@using System.Text.RegularExpressions
 @using CurrieTechnologies.Razor.SweetAlert2
+@using sistemaFacturacion
+@using sistemaFacturacion.Models
 @inject IClientesApiClient ClientesApi
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Nav
@@ -56,6 +60,22 @@
                                 <ValidationMessage For="@(() => form.TipoIdentificacion)" />
                             </div>
 
+                            @if (form.TipoIdentificacion == "RUC")
+                            {
+                                <div class="col-12">
+                                    <label class="form-label">Tipo de RUC</label>
+                                    <InputSelect class="form-select" @bind-Value="form.TipoRucPersona">
+                                        <option value="">-- Selecciona --</option>
+                                        <option value="NATURAL">Persona natural</option>
+                                        <option value="JURIDICA">Persona jurídica (empresa)</option>
+                                    </InputSelect>
+                                    <small class="text-muted d-block mt-1">
+                                        Define si el RUC pertenece a una persona natural o a una empresa.
+                                    </small>
+                                    <ValidationMessage For="@(() => form.TipoRucPersona)" />
+                                </div>
+                            }
+
                             <div class="col-12">
                                 <label class="form-label">Identificación / RUC</label>
                                 <InputText id="ident-input"
@@ -70,12 +90,12 @@
                                                form.Identificacion = CleanInputByType(e.Value?.ToString());
                                                CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Identificacion));
                                            }" />
-                                  <small class="text-muted d-block mt-1">@IdentHelpText</small>
-                                  <ValidationMessage For="@(() => form.Identificacion)" />
-                              </div>
-                          </div>
-                      </div>
-                  </div>
+                                <small class="text-muted d-block mt-1">@IdentHelpText</small>
+                                <ValidationMessage For="@(() => form.Identificacion)" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="col-xl-7 col-lg-6">
                     <div class="rounded-3 h-100 border p-3">
@@ -85,37 +105,58 @@
                         </h6>
 
                         <div class="row g-3">
-                            <div class="col-md-6 col-12">
-                                <label class="form-label">Nombre</label>
-                                <InputText id="nom-input"
-                                           class="form-control"
-                                           @bind-Value="form.Nombre"
-                                           placeholder="Nombres"
-                                           maxlength="100"
-                                           autocomplete="off"
-                                           @oninput="e =>
-                                           {
-                                               form.Nombre = CleanSoloLetras(e.Value?.ToString(), 100);
-                                               CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Nombre));
-                                           }" />
-                                  <ValidationMessage For="@(() => form.Nombre)" />
-                              </div>
-                              <div class="col-md-6 col-12">
-                                  <label class="form-label">Apellido</label>
-                                  <InputText id="ape-input"
-                                             class="form-control"
-                                             @bind-Value="form.Apellido"
-                                             placeholder="Apellidos"
-                                             maxlength="100"
-                                             autocomplete="off"
-                                             @oninput="e =>
-                                           {
-                                               form.Apellido = CleanSoloLetras(e.Value?.ToString(), 100);
-                                               CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Apellido));
-                                           }" />
-                                  <ValidationMessage For="@(() => form.Apellido)" />
-                              </div>
-                          </div>
+                            @if (EsRucJuridico)
+                            {
+                                <div class="col-12">
+                                    <label class="form-label">Nombre / Razón social</label>
+                                    <InputText id="nom-input"
+                                               class="form-control"
+                                               @bind-Value="form.Nombre"
+                                               placeholder="Nombre comercial o razón social"
+                                               maxlength="100"
+                                               autocomplete="off"
+                                               @oninput="e =>
+                                               {
+                                                   form.Nombre = CleanSoloLetras(e.Value?.ToString(), 100);
+                                                   CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Nombre));
+                                               }" />
+                                      <ValidationMessage For="@(() => form.Nombre)" />
+                                  </div>
+                            }
+                            else
+                            {
+                                <div class="col-md-6 col-12">
+                                    <label class="form-label">Nombre</label>
+                                    <InputText id="nom-input"
+                                               class="form-control"
+                                               @bind-Value="form.Nombre"
+                                               placeholder="Nombres"
+                                               maxlength="100"
+                                               autocomplete="off"
+                                               @oninput="e =>
+                                               {
+                                                   form.Nombre = CleanSoloLetras(e.Value?.ToString(), 100);
+                                                   CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Nombre));
+                                               }" />
+                                      <ValidationMessage For="@(() => form.Nombre)" />
+                                  </div>
+                                  <div class="col-md-6 col-12">
+                                      <label class="form-label">Apellido</label>
+                                      <InputText id="ape-input"
+                                                 class="form-control"
+                                                 @bind-Value="form.Apellido"
+                                                 placeholder="Apellidos"
+                                                 maxlength="100"
+                                                 autocomplete="off"
+                                                 @oninput="e =>
+                                               {
+                                                   form.Apellido = CleanSoloLetras(e.Value?.ToString(), 100);
+                                                   CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Apellido));
+                                               }" />
+                                      <ValidationMessage For="@(() => form.Apellido)" />
+                                  </div>
+                            }
+                        </div>
 
                         <div class="row g-3 mt-1">
                             <div class="col-12">
@@ -178,7 +219,7 @@
                     </button>
 
                     <a class="btn btn-light btn-wave"
-                       href="/dashboards/clientes">
+                       href="/dashboards/clientes/listar">
                         <i class="ri-arrow-go-back-line me-1 align-middle"></i>
                         Volver
                     </a>
@@ -237,21 +278,6 @@
         el.addEventListener("input", filter);
         el.addEventListener("paste", () => setTimeout(filter, 0));
         el.addEventListener("keypress", (e) => { if (!/[A-Za-zÁÉÍÓÚáéíóúÑñ\s]/.test(e.key)) e.preventDefault(); });
-      }
-      function attachAlnum(el, max) {
-        if (!el || el.dataset.guardAlnum === "1") return;
-        el.dataset.guardAlnum = "1";
-        function filter() {
-          let v = el.value.replace(/[^A-Za-z0-9]/g, "");
-          if (max && max > 0) v = v.slice(0, max);
-          if (v !== el.value) {
-            el.value = v;
-            el.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        }
-        el.addEventListener("input", filter);
-        el.addEventListener("paste", () => setTimeout(filter, 0));
-        el.addEventListener("keypress", (e) => { if (!/[A-Za-z0-9]/.test(e.key)) e.preventDefault(); });
       }
       window.initClientFormGuards = function (cfg) {
         g.ident = document.getElementById(cfg.identId);
@@ -360,10 +386,16 @@
         return cleaned;
     }
 
+    private bool EsRucJuridico =>
+        (form.TipoIdentificacion ?? "").Trim().Equals("RUC", StringComparison.OrdinalIgnoreCase) &&
+        (form.TipoRucPersona ?? "").Trim().Equals("JURIDICA", StringComparison.OrdinalIgnoreCase);
+
     public class ClienteCreateVM : IValidatableObject
     {
         [Required(ErrorMessage = "Seleccione el tipo de identificación.")]
         public string? TipoIdentificacion { get; set; }
+
+        public string? TipoRucPersona { get; set; }
 
         [Required(ErrorMessage = "La identificación es obligatoria.")]
         public string? Identificacion { get; set; }
@@ -373,8 +405,6 @@
         [StringLength(100, ErrorMessage = "Máximo 100 caracteres.")]
         public string? Nombre { get; set; }
 
-        [Required(ErrorMessage = "El apellido es obligatorio.")]
-        [RegularExpression(@"^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$", ErrorMessage = "El apellido solo debe contener letras.")]
         [StringLength(100, ErrorMessage = "Máximo 100 caracteres.")]
         public string? Apellido { get; set; }
 
@@ -393,31 +423,73 @@
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            if (string.IsNullOrWhiteSpace(TipoIdentificacion) || string.IsNullOrWhiteSpace(Identificacion))
+            var tipo = (TipoIdentificacion ?? "").Trim().ToUpperInvariant();
+            var id = (Identificacion ?? "").Trim();
+            var tipoRuc = (TipoRucPersona ?? "").Trim().ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(tipo) || string.IsNullOrWhiteSpace(id))
                 yield break;
 
-            var id = Identificacion.Trim();
+            var esRuc = tipo == "RUC";
+            var esRucJuridico = esRuc && tipoRuc == "JURIDICA";
 
-            if (TipoIdentificacion == "Cedula" || TipoIdentificacion == "RUC")
+            if (tipo is "CEDULA" or "RUC")
             {
                 if (!id.All(char.IsDigit))
                     yield return new ValidationResult("Solo se permiten dígitos.", new[] { nameof(Identificacion) });
             }
 
-            if (TipoIdentificacion == "Cedula")
+            if (esRuc && string.IsNullOrWhiteSpace(TipoRucPersona))
+            {
+                yield return new ValidationResult(
+                    "Seleccione si el RUC es de persona natural o jurídica.",
+                    new[] { nameof(TipoRucPersona) });
+            }
+
+            if (tipo == "CEDULA")
             {
                 if (!EcuadorIdValidator.IsValidCedula(id))
                     yield return new ValidationResult("Cédula inválida.", new[] { nameof(Identificacion) });
             }
-            else if (TipoIdentificacion == "RUC")
+            else if (esRuc)
             {
-                if (!EcuadorIdValidator.IsLikelyValidRucNatural(id))
-                    yield return new ValidationResult("RUC inválido. Debe tener 13 dígitos, terminar en 001 y contener una cédula válida en los 10 primeros.", new[] { nameof(Identificacion) });
+                if (tipoRuc == "NATURAL")
+                {
+                    if (!EcuadorIdValidator.IsLikelyValidRucNatural(id))
+                        yield return new ValidationResult(
+                            "RUC de persona natural inválido. Debe tener 13 dígitos, terminar en 001 y contener una cédula válida en los 10 primeros.",
+                            new[] { nameof(Identificacion) });
+                }
+                else if (tipoRuc == "JURIDICA")
+                {
+                    if (!Regex.IsMatch(id, @"^\d{13}$"))
+                        yield return new ValidationResult(
+                            "El RUC de persona jurídica debe tener 13 dígitos.",
+                            new[] { nameof(Identificacion) });
+                }
             }
-            else if (TipoIdentificacion == "Pasaporte")
+            else if (tipo == "PASAPORTE")
             {
-                if (!System.Text.RegularExpressions.Regex.IsMatch(id, @"^[A-Za-z0-9]{6,12}$"))
+                if (!Regex.IsMatch(id, @"^[A-Za-z0-9]{6,12}$"))
                     yield return new ValidationResult("Pasaporte inválido (6 a 12 caracteres alfanuméricos).", new[] { nameof(Identificacion) });
+            }
+
+            if (!esRucJuridico)
+            {
+                if (string.IsNullOrWhiteSpace(Apellido))
+                {
+                    yield return new ValidationResult(
+                        "El apellido es obligatorio para personas naturales.",
+                        new[] { nameof(Apellido) });
+                }
+                else
+                {
+                    if (Apellido.Length > 100)
+                        yield return new ValidationResult("Máximo 100 caracteres.", new[] { nameof(Apellido) });
+
+                    if (!Regex.IsMatch(Apellido, @"^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$"))
+                        yield return new ValidationResult("El apellido solo debe contener letras.", new[] { nameof(Apellido) });
+                }
             }
         }
     }
@@ -465,14 +537,31 @@
             _ => "Ingrese identificación"
         };
 
-    private string IdentHelpText =>
-        form.TipoIdentificacion switch
+    private string IdentHelpText
+    {
+        get
         {
-            "Cedula" => "Se validará provincia, tercer dígito (<6) y dígito verificador.",
-            "RUC" => "RUC de persona natural: primeros 10 = cédula válida y termina en 001.",
-            "Pasaporte" => "Se permiten letras y números (6 a 12).",
-            _ => "Seleccione un tipo para ver las reglas."
-        };
+            var tipo = form.TipoIdentificacion ?? "";
+            var tipoRuc = form.TipoRucPersona ?? "";
+
+            if (tipo == "Cedula")
+                return "Se validará provincia, tercer dígito (<6) y dígito verificador.";
+
+            if (tipo == "RUC")
+            {
+                if (string.Equals(tipoRuc, "NATURAL", StringComparison.OrdinalIgnoreCase))
+                    return "RUC de persona natural: primeros 10 = cédula válida y termina en 001.";
+                if (string.Equals(tipoRuc, "JURIDICA", StringComparison.OrdinalIgnoreCase))
+                    return "RUC de persona jurídica: 13 dígitos numéricos.";
+                return "Seleccione si el RUC es de persona natural o jurídica.";
+            }
+
+            if (tipo == "Pasaporte")
+                return "Se permiten letras y números (6 a 12).";
+
+            return "Seleccione un tipo para ver las reglas.";
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -498,6 +587,11 @@
     private async Task OnTipoChanged(ChangeEventArgs e)
     {
         form.TipoIdentificacion = e?.Value?.ToString();
+        if (form.TipoIdentificacion != "RUC")
+        {
+            form.TipoRucPersona = null;
+        }
+
         var tipo = (form.TipoIdentificacion ?? "").ToUpperInvariant();
         var mode = tipo is "CEDULA" or "RUC" ? "digits" : "alnum";
         var max = MaxDocLen ?? 0;
@@ -512,10 +606,12 @@
         isSubmitting = true;
         try
         {
+            var esRucJuridico = EsRucJuridico;
+
             var req = new ClienteCreateRequest
             {
                 Nombre = form.Nombre?.Trim() ?? "",
-                Apellido = form.Apellido?.Trim() ?? "",
+                Apellido = esRucJuridico ? "-" : (form.Apellido?.Trim() ?? ""),
                 Identificacion = form.Identificacion?.Trim() ?? "",
                 TipoIdentificacion = (form.TipoIdentificacion ?? "").ToUpperInvariant(),
                 Direccion = form.Direccion?.Trim() ?? "",
@@ -527,12 +623,12 @@
 
             var idValue = creado.IdCli;
             var nom = creado.NomCli ?? form.Nombre ?? "";
-            var ape = creado.ApeCli ?? form.Apellido ?? "";
+            var ape = creado.ApeCli ?? (esRucJuridico ? "-" : form.Apellido ?? "");
             var ide = creado.IdeCli ?? form.Identificacion ?? "";
             var tip = creado.TipCli ?? form.TipoIdentificacion ?? "";
 
-            var displayNombre = Escape(nom);
-            var displayApellido = Escape(ape);
+            var esEmpresaCreada = string.Equals((ape ?? "").Trim(), "-", StringComparison.Ordinal);
+            var displayNombreCompleto = Escape(esEmpresaCreada ? nom : $"{nom} {ape}");
             var idText = idValue > 0 ? idValue.ToString() : "pendiente";
             var subInfo = $"{Escape(ide)} · {Escape(tip)}";
 
@@ -564,7 +660,7 @@
                                 <path stroke-linecap='round' stroke-linejoin='round' d='M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z' />
                             </svg>
                             <div>
-                                <div style='font-weight:700;font-size:1rem'>{displayNombre} {displayApellido}</div>
+                                <div style='font-weight:700;font-size:1rem'>{displayNombreCompleto}</div>
                                 <div style='font-size:.83rem;color:var(--text-muted)'>{subInfo}</div>
                             </div>
                         </div>

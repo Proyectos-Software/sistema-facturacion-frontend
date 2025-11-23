@@ -174,8 +174,24 @@
         </div>
 
         <div class="card mb-4 border-0 shadow-sm">
-            <div class="card-header bg-transparent">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2 bg-transparent">
                 <h6 class="mb-0">Últimos clientes registrados</h6>
+                <ul class="nav nav-pills small">
+                    <li class="nav-item">
+                        <button type="button"
+                                class="nav-link @(mostrarNaturalesUltimos ? "active" : "")"
+                                @onclick="@(() => CambiarCategoriaUltimos(true))">
+                            <i class="ri-user-3-line me-1"></i> Personas naturales
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button"
+                                class="nav-link @(!mostrarNaturalesUltimos ? "active" : "")"
+                                @onclick="@(() => CambiarCategoriaUltimos(false))">
+                            <i class="ri-building-4-line me-1"></i> Personas jurídicas
+                        </button>
+                    </li>
+                </ul>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -183,8 +199,13 @@
                         <thead class="text-muted">
                             <tr>
                                 <th>Código</th>
-                                <th>Nombre</th>
-                                <th>Apellido</th>
+                                <th>
+                                    @(mostrarNaturalesUltimos ? "Nombre" : "Nombre / Razón social")
+                                </th>
+                                @if (mostrarNaturalesUltimos)
+                                {
+                                    <th>Apellido</th>
+                                }
                                 <th>Identificación/RUC</th>
                                 <th>Tipo</th>
                                 <th>Teléfono</th>
@@ -192,15 +213,17 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if (ultimos5.Count == 0)
+                            @if (!UltimosFiltrados.Any())
                             {
                                 <tr>
-                                    <td colspan="7" class="text-muted text-center">Sin registros recientes</td>
+                                    <td colspan="@(mostrarNaturalesUltimos ? 7 : 6)" class="text-muted text-center">
+                                        Sin registros recientes
+                                    </td>
                                 </tr>
                             }
                             else
                             {
-                                @foreach (var c in ultimos5)
+                                @foreach (var c in UltimosFiltrados)
                                 {
                                     <tr>
                                         <td>
@@ -216,7 +239,10 @@
                                             }
                                         </td>
                                         <td>@c.NomCli</td>
-                                        <td>@c.ApeCli</td>
+                                        @if (mostrarNaturalesUltimos)
+                                        {
+                                            <td>@c.ApeCli</td>
+                                        }
                                         <td>@c.IdeCli</td>
                                         <td>@MostrarTipo(c.TipCli)</td>
                                         <td>@c.TelCli</td>
@@ -283,6 +309,14 @@
     private string nuevosTrendClass = "text-muted";
 
     private bool isDarkMode;
+
+    // Toggle para NATURALES / JURÍDICAS en la tabla de últimos
+    private bool mostrarNaturalesUltimos = true;
+
+    private IEnumerable<ClienteDto> UltimosFiltrados =>
+        mostrarNaturalesUltimos
+            ? ultimos5.Where(c => !EsPersonaJuridica(c))
+            : ultimos5.Where(EsPersonaJuridica);
 
     private sealed class ChartSlice
     {
@@ -535,5 +569,17 @@
             "PASAPORTE" => "Pasaporte",
             _ => tipCli ?? ""
         };
+    }
+
+    private static bool EsPersonaJuridica(ClienteDto c)
+    {
+        var ape = (c.ApeCli ?? "").Trim();
+        return ape == "-";
+    }
+
+    private void CambiarCategoriaUltimos(bool naturales)
+    {
+        if (mostrarNaturalesUltimos == naturales) return;
+        mostrarNaturalesUltimos = naturales;
     }
 }
