@@ -708,7 +708,9 @@
                         Title = "Listo, puedes crear otro",
                         ShowConfirmButton = false,
                         Timer = 1800,
-                        TimerProgressBar = true
+                        TimerProgressBar = true,
+                        Background = isDark ? "var(--form-control-bg)" : null,
+                        Color = isDark ? "var(--default-text-color)" : null
                     });
                 }
             }

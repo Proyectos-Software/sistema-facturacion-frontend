@@ -15,72 +15,143 @@
 @inject NavigationManager Nav
 @attribute [Authorize]
 
-<h2 class="titulo-form">Registrar nuevo producto</h2>
-<p class="descripcion-form">Completa los campos requeridos para añadir un nuevo producto al sistema.</p>
-
-<EditForm Model="@producto" OnValidSubmit="@HandleValidSubmitAsync" OnInvalidSubmit="@HandleInvalidAsync">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div class="form-grid">
-
-        <!-- CATEGORÍA -->
-        <div class="campo">
-            <label for="categoria">Categoría</label>
-            <InputSelect id="categoria"
-                         class="form-control"
-                         @bind-Value="producto.IdCategoria">
-                <option value="">-- Selecciona una categoría --</option>
-                @foreach (var cat in categorias)
-                {
-                    <option value="@cat.Id">@cat.Nombre</option>
-                }
-            </InputSelect>
-            <ValidationMessage For="@(() => producto.IdCategoria)" />
-        </div>
-
-        <!-- TIPO TRIBUTARIO -->
-        <div class="campo">
-            <label for="tipoTrib">Tipo tributario</label>
-            <InputSelect id="tipoTrib"
-                         class="form-control"
-                         @bind-Value="producto.IdTipoTributario">
-                <option value="">-- Selecciona un tipo tributario --</option>
-                @foreach (var tt in tiposTributarios)
-                {
-                    <option value="@tt.Id">@tt.Nombre (@tt.CodigoSri)</option>
-                }
-            </InputSelect>
-            <ValidationMessage For="@(() => producto.IdTipoTributario)" />
-        </div>
-
-        <div class="campo">
-            <label for="nombre">Nombre</label>
-            <InputText id="nombre" @bind-Value="producto.NomPro" class="form-control" />
-            <ValidationMessage For="@(() => producto.NomPro)" />
-        </div>
-
-        <div class="campo descripcion" style="grid-column: 1 / -1;">
-            <label for="descripcion">Descripción</label>
-            <InputTextArea id="descripcion" @bind-Value="producto.DesPro" class="form-control" rows="3" />
-            <ValidationMessage For="@(() => producto.DesPro)" />
+<div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary shadow-sm"
+                 style="width:3rem;height:3rem;">
+                <i class="ri-price-tag-3-line fs-4"></i>
+            </div>
+            <div>
+                <h1 class="page-title fw-semibold fs-20 mb-0">Crear producto</h1>
+                <p class="text-muted fs-13 mb-0">
+                    Registra un nuevo producto asignando su categoría y tipo tributario.
+                </p>
+            </div>
         </div>
     </div>
+</div>
 
-    <div class="d-flex form-actions mt-4 gap-2">
-        <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
-            @(isSubmitting ? "Guardando..." : "Guardar")
-        </button>
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <EditForm Model="@producto"
+                  OnValidSubmit="@HandleValidSubmitAsync"
+                  OnInvalidSubmit="@HandleInvalidAsync">
+            <DataAnnotationsValidator />
 
-        <button type="button" class="btn btn-outline-secondary" @onclick="Cancelar" disabled="@isSubmitting">
-            Limpiar
-        </button>
+            <div class="mb-3">
+                <ValidationSummary />
+            </div>
 
-        <a class="btn btn-light" href="/dashboards/productos/listar">
-            Volver
-        </a>
+            <div class="row g-3">
+                <div class="col-lg-4 col-md-5">
+                    <div class="rounded-3 h-100 border p-3">
+                        <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                            <i class="ri-folder-2-line text-primary fs-5"></i>
+                            <span>Clasificación</span>
+                        </h6>
+
+                        <!-- CATEGORÍA -->
+                        <div class="mb-3">
+                            <label class="form-label" for="categoria">Categoría</label>
+                            <InputSelect id="categoria"
+                                         class="form-select"
+                                         @bind-Value="producto.IdCategoria">
+                                <option value="">-- Selecciona una categoría --</option>
+                                @foreach (var cat in categorias)
+                                {
+                                    <option value="@cat.Id">@cat.Nombre</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => producto.IdCategoria)" />
+                        </div>
+
+                        <!-- TIPO TRIBUTARIO -->
+                        <div>
+                            <label class="form-label" for="tipoTrib">Tipo tributario</label>
+                            <InputSelect id="tipoTrib"
+                                         class="form-select"
+                                         @bind-Value="producto.IdTipoTributario">
+                                <option value="">-- Selecciona un tipo tributario --</option>
+                                @foreach (var tt in tiposTributarios)
+                                {
+                                    <option value="@tt.Id">@tt.Nombre (@tt.CodigoSri)</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => producto.IdTipoTributario)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8 col-md-7">
+                    <div class="rounded-3 h-100 border p-3">
+                        <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                            <i class="ri-file-list-3-line text-primary fs-5"></i>
+                            <span>Datos del producto</span>
+                        </h6>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label" for="nombre">Nombre</label>
+                                <InputText id="nombre"
+                                           @bind-Value="producto.NomPro"
+                                           class="form-control" />
+                                <ValidationMessage For="@(() => producto.NomPro)" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label" for="descripcion">Descripción</label>
+                                <InputTextArea id="descripcion"
+                                               @bind-Value="producto.DesPro"
+                                               class="form-control"
+                                               rows="3" />
+                                <ValidationMessage For="@(() => producto.DesPro)" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+                <span class="text-muted small">
+                    Los campos son validados antes de registrar el producto.
+                </span>
+
+                <div class="btn-list">
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-wave"
+                            @onclick="Cancelar"
+                            disabled="@isSubmitting">
+                        <i class="ri-eraser-line me-1 align-middle"></i>
+                        Limpiar
+                    </button>
+
+                    <a class="btn btn-light btn-wave"
+                       href="/dashboards/productos/listar">
+                        <i class="ri-arrow-go-back-line me-1 align-middle"></i>
+                        Volver
+                    </a>
+
+                    <button type="submit"
+                            class="btn btn-primary btn-wave"
+                            disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2 align-middle"
+                                  role="status" aria-hidden="true"></span>
+                            <span>Guardando...</span>
+                        }
+                        else
+                        {
+                            <i class="ri-save-3-line me-1 align-middle"></i>
+                            <span>Guardar</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </EditForm>
     </div>
-</EditForm>
+</div>
 
 @code {
     private bool isSubmitting = false;
@@ -160,6 +231,7 @@
             var boxBrd = isDark ? "var(--default-border)" : "#e5e7eb";
             var valColor = isDark ? "var(--default-text-color)" : "#0f172a";
 
+            // Mostrar siempre el CÓDIGO del producto en lugar del Id
             var html =
 $@"<div style='text-align:left;font-size:14px;line-height:1.45'>
     <div style='margin:0 0 .5rem'>
@@ -170,8 +242,8 @@ $@"<div style='text-align:left;font-size:14px;line-height:1.45'>
         </div>
     </div>
     <div style='background:{boxBg};border:1px solid {boxBrd};border-radius:.5rem;padding:.6rem .75rem'>
-        <div style='font-size:.72rem;color:{subColor};letter-spacing:.04em;margin-bottom:.15rem'>ID PRODUCTO</div>
-        <code style='font-size:1rem;color:{valColor};font-weight:600'>{creado?.Id}</code>
+        <div style='font-size:.72rem;color:{subColor};letter-spacing:.04em;margin-bottom:.15rem'>CÓDIGO PRODUCTO</div>
+        <code style='font-size:1rem;color:{valColor};font-weight:600'>{Escape(creado?.Codigo)}</code>
     </div>
 </div>";
 

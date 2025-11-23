@@ -13,86 +13,194 @@
 @inject IProductosApiClient ProductosApi
 @inject ILotesApiClient LotesApi
 
-<div class="page-header mb-3">
-    <h2 class="page-title fs-18">Listado de Productos</h2>
-    <p class="text-muted">Consulta, búsqueda, filtros, tabla paginada y acciones rápidas.</p>
+<div class="page-header mb-4">
+    <h1 class="page-title fw-semibold fs-20">Listado de Productos</h1>
+    <p class="text-muted fs-13">Consulta y gestión de productos</p>
 </div>
 
 @if (cargando)
 {
     <div class="alert alert-info">
-        <span class="spinner-border spinner-border-sm me-2"></span>
-        Cargando productos...
+        <span class="spinner-border spinner-border-sm me-2"></span> Cargando productos...
     </div>
 }
 else if (!string.IsNullOrWhiteSpace(error))
 {
     <div class="alert alert-danger">
-
         <i class="ri-error-warning-line me-2"></i>@error
     </div>
 }
 else
 {
+    <!-- Filtros principales (mismo layout que empleados) -->
     <div class="card mb-3 border-0 shadow-sm">
         <div class="card-body">
             <div class="row g-3 align-items-end">
-                <div class="col-md-4 col-12">
-                    <label class="form-label">Buscar (nombre, categoría o descripción)</label>
+                <div class="col-lg-4 col-12">
+                    <label class="form-label">Búsqueda rápida (código, nombre, categoría, descripción)</label>
                     <input class="form-control"
-                           @bind="filtroTexto"
+                           @bind="FiltroTexto"
                            @bind:event="oninput"
-                           placeholder="Escribe para filtrar..." />
+                           placeholder="Escribe para filtrar en todos los campos..." />
                 </div>
 
-                <div class="col-md-2 col-6">
+                <div class="col-lg-2 col-6">
                     <label class="form-label">Estado</label>
-                    <select class="form-select" @bind="filtroEstado">
+                    <select class="form-select" @bind="FiltroEstado">
                         <option value="">Todos</option>
                         <option value="activos">Activos</option>
                         <option value="inactivos">Inactivos</option>
                     </select>
                 </div>
 
-                <div class="col-md-2 col-6">
-                    <label class="form-label">Ordenar por precio</label>
-                    <select class="form-select" @bind="ordenPrecio">
-                        <option value="">Sin orden</option>
-                        <option value="mayor">Precio mayor</option>
-                        <option value="menor">Precio menor</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2 col-6">
+                <div class="col-lg-2 col-6">
                     <label class="form-label">Por página</label>
                     <select class="form-select" @bind="pageSize">
-                        <option value="5">5</option>
-                        <option value="10">10</option>
-                        <option value="20">20</option>
+                        <option>5</option>
+                        <option>10</option>
+                        <option>20</option>
                     </select>
                 </div>
 
-                <div class="col-md-2 d-grid col-12">
-                    <button class="btn btn-outline-secondary" @onclick="LimpiarFiltros">
-                        <i class="ri-filter-off-line me-1"></i> Limpiar
+                <div class="col-lg-4 d-grid d-lg-flex justify-content-lg-end col-12 gap-2">
+                    <a class="btn btn-success" href="/dashboards/productos/crear">
+                        <i class="ri-price-tag-3-line me-1"></i>Nuevo producto
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="Recargar">
+                        <i class="ri-refresh-line me-1"></i>Recargar
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="LimpiarFiltros">
+                        <i class="ri-filter-off-line me-1"></i>Limpiar
                     </button>
                 </div>
             </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <button type="button"
+                        class="btn btn-sm btn-link px-0"
+                        @onclick="ToggleFiltrosAvanzados">
+                    <i class="ri-filter-3-line me-1"></i>
+                    @(mostrarFiltrosAvanzados ? "Ocultar filtros avanzados" : "Mostrar filtros avanzados")
+                </button>
+                <span class="text-muted small">
+                    Filtros específicos con autocompletado y rango de precio actual (calculado por lotes).
+                </span>
+            </div>
+
+            @if (mostrarFiltrosAvanzados)
+            {
+                <div class="row g-3 mt-2">
+                    <!-- Nombre de producto con autocompletado -->
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Nombre de producto</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@filtroNombreProducto"
+                                   @oninput="OnNombreProductoInput"
+                                   placeholder="Filtrar por nombre de producto..."
+                                   autocomplete="off" />
+                            @if (sugerenciasNombreProducto.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasNombreProducto)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaNombreProducto(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Categoría con autocompletado -->
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Categoría</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@filtroCategoria"
+                                   @oninput="OnCategoriaInput"
+                                   placeholder="Filtrar por categoría..."
+                                   autocomplete="off" />
+                            @if (sugerenciasCategoria.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasCategoria)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaCategoria(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Filtro por precio actual -->
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Precio actual</label>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12">
+                                <select class="form-select form-select-sm"
+                                        @bind="FiltroPrecioModo">
+                                    <option value="todos">Todos</option>
+                                    <option value="igual">Igual a</option>
+                                    <option value="mayorIgual">Mayor o igual que</option>
+                                    <option value="menorIgual">Menor o igual que</option>
+                                    <option value="entre">Entre</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <input type="number"
+                                       step="0.01"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroPrecioMin"
+                                       @bind:event="oninput"
+                                       placeholder="Desde" />
+                            </div>
+                            <div class="col-6">
+                                <input type="number"
+                                       step="0.01"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroPrecioMax"
+                                       @bind:event="oninput"
+                                       placeholder="Hasta"
+                                       disabled="@(FiltroPrecioModo != "entre")" />
+                            </div>
+                            <div class="col-12">
+                                <small class="text-muted d-block">
+                                    Filtra precios iguales, mayores, menores o dentro de un rango.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
     </div>
 
+    <!-- Tabla (misma estructura visual que empleados) -->
     <div class="card border-0 shadow-sm">
         <div class="card-header d-flex align-items-center justify-content-between bg-transparent">
             <h6 class="mb-0">Productos (@FilteredCount resultados)</h6>
             <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm btn-light" title="Recargar" @onclick="RecargarDatos">
-                    <i class="ri-refresh-line"></i>
-                </button>
-                <button class="btn btn-sm btn-light" title="Anterior" @onclick="PrevPage" disabled="@(pageIndex == 1)">
+                <button class="btn btn-sm btn-light"
+                        title="Anterior"
+                        @onclick="PrevPage"
+                        disabled="@(pageIndex == 1)">
                     <i class="ri-arrow-left-s-line"></i>
                 </button>
                 <span class="small text-muted">Página @pageIndex de @TotalPages</span>
-                <button class="btn btn-sm btn-light" title="Siguiente" @onclick="NextPage" disabled="@(pageIndex == TotalPages)">
+                <button class="btn btn-sm btn-light"
+                        title="Siguiente"
+                        @onclick="NextPage"
+                        disabled="@(pageIndex == TotalPages)">
                     <i class="ri-arrow-right-s-line"></i>
                 </button>
             </div>
@@ -101,15 +209,29 @@ else
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table-hover mb-0 table align-middle">
-                    <thead class="text-muted">
+                    <thead class="table-light">
                         <tr>
-                            <th>ID</th>
-                            <th @onclick="@(() => OrdenarPor(nameof(ProductoDto.Nombre)))" role="button">
+                            <th @onclick="@(() => OrdenarPor(nameof(ProductoDto.Codigo)))"
+                                role="button"
+                                class="user-select-none">
+                                Código @IconoOrden(nameof(ProductoDto.Codigo))
+                            </th>
+                            <th @onclick="@(() => OrdenarPor(nameof(ProductoDto.Nombre)))"
+                                role="button"
+                                class="user-select-none">
                                 Nombre @IconoOrden(nameof(ProductoDto.Nombre))
                             </th>
-                            <th>Categoria</th>
+                            <th @onclick="@(() => OrdenarPor(nameof(ProductoDto.NombreCategoria)))"
+                                role="button"
+                                class="user-select-none">
+                                Categoría @IconoOrden(nameof(ProductoDto.NombreCategoria))
+                            </th>
                             <th>Descripción</th>
-                            <th class="text-end">Precio actual</th>
+                            <th @onclick="@(() => OrdenarPor("Precio"))"
+                                role="button"
+                                class="user-select-none text-end">
+                                Precio actual @IconoOrden("Precio")
+                            </th>
                             <th>Estado</th>
                             <th class="text-end">Acciones</th>
                         </tr>
@@ -120,7 +242,7 @@ else
                             <tr>
                                 <td colspan="7" class="text-muted py-4 text-center">
                                     <i class="ri-inbox-line fs-3 d-block mb-2"></i>
-                                    No hay productos disponibles.
+                                    No hay resultados con los filtros aplicados.
                                 </td>
                             </tr>
                         }
@@ -129,7 +251,18 @@ else
                             @foreach (var p in Paged)
                             {
                                 <tr @key="p.Id">
-                                    <td>@p.Id</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(p.Codigo))
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary fw-semibold">
+                                                @p.Codigo
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
                                     <td>@p.Nombre</td>
                                     <td>@p.NombreCategoria</td>
                                     <td><small>@p.Descripcion</small></td>
@@ -139,11 +272,15 @@ else
                                     <td>
                                         @if (p.Estado)
                                         {
-                                            <span class="badge bg-success-subtle text-success">Activo</span>
+                                            <span class="badge bg-success-subtle text-success">
+                                                <i class="ri-check-line"></i> Activo
+                                            </span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-danger-subtle text-danger">Inactivo</span>
+                                            <span class="badge bg-danger-subtle text-danger">
+                                                <i class="ri-close-line"></i> Inactivo
+                                            </span>
                                         }
                                     </td>
                                     <td class="text-end">
@@ -183,29 +320,113 @@ else
     private bool cargando = true;
     private string? error;
 
-    private string? filtroTexto;
-    private string? filtroEstado;
+    // ===== Filtros principales =====
+    private string? _filtroTexto;
+    private string? _filtroEstado;
 
-    private string? _ordenPrecio;
-    private string? ordenPrecio
+    private string? FiltroTexto
     {
-        get => _ordenPrecio;
+        get => _filtroTexto;
         set
         {
-            if (_ordenPrecio != value)
+            if (_filtroTexto != value)
             {
-                _ordenPrecio = value;
+                _filtroTexto = value;
                 pageIndex = 1;
             }
         }
     }
 
+    private string? FiltroEstado
+    {
+        get => _filtroEstado;
+        set
+        {
+            if (_filtroEstado != value)
+            {
+                _filtroEstado = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    // ===== Filtros avanzados =====
+    private bool mostrarFiltrosAvanzados;
+
+    private string? filtroNombreProducto;
+    private string? filtroCategoria;
+
+    private List<string> sugerenciasNombreProducto = new();
+    private List<string> sugerenciasCategoria = new();
+
+    private string _filtroPrecioModo = "todos";
+    private decimal? _filtroPrecioMin;
+    private decimal? _filtroPrecioMax;
+
+    private string FiltroPrecioModo
+    {
+        get => _filtroPrecioModo;
+        set
+        {
+            if (_filtroPrecioModo != value)
+            {
+                _filtroPrecioModo = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroPrecioMin
+    {
+        get => _filtroPrecioMin;
+        set
+        {
+            if (_filtroPrecioMin != value)
+            {
+                _filtroPrecioMin = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroPrecioMax
+    {
+        get => _filtroPrecioMax;
+        set
+        {
+            if (_filtroPrecioMax != value)
+            {
+                _filtroPrecioMax = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    // ===== Paginación y orden =====
     private int pageIndex = 1;
-    private int pageSize = 10;
+    private int _pageSize = 10;
+
+    private int pageSize
+    {
+        get => _pageSize;
+        set
+        {
+            if (_pageSize != value)
+            {
+                _pageSize = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
     private string? sortBy;
     private bool sortAsc = true;
 
-    protected override async Task OnInitializedAsync() => await CargarProductos();
+    // ===== Ciclo de vida =====
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarProductos();
+    }
 
     private async Task CargarProductos()
     {
@@ -218,7 +439,7 @@ else
             lotes = await LotesApi.GetAllAsync();
             ConstruirPreciosPorProducto();
 
-            bool isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+            var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
             await Swal.FireAsync(new SweetAlertOptions
             {
                 Toast = true,
@@ -248,6 +469,62 @@ else
         }
     }
 
+    private async Task Recargar()
+    {
+        var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Toast = true,
+            Position = SweetAlertPosition.TopEnd,
+            Icon = SweetAlertIcon.Info,
+            Title = "Recargando...",
+            ShowConfirmButton = false,
+            Timer = 1000,
+            Background = isDark ? "#1e1e1e" : null,
+            Color = isDark ? "#e6e6e6" : null
+        });
+
+        await CargarProductos();
+        pageIndex = 1;
+    }
+
+    private async Task LimpiarFiltros()
+    {
+        // Filtros principales
+        FiltroTexto = null;
+        FiltroEstado = null;
+
+        // Filtros avanzados
+        filtroNombreProducto = null;
+        filtroCategoria = null;
+
+        sugerenciasNombreProducto.Clear();
+        sugerenciasCategoria.Clear();
+
+        FiltroPrecioModo = "todos";
+        FiltroPrecioMin = null;
+        FiltroPrecioMax = null;
+
+        sortBy = null;
+        sortAsc = true;
+        pageIndex = 1;
+
+        var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Toast = true,
+            Position = SweetAlertPosition.TopEnd,
+            Icon = SweetAlertIcon.Info,
+            Title = "Filtros limpiados",
+            ShowConfirmButton = false,
+            Timer = 1500,
+            TimerProgressBar = true,
+            Background = isDark ? "var(--form-control-bg)" : "#fff",
+            Color = isDark ? "var(--default-text-color)" : "#1e293b"
+        });
+    }
+
     /// <summary>
     /// Construye el precio actual por producto a partir de los lotes:
     /// - Toma el lote más antiguo con stock disponible (FIFO) como precio vigente.
@@ -272,7 +549,6 @@ else
                         .OrderBy(l => l.FecCom)
                         .ToList();
 
-                    // Lote activo FIFO: más antiguo con stock disponible
                     var activo = ordenados
                         .Where(l => l.CanDis > 0)
                         .OrderBy(l => l.FecCom)
@@ -281,7 +557,6 @@ else
                     if (activo != null && activo.PreVen > 0)
                         return activo.PreVen;
 
-                    // Si no hay stock, uso el último precio de venta conocido
                     var ultimo = ordenados
                         .OrderByDescending(l => l.FecCom)
                         .FirstOrDefault();
@@ -290,24 +565,201 @@ else
                 });
     }
 
-    private async Task RecargarDatos()
+    private void ToggleFiltrosAvanzados()
     {
-        bool isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
-        await Swal.FireAsync(new SweetAlertOptions
-        {
-            Toast = true,
-            Position = SweetAlertPosition.TopEnd,
-            Icon = SweetAlertIcon.Info,
-            Title = "Recargando datos...",
-            ShowConfirmButton = false,
-            Timer = 1000,
-            Background = isDark ? "var(--form-control-bg)" : "#fff",
-            Color = isDark ? "var(--default-text-color)" : "#1e293b"
-        });
+        mostrarFiltrosAvanzados = !mostrarFiltrosAvanzados;
+    }
 
-        await CargarProductos();
+    // ===== Autocompletado avanzado =====
+    private void OnNombreProductoInput(ChangeEventArgs e)
+    {
+        filtroNombreProducto = e.Value?.ToString();
+        sugerenciasNombreProducto = CalcularSugerencias(filtroNombreProducto, p => p.Nombre);
         pageIndex = 1;
     }
+
+    private void OnCategoriaInput(ChangeEventArgs e)
+    {
+        filtroCategoria = e.Value?.ToString();
+        sugerenciasCategoria = CalcularSugerencias(filtroCategoria, p => p.NombreCategoria);
+        pageIndex = 1;
+    }
+
+    private void SeleccionarSugerenciaNombreProducto(string valor)
+    {
+        filtroNombreProducto = valor;
+        sugerenciasNombreProducto.Clear();
+        pageIndex = 1;
+    }
+
+    private void SeleccionarSugerenciaCategoria(string valor)
+    {
+        filtroCategoria = valor;
+        sugerenciasCategoria.Clear();
+        pageIndex = 1;
+    }
+
+    private List<string> CalcularSugerencias(string? valor, Func<ProductoDto, string?> selector)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+            return new List<string>();
+
+        var query = valor.Trim();
+        if (query.Length < 2)
+            return new List<string>();
+
+        return productos
+            .Select(selector)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!
+            )
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(s => s.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
+            .OrderBy(s => s)
+            .Take(8)
+            .ToList();
+    }
+
+    // ===== Filtro y orden =====
+
+    private List<ProductoDto> Filtered
+    {
+        get
+        {
+            var q = productos.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_filtroTexto))
+            {
+                var txt = _filtroTexto.Trim();
+                q = q.Where(p =>
+                    ContainsIgnoreCase(p.Codigo, txt) ||
+                    ContainsIgnoreCase(p.Nombre, txt) ||
+                    ContainsIgnoreCase(p.NombreCategoria, txt) ||
+                    ContainsIgnoreCase(p.Descripcion, txt));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filtroNombreProducto))
+            {
+                var txt = filtroNombreProducto.Trim();
+                q = q.Where(p => ContainsIgnoreCase(p.Nombre, txt));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filtroCategoria))
+            {
+                var txt = filtroCategoria.Trim();
+                q = q.Where(p => ContainsIgnoreCase(p.NombreCategoria, txt));
+            }
+
+            q = AplicarFiltroPrecio(q);
+
+            if (!string.IsNullOrWhiteSpace(_filtroEstado))
+            {
+                var activo = _filtroEstado == "activos";
+                q = q.Where(p => p.Estado == activo);
+            }
+
+            q = Ordenar(q);
+            return q.ToList();
+        }
+    }
+
+    private IEnumerable<ProductoDto> AplicarFiltroPrecio(IEnumerable<ProductoDto> src)
+    {
+        if (string.IsNullOrWhiteSpace(_filtroPrecioModo) || _filtroPrecioModo == "todos")
+            return src;
+
+        var tieneMin = _filtroPrecioMin.HasValue;
+        var tieneMax = _filtroPrecioMax.HasValue;
+
+        decimal Precio(ProductoDto p) => GetPrecioActual(p.Id);
+
+        return _filtroPrecioModo switch
+        {
+            "igual" when tieneMin =>
+                src.Where(p => Precio(p) == _filtroPrecioMin.Value),
+
+            "mayorIgual" when tieneMin =>
+                src.Where(p => Precio(p) >= _filtroPrecioMin.Value),
+
+            "menorIgual" when tieneMin =>
+                src.Where(p => Precio(p) <= _filtroPrecioMin.Value),
+
+            "entre" when tieneMin || tieneMax =>
+                src.Where(p =>
+                {
+                    var precio = Precio(p);
+                    if (tieneMin && tieneMax) return precio >= _filtroPrecioMin.Value && precio <= _filtroPrecioMax.Value;
+                    if (tieneMin) return precio >= _filtroPrecioMin.Value;
+                    return precio <= _filtroPrecioMax!.Value;
+                }),
+
+            _ => src
+        };
+    }
+
+    private int FilteredCount => Filtered.Count;
+
+    private int TotalPages =>
+        Math.Max(1, (int)Math.Ceiling(FilteredCount / (double)pageSize));
+
+    private List<ProductoDto> Paged =>
+        Filtered
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+    private IEnumerable<ProductoDto> Ordenar(IEnumerable<ProductoDto> src)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+            return src;
+
+        Func<ProductoDto, object?> key = sortBy switch
+        {
+            nameof(ProductoDto.Codigo) => p => p.Codigo ?? string.Empty,
+            nameof(ProductoDto.Nombre) => p => p.Nombre ?? string.Empty,
+            nameof(ProductoDto.NombreCategoria) => p => p.NombreCategoria ?? string.Empty,
+            "Precio" => p => GetPrecioActual(p.Id),
+            _ => p => p.Nombre ?? string.Empty
+        };
+
+        return sortAsc ? src.OrderBy(key) : src.OrderByDescending(key);
+    }
+
+    private void OrdenarPor(string prop)
+    {
+        if (sortBy == prop)
+        {
+            sortAsc = !sortAsc;
+        }
+        else
+        {
+            sortBy = prop;
+            sortAsc = true;
+        }
+
+        pageIndex = 1;
+    }
+
+    private string IconoOrden(string prop) =>
+        sortBy != prop ? string.Empty : (sortAsc ? "↑" : "↓");
+
+    private void PrevPage()
+    {
+        if (pageIndex > 1) pageIndex--;
+    }
+
+    private void NextPage()
+    {
+        if (pageIndex < TotalPages) pageIndex++;
+    }
+
+    // ===== Acciones =====
+
+    private decimal GetPrecioActual(int productoId) =>
+        precioPorProducto.TryGetValue(productoId, out var valor) ? valor : 0m;
+
+    private static string FormatMoney(decimal value) =>
+        value <= 0 ? "-" : value.ToString("N2");
 
     private async Task VerDetalles(ProductoDto p)
     {
@@ -330,11 +782,11 @@ else
         string html = $@"
         <div style='text-align:left;font-size:14px;line-height:1.45'>
             <div style='margin-bottom:.6rem'>
-    <div style='font-weight:700;font-size:1.05rem;color:{colorTitle}'>{Escape(p.Nombre)}</div>
-    <div style='font-size:.85rem;color:{colorMuted}'>
-        Categoría: {Escape(p.NombreCategoria)}
-    </div>
-</div>
+                <div style='font-weight:700;font-size:1.05rem;color:{colorTitle}'>{Escape(p.Nombre)}</div>
+                <div style='font-size:.85rem;color:{colorMuted}'>
+                    Código: {Escape(p.Codigo)} · Categoría: {Escape(p.NombreCategoria)}
+                </div>
+            </div>
             <div style='background:{boxBg};border:1px solid {boxBrd};border-radius:.5rem;padding:.75rem'>
                 <div style='font-size:.82rem;color:{colorMuted};margin-bottom:.25rem'>Descripción</div>
                 <div style='font-size:.9rem;color:{colorTitle}'>{Escape(p.Descripcion)}</div>
@@ -358,167 +810,9 @@ else
         });
     }
 
-    // === FILTROS Y PAGINACIÓN ===
-
-    private static string Escape(string? s) =>
-        string.IsNullOrEmpty(s)
-            ? string.Empty
-            : s.Replace("<", "&lt;").Replace(">", "&gt;");
-
-    private decimal GetPrecioActual(int productoId) =>
-        precioPorProducto.TryGetValue(productoId, out var valor) ? valor : 0m;
-
-    private static string FormatMoney(decimal value) =>
-        value <= 0 ? "-" : value.ToString("N2");
-
-    private List<ProductoDto> Filtered
-    {
-        get
-        {
-            var q = productos.AsEnumerable();
-
-            if (!string.IsNullOrWhiteSpace(filtroTexto))
-            {
-                var txt = filtroTexto.Trim().ToLower();
-                q = q.Where(p =>
-                    (p.Nombre ?? string.Empty).ToLower().Contains(txt) ||
-                    (p.NombreCategoria ?? string.Empty).ToLower().Contains(txt) ||
-                    (p.Descripcion ?? string.Empty).ToLower().Contains(txt));
-            }
-
-
-            if (!string.IsNullOrWhiteSpace(filtroEstado))
-            {
-                var activo = filtroEstado == "activos";
-                q = q.Where(p => p.Estado == activo);
-            }
-
-            // Ordenar por precio si se seleccionó
-            if (!string.IsNullOrWhiteSpace(ordenPrecio))
-            {
-                q = ordenPrecio == "mayor"
-                    ? q.OrderByDescending(p => GetPrecioActual(p.Id))
-                    : q.OrderBy(p => GetPrecioActual(p.Id));
-            }
-            else
-            {
-                q = Ordenar(q);
-            }
-
-            return q.ToList();
-        }
-    }
-
-    private int FilteredCount => Filtered.Count;
-
-    private int TotalPages =>
-        Math.Max(1, (int)Math.Ceiling(FilteredCount / (double)pageSize));
-
-    private List<ProductoDto> Paged =>
-        Filtered
-            .Skip((pageIndex - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
-
-    private IEnumerable<ProductoDto> Ordenar(IEnumerable<ProductoDto> src)
-    {
-        if (string.IsNullOrWhiteSpace(sortBy)) return src;
-
-        Func<ProductoDto, object?> key = sortBy switch
-        {
-            nameof(ProductoDto.Nombre) => p => p.Nombre ?? string.Empty,
-            _ => p => p.Id
-        };
-
-        return sortAsc ? src.OrderBy(key) : src.OrderByDescending(key);
-    }
-
-    private void OrdenarPor(string prop)
-    {
-        if (sortBy == prop)
-        {
-            sortAsc = !sortAsc;
-        }
-        else
-        {
-            sortBy = prop;
-            sortAsc = true;
-        }
-        pageIndex = 1;
-    }
-
-    private string IconoOrden(string prop) =>
-        sortBy != prop ? string.Empty : (sortAsc ? "↑" : "↓");
-
-    private void PrevPage()
-    {
-        if (pageIndex > 1) pageIndex--;
-    }
-
-    private void NextPage()
-    {
-        if (pageIndex < TotalPages) pageIndex++;
-    }
-
-    private async Task LimpiarFiltros()
-    {
-        filtroTexto = null;
-        filtroEstado = null;
-        ordenPrecio = null;
-        sortBy = null;
-        sortAsc = true;
-        pageIndex = 1;
-        bool isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
-
-        await Swal.FireAsync(new SweetAlertOptions
-        {
-            Toast = true,
-            Position = SweetAlertPosition.TopEnd,
-            Icon = SweetAlertIcon.Info,
-            Title = "Filtros limpiados",
-            ShowConfirmButton = false,
-            Timer = 1500,
-            Background = isDark ? "var(--form-control-bg)" : "#fff",
-            Color = isDark ? "var(--default-text-color)" : "#1e293b"
-        });
-    }
-
     private void Editar(ProductoDto p)
     {
         Navigation.NavigateTo($"/dashboards/productos/editar/{p.Id}");
-    }
-
-    private async Task ConfirmarEliminar(ProductoDto p)
-    {
-        var r = await Swal.FireAsync(new SweetAlertOptions
-        {
-            Title = "¿Eliminar producto?",
-            Html = $"<strong>{Escape(p.Nombre)}</strong><br/><small>({Escape(p.NombreCategoria)})</small>",
-
-            Icon = SweetAlertIcon.Warning,
-            ShowCancelButton = true,
-            ConfirmButtonText = "Sí, eliminar",
-            CancelButtonText = "Cancelar",
-            ConfirmButtonColor = "#dc3545"
-        });
-
-        if (r.IsConfirmed)
-        {
-            bool isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
-            await Swal.FireAsync(new SweetAlertOptions
-            {
-                Icon = SweetAlertIcon.Success,
-                Title = "Producto eliminado",
-                Toast = true,
-                Position = SweetAlertPosition.TopEnd,
-                Timer = 1500,
-                ShowConfirmButton = false,
-                Background = isDark ? "var(--form-control-bg)" : "#fff",
-                Color = isDark ? "var(--default-text-color)" : "#1e293b"
-            });
-
-            await CargarProductos();
-        }
     }
 
     private async Task CambiarEstado(ProductoDto p)
@@ -528,7 +822,6 @@ else
         {
             Title = $"¿Deseas {accion} este producto?",
             Html = $"<strong>{Escape(p.Nombre)}</strong><br/><small>({Escape(p.NombreCategoria)})</small>",
-
             Icon = SweetAlertIcon.Warning,
             ShowCancelButton = true,
             ConfirmButtonText = $"Sí, {accion}",
@@ -572,4 +865,19 @@ else
             });
         }
     }
+
+    // ===== Utilidades =====
+
+    private static bool ContainsIgnoreCase(string? source, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(value))
+            return false;
+
+        return source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static string Escape(string? s) =>
+        string.IsNullOrEmpty(s)
+            ? string.Empty
+            : s.Replace("<", "&lt;").Replace(">", "&gt;");
 }
