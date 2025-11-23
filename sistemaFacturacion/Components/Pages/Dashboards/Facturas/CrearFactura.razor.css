@@ -1,0 +1,171 @@
+﻿/* Contenedor general del wizard */
+.crear-factura-wizard {
+    background-color: #020817; /* modo oscuro */
+    color: #e5e7eb;
+    border-radius: 0 0 0.75rem 0.75rem;
+}
+
+/* TIMELINE */
+.wizard-timeline {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    position: relative;
+}
+
+/* Cada item del timeline */
+.wizard-step-item {
+    flex: 1;
+    position: relative;
+    text-align: center;
+    cursor: default;
+    user-select: none;
+}
+
+    /* Línea entre pasos */
+    .wizard-step-item::after {
+        content: "";
+        position: absolute;
+        top: 20px; /* alineado con el centro del círculo */
+        left: 50%;
+        width: 100%;
+        height: 2px;
+        background: #1f2937; /* gris oscuro por defecto */
+        z-index: 0;
+    }
+
+    /* Evitar línea saliendo del último paso */
+    .wizard-step-item:last-child::after {
+        display: none;
+    }
+
+/* Círculo del paso */
+.step-circle {
+    position: relative;
+    z-index: 1;
+    margin: 0 auto 0.5rem auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    border: 2px solid #4b5563;
+    background-color: #020617;
+    color: #9ca3af;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Número del paso */
+.step-number {
+    font-size: 0.95rem;
+}
+
+/* Check de paso completado */
+.step-check {
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background-color: #22c55e;
+    color: #022c22;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+}
+
+/* Etiqueta de cada paso */
+.step-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Estados: pendiente / activo / completado */
+
+.wizard-step-item.pending .step-circle {
+    border-color: #4b5563;
+    background-color: #020617;
+    color: #6b7280;
+}
+
+.wizard-step-item.pending::after {
+    background: #111827;
+}
+
+.wizard-step-item.active .step-circle {
+    border-color: #0ea5e9;
+    background: radial-gradient(circle at 30% 0%, #38bdf8, #0f172a);
+    color: #f9fafb;
+    box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.4), 0 8px 18px rgba(15, 23, 42, 0.9);
+}
+
+.wizard-step-item.active .step-label {
+    color: #e5e7eb;
+}
+
+.wizard-step-item.active::after {
+    background: linear-gradient(to right, #0ea5e9, #1f2937);
+}
+
+/* Completado */
+.wizard-step-item.completed .step-circle {
+    border-color: #22c55e;
+    background: radial-gradient(circle at 30% 0%, #4ade80, #022c22);
+    color: #ecfdf5;
+    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4), 0 8px 18px rgba(15, 23, 42, 0.95);
+}
+
+.wizard-step-item.completed .step-label {
+    color: #bbf7d0;
+}
+
+.wizard-step-item.completed::after {
+    background: linear-gradient(to right, #22c55e, #065f46);
+}
+
+/* Permitir hover solo en pasos activos o anteriores */
+.wizard-step-item.active,
+.wizard-step-item.completed {
+    cursor: pointer;
+}
+
+/* Contenido del wizard */
+.wizard-body {
+    padding: 1.5rem 0 0.5rem 0;
+    border-top: 1px solid #111827;
+}
+
+/* Footer navegación */
+.wizard-footer {
+    border-top: 1px solid #111827;
+    padding-top: 1rem;
+}
+
+/* Ajustes responsive */
+@media (max-width: 768px) {
+    .wizard-timeline {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .wizard-step-item::after {
+        display: none;
+    }
+
+    .step-circle {
+        margin-bottom: 0.25rem;
+    }
+
+    .step-label {
+        font-size: 0.75rem;
+    }
+}

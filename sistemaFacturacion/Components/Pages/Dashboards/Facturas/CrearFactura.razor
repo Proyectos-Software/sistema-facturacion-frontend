@@ -1,0 +1,222 @@
+﻿@page "/dashboards/facturas/crear"
+
+@using sistemaFacturacion.Models
+@using sistemaFacturacion.Components.Pages.Dashboards.Facturas.Steps
+@inject NavigationManager NavigationManager
+
+
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap">
+        <h1 class="page-title fw-medium fs-18 mb-0">Crear Factura</h1>
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Ventas</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Nueva Factura</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xl-12">
+        <div class="card custom-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="ri-file-list-3-line me-2"></i> NUEVA FACTURA
+                </div>
+            </div>
+
+            <div class="card-body crear-factura-wizard">
+
+                <!-- TIMELINE / WIZARD -->
+                <div class="wizard-timeline mb-4">
+                    <!-- Paso 1 -->
+                    <div class="@GetStepCss(1)" @onclick="@(() => IrPaso(1))">
+                        <div class="step-circle">
+                            <span class="step-number">1</span>
+                            @if (EsPasoCompletado(1))
+                            {
+                                <span class="step-check"><i class="ri-check-line"></i></span>
+                            }
+                        </div>
+                        <div class="step-label">Cliente</div>
+                    </div>
+
+                    <!-- Paso 2 -->
+                    <div class="@GetStepCss(2)" @onclick="@(() => IrPaso(2))">
+                        <div class="step-circle">
+                            <span class="step-number">2</span>
+                            @if (EsPasoCompletado(2))
+                            {
+                                <span class="step-check"><i class="ri-check-line"></i></span>
+                            }
+                        </div>
+                        <div class="step-label">Ítems</div>
+                    </div>
+
+                    <!-- Paso 3 -->
+                    <div class="@GetStepCss(3)" @onclick="@(() => IrPaso(3))">
+                        <div class="step-circle">
+                            <span class="step-number">3</span>
+                            @if (EsPasoCompletado(3))
+                            {
+                                <span class="step-check"><i class="ri-check-line"></i></span>
+                            }
+                        </div>
+                        <div class="step-label">Totales</div>
+                    </div>
+
+                    <!-- Paso 4 -->
+                    <div class="@GetStepCss(4)" @onclick="@(() => IrPaso(4))">
+                        <div class="step-circle">
+                            <span class="step-number">4</span>
+                            @if (EsPasoCompletado(4))
+                            {
+                                <span class="step-check"><i class="ri-check-line"></i></span>
+                            }
+                        </div>
+                        <div class="step-label">Confirmar</div>
+                    </div>
+                </div>
+
+                <!-- CONTENIDO DEL WIZARD -->
+                <div class="wizard-body">
+                    @if (_pasoActual == 1)
+                    {
+                        <!-- Paso 1: Selección de Cliente -->
+                        <Paso1SeleccionCliente Factura="@_facturaDraft" />
+                    }
+                    else if (_pasoActual == 2)
+                    {
+                        <!-- Paso 2: Selección de Ítems -->
+                        <Paso2SeleccionItems Factura="@_facturaDraft" />
+                    }
+                    else if (_pasoActual == 3)
+                    {
+                        <!-- Paso 3: Totales y Pago -->
+                        <Paso3TotalesPago Factura="@_facturaDraft" />
+                    }
+                    else if (_pasoActual == 4)
+                    {
+                        <!-- Paso 4: Confirmación -->
+                        <Paso4Confirmacion
+                            Factura="@_facturaDraft"
+                            OnNuevaFactura="@HandleNuevaFactura" />
+                    }
+                </div>
+
+                <!-- FOOTER / NAVEGACIÓN -->
+                <div class="wizard-footer d-flex justify-content-between align-items-center mt-4">
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            disabled="@(!_puedeIrAtras)"
+                            @onclick="PasoAnterior">
+                        <i class="ri-arrow-left-line me-1"></i> Anterior
+                    </button>
+
+                    <div class="d-flex gap-2">
+                        <button type="button"
+                                class="btn btn-outline-warning"
+                                @onclick="ReiniciarFactura">
+                            <i class="ri-refresh-line me-1"></i> Reiniciar
+                        </button>
+
+                        @if (_pasoActual < TotalPasos)
+                        {
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    @onclick="SiguientePaso">
+                                Siguiente <i class="ri-arrow-right-line ms-1"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <!-- Opcional: botón adicional en el último paso -->
+                            <button type="button"
+                                    class="btn btn-success"
+                                    @onclick="ReiniciarFactura">
+                                Nueva factura
+                            </button>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Paso actual del wizard
+    private int _pasoActual = 1;
+    private const int TotalPasos = 4;
+
+    // Estado compartido entre todos los pasos
+    private FacturaDraft _facturaDraft = new();
+
+    private bool _puedeIrAtras => _pasoActual > 1;
+
+    /// <summary>
+    /// Ir a un paso específico haciendo clic en el timeline.
+    /// Solo permite navegar hacia atrás o al paso actual (no saltar hacia adelante sin completar).
+    /// </summary>
+    private void IrPaso(int paso)
+    {
+        if (paso <= _pasoActual && paso >= 1 && paso <= TotalPasos)
+        {
+            _pasoActual = paso;
+        }
+    }
+
+    private void SiguientePaso()
+    {
+        if (_pasoActual < TotalPasos)
+        {
+            _pasoActual++;
+        }
+    }
+
+    private void PasoAnterior()
+    {
+        if (_pasoActual > 1)
+        {
+            _pasoActual--;
+        }
+    }
+
+    /// <summary>
+    /// Reinicia la factura y vuelve al paso 1.
+    /// </summary>
+    private void ReiniciarFactura()
+    {
+        _facturaDraft = new FacturaDraft();
+        _pasoActual = 1;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Callback para cuando desde el paso de confirmación se selecciona "Nueva factura".
+    /// </summary>
+    private void HandleNuevaFactura()
+    {
+        ReiniciarFactura();
+    }
+
+    /// <summary>
+    /// Devuelve la clase CSS del step en el timeline según si está activo, completado o pendiente.
+    /// </summary>
+    private string GetStepCss(int step)
+    {
+        if (_pasoActual == step)
+            return "wizard-step-item active";
+
+        if (_pasoActual > step)
+            return "wizard-step-item completed";
+
+        return "wizard-step-item pending";
+    }
+
+    /// <summary>
+    /// Determina si un paso ya fue "completado" visualmente (para mostrar el check).
+    /// </summary>
+    private bool EsPasoCompletado(int step)
+        => _pasoActual > step;
+}

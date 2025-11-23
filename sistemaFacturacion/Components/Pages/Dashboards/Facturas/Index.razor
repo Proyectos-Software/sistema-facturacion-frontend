@@ -1,0 +1,67 @@
+﻿@page "/dashboards/facturas"
+@inject NavigationManager NavigationManager
+
+<!-- Start::page-header -->
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap">
+        <h1 class="page-title fw-medium fs-18 mb-0">Gestión de Facturas</h1>
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Ventas</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Facturas</li>
+        </ol>
+    </div>
+</div>
+<!-- End::page-header -->
+<!-- Start::row -->
+<div class="row">
+    <div class="col-xl-12">
+
+        <div class="card custom-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-title">
+                    <i class="ri-bill-line me-2"></i> Listado de Facturas
+                </div>
+
+                <button class="btn btn-primary"
+                        @onclick="@(() => NavigationManager.NavigateTo("/dashboards/facturas/crear"))">
+                    <i class="ri-add-line me-1"></i> Nueva factura
+                </button>
+            </div>
+
+            <div class="card-body">
+                <!-- Tabla de facturas (placeholder por ahora) -->
+                <div class="table-responsive">
+                    <table class="table table-bordered text-nowrap">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Cliente</th>
+                                <th>Fecha</th>
+                                <th>Total</th>
+                                <th>Estado</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="ri-inbox-line fs-3 d-block mb-2"></i>
+                                    No hay facturas registradas todavía.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- End::row -->
+<h3>Index</h3>
+
+@code {
+
+}
