@@ -3,6 +3,7 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -83,7 +84,6 @@ public class AuthService
         ((CustomAuthStateProvider)_authenticationStateProvider).NotifyUserLogout();
     }
 
-
     public async Task<ResetPasswordResult> ResetPasswordAsync(
         string token,
         string newPassword,
@@ -112,5 +112,23 @@ public class AuthService
             : body;
 
         return new ResetPasswordResult(false, false, fallback);
+    }
+
+    public async Task<int?> GetCurrentUserIdAsync()
+    {
+        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+            return null;
+
+        var claim = user.FindFirst("idUsu") ?? user.FindFirst(ClaimTypes.NameIdentifier);
+        if (claim == null)
+            return null;
+
+        if (int.TryParse(claim.Value, out var id))
+            return id;
+
+        return null;
     }
 }

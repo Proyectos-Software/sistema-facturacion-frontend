@@ -13,7 +13,8 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject SessionService SessionService
 @inject AuthService AuthService
-@inject Microsoft.AspNetCore.Components.NavigationManager NavigationManager 
+@inject Microsoft.AspNetCore.Components.NavigationManager NavigationManager
+@using System.Security.Claims
 
 <div id="responsive-overlay" @onclick="() => responsivecloseFn()"></div>
 <aside class="app-sidebar sticky @sidebarClass" id="sidebar" @onmouseenter="() => HoverToggleInnerMenuFn(true)" @onmouseleave="() => HoverToggleInnerMenuFn(false)" @onclick="() => icontextOpenFn()">
@@ -30,7 +31,7 @@
 
 
     <div class="main-sidebar" id="sidebar-scroll">
-        <BlazorOverlayScrollbars  @ref="scrollbarsRef" Configurations="configurations">
+        <BlazorOverlayScrollbars  @ref="scrollbarsRef" Configurations="configurations">
             <BlazorOverlayScrollbarsContent>
                 <nav class="main-menu-container nav nav-pills flex-column sub-open">
                     <div class="slide-left" id="slide-left" @onclick="leftArrowFn">
@@ -147,7 +148,7 @@
                         <li class="slide">
                             <a href="/profile" class="side-menu__item rounded-circle mb-0 p-1">
                                 <span class="avatar avatar-md avatar-rounded">
-                                    <img src="../assets/images/faces/10.jpg" alt="">
+                                    <img src="@AvatarUrl" alt="">
                                 </span>
                             </a>
                         </li>
@@ -171,6 +172,12 @@
     private MainMenuItems? topParent;
     private MainMenuItems? currentItem;
     public WMBOSConfigurations? configurations;
+    private string userRole = "Usuario";
+    
+    private string AvatarUrl => 
+        string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase)
+            ? "assets/images/media/avatar-admin.svg"
+            : "assets/images/media/avatar-empleado.svg";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -505,6 +512,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Obtener el rol del usuario
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        userRole = user.FindFirst(ClaimTypes.Role)?.Value ?? "Usuario";
 
         // ¡CAMBIO 2! Llama al método asíncrono y filtrado.
         menuVal = await MenuDataService.GetFilteredMenuAsync();
@@ -717,7 +728,7 @@
             }
             //else
             //{
-            //    RemoveActiveOtherMenus(item,targetObject);
+            //    RemoveActiveOtherMenus(item,targetObject);
             //}
 
             if (item.Children != null && item.Children.Any())

@@ -1,46 +1,65 @@
-@page "/profile"
+﻿@page "/profile"
 @using Soenneker.Blazor.FilePond
 @using Soenneker.Blazor.FilePond.Options
 @using Soenneker.Blazor.FilePond.Dtos
 @using Soenneker.Blazor.FilePond.Enums
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject AuthService AuthService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject IUsuariosApiClient UsuariosApi
 
-<!-- Start::page-header -->
 <div class="page-header-breadcrumb mb-3">
     <div class="d-flex align-center justify-content-between flex-wrap">
-        <h1 class="page-title fw-medium fs-18 mb-0">Profile</h1>
+        <h1 class="page-title fw-medium fs-18 mb-0">Perfil</h1>
         <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="javascript:void(0);">Pages</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Profile</li>
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Páginas</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Perfil</li>
         </ol>
     </div>
 </div>
-<!-- End::page-header -->
 
-<!-- Start:: row-1 -->
-<div class="row justify-content-center">
-    <div class="col-xl-10">
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="card custom-card profile-card">
-                    <div class="profile-banner-image">
-                        <img src="../assets/images/media/media-3.jpg" class="card-img-top" alt="...">
-                    </div>
-                    <div class="card-body p-4 pb-0 position-relative">
-                        <div class="d-flex align-items-end justify-content-between flex-wrap">
-                            <div>
-                                <span class="avatar avatar-xxl avatar-rounded bg-info online">
-                                    <img src="../assets/images/faces/10.jpg" alt="">
-                                </span>
-                                <div class="mt-4 mb-3 d-flex align-items-center flex-wrap gap-3 justify-content-between">
-                                    <div>
-                                        <h5 class="fw-semibold mb-1">Patricio Guerron</h5>
-                                        <span class="d-block fw-medium text-muted mb-1">Desarrollador</span>
-                                        <p class="fs-12 mb-0 fw-medium text-muted">
+@if (isLoading)
+{
+    <div class="py-5 text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row justify-content-center">
+        <div class="col-xl-10">
+            <div class="row">
+                <div class="col-xl-12">
+                    <div class="card custom-card profile-card">
+                        <div class="profile-banner-image">
+                            <img src="@BannerUrl" class="card-img-top" alt="Banner perfil">
+                        </div>
+                        <div class="card-body position-relative p-4 pb-0">
+                            <div class="d-flex align-items-end justify-content-between flex-wrap">
+                                <div class="d-flex align-items-end flex-wrap gap-3">
+                                    <span class="avatar avatar-xxl avatar-rounded @(EsAdmin ? "bg-danger" : "bg-info") online">
+                                        <img src="@AvatarUrl" alt="Avatar">
+                                    </span>
+                                    <div class="mt-4 mb-3">
+                                        <div class="d-flex align-items-center mb-1 flex-wrap gap-2">
+                                            <h5 class="fw-semibold mb-0">@profile.NombreCompleto</h5>
+                                            <span class="badge @(EsAdmin ? "bg-danger-subtle text-danger" : "bg-primary-subtle text-primary")">
+                                                @profile.Rol
+                                            </span>
+                                        </div>
+                                        <span class="d-block fw-medium text-muted mb-2">
+                                            <i class="ri-briefcase-line me-1"></i>@profile.Cargo
+                                        </span>
+                                        <p class="fs-13 fw-medium text-muted mb-0">
                                             <span class="me-3">
-                                                <i class="ri-phone-line me-1 align-middle"></i> 0987654321
+                                                <i class="ri-phone-line me-1 align-middle"></i>@profile.Telefono
                                             </span>
                                             <span>
-                                                <i class="ri-mail-line me-1 align-middle"></i> vareb93200@burangir.com
+                                                <i class="ri-mail-line me-1 align-middle"></i>@profile.Email
                                             </span>
                                         </p>
                                     </div>
@@ -49,54 +68,100 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-xl-12">
-                <div class="tab-content" id="profile-tabs">
-                    <div class="tab-pane show active p-0 border-0" id="profile-about-tab-pane" role="tabpanel"
-                         aria-labelledby="profile-about-tab" tabindex="0">
-                        <div class="row">
-                            <div class="col-xxl-12">
-                                <div class="row">
-                                    <div class="col-xl-12">
-                                        <div class="card custom-card">
-                                            <div class="card-header">
-                                                <div class="card-title">
-                                                    About
+                <div class="col-xl-12">
+                    <div class="tab-content" id="profile-tabs">
+                        <div class="tab-pane show active border-0 p-0" id="profile-about-tab-pane" role="tabpanel"
+                             aria-labelledby="profile-about-tab" tabindex="0">
+                            <div class="row">
+                                <div class="col-xxl-12">
+                                    <div class="row">
+                                        <div class="col-xl-12">
+                                            <div class="card custom-card">
+                                                <div class="card-header">
+                                                    <div class="card-title">
+                                                        <i class="ri-information-line me-2"></i>Información del Perfil
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="card-body">
-                                                <p class="text-muted">
-                                                    Cargo: Desarrollador<br>
-                                                    Sueldo: $2000
-                                                </p>
-                                                <div class="text-muted">
-                                                    <div class="mb-2 d-flex align-items-center gap-1 flex-wrap">
-                                                        <span class="avatar avatar-sm avatar-rounded text-default">
-                                                            <i class="ri-mail-line align-middle fs-15"></i>
-                                                        </span>
-                                                        <span class="fw-medium text-default">Email : </span>
-                                                        vareb93200@burangir.com
-                                                    </div>
-                                                    <div class="mb-2 d-flex align-items-center gap-1 flex-wrap">
-                                                        <span class="avatar avatar-sm avatar-rounded text-default">
-                                                            <i class="ri-phone-line align-middle fs-15"></i>
-                                                        </span>
-                                                        <span class="fw-medium text-default">Phone : </span>
-                                                        0987654321
-                                                    </div>
-                                                    <div class="mb-2 d-flex align-items-center gap-1 flex-wrap">
-                                                        <span class="avatar avatar-sm avatar-rounded text-default">
-                                                            <i class="ri-building-line align-middle fs-15"></i>
-                                                        </span>
-                                                        <span class="fw-medium text-default">Position : </span>
-                                                        Desarrollador
-                                                    </div>
-                                                    <div class="mb-0 d-flex align-items-center gap-1">
-                                                        <span class="avatar avatar-sm avatar-rounded text-default">
-                                                            <i class="ri-money-dollar-circle-line align-middle fs-15"></i>
-                                                        </span>
-                                                        <span class="fw-medium text-default">Salary : </span> $2000
+                                                <div class="card-body">
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <div class="d-flex align-items-center rounded border p-3">
+                                                                <span class="avatar avatar-md avatar-rounded bg-primary-subtle text-primary me-3">
+                                                                    <i class="ri-user-line fs-18"></i>
+                                                                </span>
+                                                                <div>
+                                                                    <span class="d-block text-muted fs-12 mb-1">Nombre Completo</span>
+                                                                    <span class="fw-semibold">@profile.NombreCompleto</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-md-6">
+                                                            <div class="d-flex align-items-center rounded border p-3">
+                                                                <span class="avatar avatar-md avatar-rounded bg-success-subtle text-success me-3">
+                                                                    <i class="ri-mail-line fs-18"></i>
+                                                                </span>
+                                                                <div>
+                                                                    <span class="d-block text-muted fs-12 mb-1">Correo Electrónico</span>
+                                                                    <span class="fw-semibold">@profile.Email</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-md-6">
+                                                            <div class="d-flex align-items-center rounded border p-3">
+                                                                <span class="avatar avatar-md avatar-rounded bg-info-subtle text-info me-3">
+                                                                    <i class="ri-phone-line fs-18"></i>
+                                                                </span>
+                                                                <div>
+                                                                    <span class="d-block text-muted fs-12 mb-1">Teléfono</span>
+                                                                    <span class="fw-semibold">@profile.Telefono</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-md-6">
+                                                            <div class="d-flex align-items-center rounded border p-3">
+                                                                <span class="avatar avatar-md avatar-rounded @(EsAdmin ? "bg-danger-subtle text-danger" : "bg-warning-subtle text-warning") me-3">
+                                                                    <i class="ri-shield-user-line fs-18"></i>
+                                                                </span>
+                                                                <div>
+                                                                    <span class="d-block text-muted fs-12 mb-1">Rol del Sistema</span>
+                                                                    <span class="fw-semibold">@profile.Rol</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        @if (!EsAdmin)
+                                                        {
+                                                            <div class="col-md-6">
+                                                                <div class="d-flex align-items-center rounded border p-3">
+                                                                    <span class="avatar avatar-md avatar-rounded bg-purple-subtle text-purple me-3">
+                                                                        <i class="ri-building-line fs-18"></i>
+                                                                    </span>
+                                                                    <div>
+                                                                        <span class="d-block text-muted fs-12 mb-1">Cargo</span>
+                                                                        <span class="fw-semibold">@profile.Cargo</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            @if (profile.Sueldo.HasValue && profile.Sueldo.Value > 0)
+                                                            {
+                                                                <div class="col-md-6">
+                                                                    <div class="d-flex align-items-center rounded border p-3">
+                                                                        <span class="avatar avatar-md avatar-rounded bg-success-subtle text-success me-3">
+                                                                            <i class="ri-money-dollar-circle-line fs-18"></i>
+                                                                        </span>
+                                                                        <div>
+                                                                            <span class="d-block text-muted fs-12 mb-1">Sueldo</span>
+                                                                            <span class="fw-semibold">$@profile.Sueldo.Value.ToString("N2")</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            }
+                                                        }
                                                     </div>
                                                 </div>
                                             </div>
@@ -104,22 +169,18 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-xxl-8">
-                                <!-- This section remains as is -->
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-<!-- End:: row-1 -->
+}
 
 <script>
     setTimeout(() => {
         var lightboxVideo = GLightbox({
-        selector: '.glightbox'
+            selector: '.glightbox'
         });
         lightboxVideo.on('slide_changed', ({ prev, current }) => {
             console.log('Prev slide', prev);
@@ -132,7 +193,7 @@
             selector: '.glightbox2'
         });
 
-        var lightboxVideo = GLightbox({
+        var lightboxVideo2 = GLightbox({
             selector: '.glightbox3'
         });
 
@@ -140,11 +201,131 @@
             selector: '.glightbox4'
         });
     }, 500);
-
 </script>
 
 @code {
     private bool isRendered = false;
+    private bool isLoading = true;
+    private int? _currentUserId;
+    private UserProfileModel profile = new UserProfileModel();
+
+    private bool EsAdmin =>
+        string.Equals(profile.Rol, "Admin", StringComparison.OrdinalIgnoreCase);
+
+    private string BannerUrl =>
+        EsAdmin
+            ? "assets/images/media/backgrounds/profile-banner-admin.svg"
+            : "assets/images/media/backgrounds/profile-banner-empleado.svg";
+
+    private string AvatarUrl =>
+        EsAdmin
+            ? "assets/images/media/avatar-admin.svg"
+            : "assets/images/media/avatar-empleado.svg";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated != true)
+            {
+                NavigationManager.NavigateTo("/", true);
+                return;
+            }
+
+            // Obtener el ID del usuario
+            var idClaim = user.FindFirst("idUsu") ?? user.FindFirst(ClaimTypes.NameIdentifier);
+            if (idClaim != null && int.TryParse(idClaim.Value, out var id))
+            {
+                _currentUserId = id;
+            }
+            else
+            {
+                _currentUserId = await AuthService.GetCurrentUserIdAsync();
+            }
+
+            if (_currentUserId.HasValue)
+            {
+                // Obtener los datos completos desde la API
+                var usuarioDto = await UsuariosApi.GetByIdAsync(_currentUserId.Value);
+
+                if (usuarioDto != null)
+                {
+                    // Mapear los datos del DTO al perfil
+                    profile.NombreCompleto = $"{usuarioDto.NomUsu} {usuarioDto.ApeUsu}".Trim();
+                    profile.Email = usuarioDto.CorUsu ?? "Sin correo";
+                    profile.Telefono = usuarioDto.TelUsu ?? "No registrado";
+
+                    // Obtener el rol desde los claims
+                    var rol = user.FindFirst(ClaimTypes.Role)?.Value;
+                    profile.Rol = string.IsNullOrWhiteSpace(rol) ? "Usuario" : rol;
+
+                    // Asignar cargo y sueldo
+                    if (EsAdmin)
+                    {
+                        profile.Cargo = "Administrador del Sistema";
+                        profile.Sueldo = null; // No mostrar sueldo para admin
+                    }
+                    else
+                    {
+                        profile.Cargo = usuarioDto.CarEmp ?? "Empleado";
+                        profile.Sueldo = usuarioDto.SueEmp;
+                    }
+                }
+                else
+                {
+                    // Fallback si no se encuentra el usuario en la API
+                    await LoadFromClaims(user);
+                }
+            }
+            else
+            {
+                // Fallback si no se puede obtener el ID
+                await LoadFromClaims(user);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando perfil: {ex.Message}");
+            // Fallback en caso de error
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            await LoadFromClaims(authState.User);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadFromClaims(ClaimsPrincipal user)
+    {
+        var nombre = user.Identity?.Name ?? user.FindFirst(ClaimTypes.Name)?.Value;
+        profile.NombreCompleto = string.IsNullOrWhiteSpace(nombre) ? "Usuario" : nombre;
+
+        var email = user.FindFirst(ClaimTypes.Email)?.Value;
+        profile.Email = string.IsNullOrWhiteSpace(email) ? "Sin correo" : email;
+
+        var rol = user.FindFirst(ClaimTypes.Role)?.Value;
+        profile.Rol = string.IsNullOrWhiteSpace(rol) ? "Usuario" : rol;
+
+        if (EsAdmin)
+        {
+            profile.Cargo = "Administrador del Sistema";
+            profile.Sueldo = null;
+        }
+        else
+        {
+            profile.Cargo = "Empleado";
+            profile.Sueldo = null;
+        }
+
+        profile.Telefono = "No registrado";
+
+        await Task.CompletedTask;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -155,7 +336,6 @@
         }
     }
 
-    // Filepond Start //
     private FilePond? FilePond { get; set; }
 
     private readonly FilePondOptions _Attachments = new()
@@ -163,5 +343,14 @@
         MaxFiles = 12,
         AllowMultiple = true,
     };
-    // Filepond End //
+
+    private sealed class UserProfileModel
+    {
+        public string NombreCompleto { get; set; } = "Usuario";
+        public string Rol { get; set; } = "Usuario";
+        public string Email { get; set; } = "Sin correo";
+        public string Telefono { get; set; } = "No registrado";
+        public string Cargo { get; set; } = "Usuario";
+        public decimal? Sueldo { get; set; }
+    }
 }

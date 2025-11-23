@@ -31,6 +31,13 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
                 return new AuthenticationState(_anonymous);
             }
 
+            if (IsTokenExpired(token))
+            {
+                await _sessionService.ClearAllSession();
+                _httpClient.DefaultRequestHeaders.Authorization = null;
+                return new AuthenticationState(_anonymous);
+            }
+
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             return new AuthenticationState(new ClaimsPrincipal(
@@ -44,6 +51,16 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
 
     public void NotifyUserAuthentication(string token)
     {
+        if (IsTokenExpired(token))
+        {
+            var authStateExpired = Task.FromResult(new AuthenticationState(_anonymous));
+            _httpClient.DefaultRequestHeaders.Authorization = null;
+            NotifyAuthenticationStateChanged(authStateExpired);
+            return;
+        }
+
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
         var authenticatedUser = new ClaimsPrincipal(
             new ClaimsIdentity(ParseClaimsFromJwt(token), "jwtAuthType"));
 
@@ -56,6 +73,33 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
         var authState = Task.FromResult(new AuthenticationState(_anonymous));
         _httpClient.DefaultRequestHeaders.Authorization = null;
         NotifyAuthenticationStateChanged(authState);
+    }
+
+    private bool IsTokenExpired(string jwt)
+    {
+        try
+        {
+            var payload = jwt.Split('.')[1];
+            var jsonBytes = ParseBase64WithoutPadding(payload);
+            var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
+
+            if (keyValuePairs == null || !keyValuePairs.TryGetValue("exp", out var expValue) || expValue == null)
+            {
+                return false;
+            }
+
+            if (!long.TryParse(expValue.ToString(), out var expSeconds))
+            {
+                return false;
+            }
+
+            var expDateUtc = DateTimeOffset.FromUnixTimeSeconds(expSeconds).UtcDateTime;
+            return expDateUtc <= DateTime.UtcNow;
+        }
+        catch
+        {
+            return true;
+        }
     }
 
     private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
