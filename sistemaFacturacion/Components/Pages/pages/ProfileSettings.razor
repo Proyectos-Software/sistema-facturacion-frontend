@@ -1,373 +1,582 @@
-@page "/profilesettings"
-@using Soenneker.Blazor.TomSelect
-@using Soenneker.Blazor.TomSelect.Configuration
-@using Soenneker.Blazor.TomSelect.Enums
+﻿@page "/profilesettings"
+@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Json
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using sistemaFacturacion.Services
 
+@attribute [Authorize]
 
-
+@inject HttpClient Http
+@inject SweetAlertService Swal
+@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthService AuthService
+@inject IUsuariosApiClient UsuariosApi
 
 <!-- Start::page-header -->
-<div class="page-header-breadcrumb mb-3">
-    <div class="d-flex align-center justify-content-between flex-wrap">
-        <h1 class="page-title fw-medium fs-18 mb-0">Profile Settings</h1>
+<div class="page-header-breadcrumb mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h1 class="page-title fw-semibold fs-20 mb-1">Configuración de Perfil</h1>
+            <p class="text-muted fs-13 mb-0">Administra tu información personal y seguridad</p>
+        </div>
         <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="javascript:void(0);">Pages</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Profile Settings</li>
+            <li class="breadcrumb-item"><a href="/dashboard/admin">Página Principal</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Configuración de Perfil</li>
         </ol>
     </div>
 </div>
 <!-- End::page-header -->
-
-<!-- Start::row-1 -->
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card custom-card">
-            <div class="card-header">
-                <div class="card-title">
-                    Account
-                </div>
+@if (estaCargando)
+{
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Cargando...</span>
             </div>
-            <div class="card-body p-4">
-                <div class="row gy-3">
-                    <div class="col-xl-12">
-                        <div class="d-flex align-items-start flex-wrap gap-3">
-                            <div>
-                                <span class="avatar avatar-xxl">
-                                    <img src="../assets/images/faces/9.jpg" alt="">
-                                </span>
-                            </div>
-                            <div>
-                                <span class="fw-medium d-block mb-2">Profile Picture</span>
-                                <div class="btn-list mb-1">
-                                    <button class="btn btn-sm btn-primary btn-wave"><i
-                                            class="ri-upload-2-line me-1"></i>Change Image</button>
-                                    <button class="btn btn-sm btn-light btn-wave"><i
-                                            class="ri-delete-bin-line me-1"></i>Remove</button>
+            <p class="text-muted mt-3">Cargando información del perfil...</p>
+        </div>
+    </div>
+}
+else if (!usuarioCargado)
+{
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="ti ti-alert-circle fs-20 me-2"></i>
+        <div>
+            <strong>Error:</strong> No se pudo cargar la información del usuario. Por favor, intenta recargar la página.
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        <!-- Datos de la cuenta -->
+        <div class="col-xl-12">
+            <div class="card custom-card shadow-sm">
+                <div class="card-header bg-primary-transparent border-bottom">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-sm avatar-rounded bg-primary me-2">
+                            <i class="ti ti-user fs-16"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-title fw-semibold mb-0">Información de la Cuenta</h6>
+                            <p class="text-muted fs-12 mb-0">Actualiza tus datos personales</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <EditForm Model="@perfilModel" OnValidSubmit="@GuardarDatosAsync">
+                        <DataAnnotationsValidator />
+
+                        <div class="row gy-4">
+                            <!-- Avatar Section -->
+                            <div class="col-12">
+                                <div class="d-flex align-items-center bg-light rounded-3 gap-3 border p-3">
+                                    <div>
+                                        <span class="avatar avatar-xxl avatar-rounded">
+                                            <img src="@AvatarUrl" alt="Avatar del usuario" class="img-fluid">
+                                        </span>
+                                    </div>
+                                    <div class="flex-fill">
+                                        <h6 class="fw-semibold mb-2">Avatar del Usuario</h6>
+                                        <p class="fs-13 text-muted mb-0">
+                                            <i class="ti ti-info-circle me-1"></i>
+                                            La imagen se asigna automáticamente según el rol
+                                            (administrador o empleado) y no es editable.
+                                        </p>
+                                        <span class="badge bg-primary-transparent mt-2">
+                                            @(AvatarUrl.Contains("admin") ? "Administrador" : "Empleado")
+                                        </span>
+                                    </div>
                                 </div>
-                                <span class="d-block fs-12 text-muted">Use JPEG, PNG, or GIF. Best size: 200x200 pixels.
-                                    Keep it under 5MB</span>
                             </div>
-                        </div>
-                    </div>
-                    <div class="col-xl-6">
-                        <label for="profile-user-name" class="form-label">User Name :</label>
-                        <input type="text" class="form-control" id="profile-user-name" value=""
-                            placeholder="Enter Name">
-                    </div>
-                    <div class="col-xl-6">
-                        <label for="profile-email" class="form-label">Email :</label>
-                        <input type="email" class="form-control" id="profile-email" value="" placeholder="Enter Email">
-                    </div>
-                    <div class="col-xl-6">
-                        <label for="profile-phn-no" class="form-label">Phone No :</label>
-                        <input type="text" class="form-control" id="profile-phn-no" value="" placeholder="Enter Number">
-                    </div>
-                    <div class="col-xl-3">
-                        <label for="profile-age" class="form-label">Age :</label>
-                        <input type="number" class="form-control" id="profile-age" value="" placeholder="Enter Age">
-                    </div>
-                    <div class="col-xl-3">
-                        <label for="profile-designation" class="form-label">Designation :</label>
-                        <input type="text" class="form-control" id="profile-designation" value=""
-                            placeholder="Enter Designation">
-                    </div>
-                    <div class="col-xl-12">
-                        <label for="profile-address" class="form-label">Address :</label>
-                        <textarea class="form-control" id="profile-address" rows="3"></textarea>
-                    </div>
-                    <div class="col-xl-6">
-                        <label for="profile-language" class="form-label">Language :</label>
-                        @if (isRendered)
-                        {
-                            <TomSelect TItem="SelectItem" Items="_selectedItems" TType="string" Multiple="false" @bind-Value="_selectedValue" Data="_languageOptions" TextField="@(item => item.Name)" ValueField="@(item => item.Id)" Placeholder="Search" Configuration="_configuration" />
-                        }
-                    </div>
-                    <div class="col-xl-6">
-                        <label for="profile-timezone" class="form-label">Timezone :</label>
-                        @if (isRendered)
-                        {
-                            <TomSelect TItem="SelectItem" Items="_selectedItems" TType="string" Multiple="false" @bind-Value="_selectedValue" Data="_timezoneOptions" TextField="@(item => item.Name)" ValueField="@(item => item.Id)" Placeholder="Search" Configuration="_configuration" />
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-12">
-        <div class="card custom-card">
-            <div class="card-header">
-                <div class="card-title">
-                    Change Password
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="row gy-3">
-                    <div class="col-xl-6">
-                        <label for="Password" class="form-label">New Password</label>
-                        <input type="text" class="form-control" id="Password" value="" placeholder="Enter Password">
-                    </div>
-                    <div class="col-xl-6">
-                        <label for="confirm-password" class="form-label">Confirm Password</label>
-                        <input type="text" class="form-control" id="confirm-password" value=""
-                            placeholder="Confirm Password">
-                    </div>
-                </div>
-            </div>
-            <div class="card-footer">
-                <button class="btn btn-primary float-end">Save Changes</button>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-12">
-        <div class="card custom-card">
-            <div class="card-header">
-                <div class="card-title">
-                    Security Settings
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="d-sm-flex d-block align-items-top justify-content-between">
-                    <div class="w-50">
-                        <p class="fs-14 mb-1 fw-medium">Login Verification</p>
-                        <p class="fs-12 mb-0 text-muted">This helps protect accounts from unauthorized access, even if a
-                            password is compromised.</p>
-                    </div>
-                    <a href="javascript:void(0);" class="link-primary text-decoration-underline">Set Up Verification</a>
-                </div>
-                <div class="d-sm-flex d-block align-items-top justify-content-between mt-3">
-                    <div class="w-50">
-                        <p class="fs-14 mb-1 fw-medium">Password Verification</p>
-                        <p class="fs-12 mb-0 text-muted">This additional step helps ensure that the person attempting to
-                            modify account details is the legitimate account owner.</p>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" id="personal-details">
-                        <label class="form-check-label" for="personal-details">
-                            Require Personal Details
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <div class="card-footer">
-                <div class="btn-list float-end">
-                    <button class="btn btn-danger btn-wave">Deactivate Account</button>
-                    <button class="btn btn-light btn-wave">Restore Defaults</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-12">
-        <div class="card custom-card">
-            <div class="card-header">
-                <div class="card-title">
-                    Notifications
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="row gx-5 gy-3">
-                    <div class="col-xl-12">
-                        <p class="fs-14 mb-1 fw-medium">Configure Notifications</p>
-                        <p class="fs-12 mb-0 text-muted">By configuring notifications, users can tailor their experience
-                            to receive alerts for the types of events that matter to them.</p>
-                    </div>
-                    <div class="col-xl-12">
-                        <div class="d-flex align-items-top justify-content-between mt-sm-0 mt-3">
-                            <div class="mail-notification-settings">
-                                <p class="fs-14 mb-1 fw-medium">In-App Notifications</p>
-                                <p class="fs-12 mb-0 text-muted">Alerts that appear within the application interface.
-                                </p>
-                            </div>
-                            <div class="toggle toggle-success on mb-0 float-sm-end" id="in-app-notifications">
-                                <span></span>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-top justify-content-between mt-3">
-                            <div class="mail-notification-settings">
-                                <p class="fs-14 mb-1 fw-medium">Email Notifications</p>
-                                <p class="fs-12 mb-0 text-muted">Messages sent to the user's email address.</p>
-                            </div>
-                            <div class="toggle toggle-success on mb-0 float-sm-end" id="email-notifications">
-                                <span></span>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-top justify-content-between mt-3">
-                            <div class="mail-notification-settings">
-                                <p class="fs-14 mb-1 fw-medium">Push Notifications</p>
-                                <p class="fs-12 mb-0 text-muted">Alerts sent to the user's mobile device or desktop.</p>
-                            </div>
-                            <div class="toggle toggle-success mb-0 float-sm-end" id="push-notifications">
-                                <span></span>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-top justify-content-between mt-3">
-                            <div class="mail-notification-settings">
-                                <p class="fs-14 mb-1 fw-medium">SMS Notifications</p>
-                                <p class="fs-12 mb-0 text-muted">Text messages sent to the user's mobile phone.</p>
-                            </div>
-                            <div class="toggle toggle-success on mb-0 float-sm-end" id="sms-notifications">
-                                <span></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!--End::row-1 -->
 
-<script>
-    setTimeout(() => {
-        /* toggle switches */
-        let customSwitch = document.querySelectorAll(".toggle");
-        customSwitch.forEach((e) =>
-            e.addEventListener("click", () => {
-                e.classList.toggle("on");
-            })
-        );
-        /* toggle switches */
-    }, 100);
-</script>
+                            <!-- Form Fields -->
+                            <div class="col-xl-6">
+                                <label for="profile-nombre" class="form-label fw-medium">
+                                    <i class="ti ti-user text-primary me-1"></i>Nombre
+                                </label>
+                                <InputText id="profile-nombre"
+                                           class="form-control form-control-lg"
+                                           placeholder="Ingresa tu nombre"
+                                           @bind-Value="perfilModel.Nombre" />
+                                <ValidationMessage For="@(() => perfilModel.Nombre)" class="text-danger small mt-1" />
+                            </div>
 
+                            <div class="col-xl-6">
+                                <label for="profile-apellido" class="form-label fw-medium">
+                                    <i class="ti ti-user text-primary me-1"></i>Apellido
+                                </label>
+                                <InputText id="profile-apellido"
+                                           class="form-control form-control-lg"
+                                           placeholder="Ingresa tu apellido"
+                                           @bind-Value="perfilModel.Apellido" />
+                                <ValidationMessage For="@(() => perfilModel.Apellido)" class="text-danger small mt-1" />
+                            </div>
 
-@code{
-    
-    private bool isRendered = false;  
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+                            <div class="col-xl-6">
+                                <label for="profile-email" class="form-label fw-medium">
+                                    <i class="ti ti-mail text-primary me-1"></i>Correo Electrónico
+                                </label>
+                                <InputText id="profile-email"
+                                           type="email"
+                                           class="form-control form-control-lg"
+                                           placeholder="correo@ejemplo.com"
+                                           @bind-Value="perfilModel.Correo" />
+                                <ValidationMessage For="@(() => perfilModel.Correo)" class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-xl-6">
+                                <label for="profile-telefono" class="form-label fw-medium">
+                                    <i class="ti ti-phone text-primary me-1"></i>Teléfono
+                                </label>
+                                <InputText id="profile-telefono"
+                                           class="form-control form-control-lg"
+                                           placeholder="+593 999 999 999"
+                                           @bind-Value="perfilModel.Telefono" />
+                                <ValidationMessage For="@(() => perfilModel.Telefono)" class="text-danger small mt-1" />
+                            </div>
+                        </div>
+
+                        <div class="border-top d-flex justify-content-end mt-4 gap-2 pt-3">
+                            <button type="button"
+                                    class="btn btn-light"
+                                    @onclick="RecargarDatosUsuarioAsync"
+                                    disabled="@estaGuardandoDatos">
+                                <i class="ti ti-refresh me-1"></i>Restablecer
+                            </button>
+                            <button type="submit" class="btn btn-primary" disabled="@estaGuardandoDatos">
+                                @if (estaGuardandoDatos)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Guardando...</span>
+                                }
+                                else
+                                {
+                                    <i class="ti ti-device-floppy me-1"></i>
+                                    <span>Guardar Cambios</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cambiar contraseña -->
+        <div class="col-xl-12">
+            <div class="card custom-card shadow-sm">
+                <div class="card-header bg-warning-transparent border-bottom">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-sm avatar-rounded bg-warning me-2">
+                            <i class="ti ti-lock fs-16"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-title fw-semibold mb-0">Cambiar Contraseña</h6>
+                            <p class="text-muted fs-12 mb-0">Actualiza tu contraseña de acceso</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <EditForm Model="@cambioContrasenaModel" OnValidSubmit="@CambiarContrasenaAsync">
+                        <DataAnnotationsValidator />
+
+                        <div class="alert alert-warning border-warning mb-4 border" role="alert">
+                            <div class="d-flex align-items-start">
+                                <i class="ti ti-alert-triangle fs-20 me-2"></i>
+                                <div class="flex-fill">
+                                    <h6 class="alert-heading fw-semibold mb-1">Requisitos de seguridad</h6>
+                                    <p class="fs-13 mb-0">
+                                        La contraseña debe tener al menos 8 caracteres. Se recomienda
+                                        incluir mayúsculas, minúsculas, números y caracteres especiales.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row gy-4">
+                            <div class="col-xl-12">
+                                <label for="password-actual" class="form-label fw-medium">
+                                    <i class="ti ti-key text-warning me-1"></i>Contraseña Actual
+                                </label>
+                                <InputText id="password-actual"
+                                           type="password"
+                                           class="form-control form-control-lg"
+                                           placeholder="Ingresa tu contraseña actual"
+                                           @bind-Value="cambioContrasenaModel.ContrasenaActual" />
+                                <ValidationMessage For="@(() => cambioContrasenaModel.ContrasenaActual)"
+                                                   class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-xl-6">
+                                <label for="password-nueva" class="form-label fw-medium">
+                                    <i class="ti ti-lock-open text-warning me-1"></i>Nueva Contraseña
+                                </label>
+                                <InputText id="password-nueva"
+                                           type="password"
+                                           class="form-control form-control-lg"
+                                           placeholder="Mínimo 8 caracteres"
+                                           @bind-Value="cambioContrasenaModel.NuevaContrasena" />
+                                <ValidationMessage For="@(() => cambioContrasenaModel.NuevaContrasena)"
+                                                   class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-xl-6">
+                                <label for="password-confirmar" class="form-label fw-medium">
+                                    <i class="ti ti-lock-check text-warning me-1"></i>Confirmar Contraseña
+                                </label>
+                                <InputText id="password-confirmar"
+                                           type="password"
+                                           class="form-control form-control-lg"
+                                           placeholder="Repite la nueva contraseña"
+                                           @bind-Value="cambioContrasenaModel.ConfirmarContrasena" />
+                                <ValidationMessage For="@(() => cambioContrasenaModel.ConfirmarContrasena)"
+                                                   class="text-danger small mt-1" />
+                            </div>
+                        </div>
+
+                        <div class="border-top d-flex justify-content-end mt-4 gap-2 pt-3">
+                            <button type="button"
+                                    class="btn btn-light"
+                                    @onclick="@(() => cambioContrasenaModel = new CambiarContrasenaModel())"
+                                    disabled="@estaCambiandoContrasena">
+                                <i class="ti ti-x me-1"></i>Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-warning" disabled="@estaCambiandoContrasena">
+                                @if (estaCambiandoContrasena)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Actualizando...</span>
+                                }
+                                else
+                                {
+                                    <i class="ti ti-shield-check me-1"></i>
+                                    <span>Actualizar Contraseña</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code
+{
+    private PerfilUsuarioModel perfilModel = new();
+    private CambiarContrasenaModel cambioContrasenaModel = new();
+
+    private bool estaGuardandoDatos;
+    private bool estaCambiandoContrasena;
+    private bool estaCargando = true;
+    private bool usuarioCargado = false;
+
+    private int? usuarioId;
+    private string AvatarUrl = "../assets/images/media/avatar-empleado.svg";
+
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
+        await CargarDatosIniciales();
+    }
+
+    private async Task CargarDatosIniciales()
+    {
+        estaCargando = true;
+        usuarioCargado = false;
+
+        try
         {
-            isRendered = true;
-            await Task.Delay(0);
-            StateHasChanged(); 
+            // Obtener ID del usuario autenticado
+            usuarioId = await AuthService.GetCurrentUserIdAsync();
+
+            if (usuarioId == null)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Error de Autenticación",
+                    Text = "No se pudo identificar al usuario actual.",
+                    Icon = SweetAlertIcon.Error,
+                    ShowConfirmButton = true
+                });
+                return;
+            }
+
+            // Establecer avatar según rol
+            await EstablecerAvatarSegunRolAsync();
+
+            // Cargar datos del usuario
+            await CargarDatosUsuarioAsync();
+
+            usuarioCargado = true;
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error",
+                Text = $"No se pudo cargar la información del perfil: {ex.Message}",
+                Icon = SweetAlertIcon.Error,
+                ShowConfirmButton = true
+            });
+        }
+        finally
+        {
+            estaCargando = false;
         }
     }
 
-    private TomSelect<SelectItem, string> _selectedValue = default!;
-    private List<SelectItem>? _languageOptions;      
-    private List<SelectItem>? _timezoneOptions;      
-    private List<SelectItem> _selectedItems = new List<SelectItem>();    
-    public class SelectItem
+    private async Task EstablecerAvatarSegunRolAsync()
     {
-        public string? Id { get; set; }
-        public string? Name { get; set; }
-        public bool Selected { get; set; }
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is not null && user.Identity.IsAuthenticated)
+        {
+            AvatarUrl = user.IsInRole("Admin")
+                ? "../assets/images/media/avatar-admin.svg"
+                : "../assets/images/media/avatar-empleado.svg";
+        }
     }
 
-    
-    private readonly TomSelectConfiguration _configuration = new()
+    private async Task CargarDatosUsuarioAsync()
     {
-        Plugins = new List<TomSelectPluginType> { TomSelectPluginType.DropdownInput, TomSelectPluginType.NoBackspaceDelete }
-    };
-    private readonly TomSelectConfiguration _configuration2 = new()
-    {
-        Plugins = new List<TomSelectPluginType> { TomSelectPluginType.RemoveButton, TomSelectPluginType.NoBackspaceDelete }
-    };
-    protected override void OnInitialized()
-    {
+        if (usuarioId == null) return;
 
-        _languageOptions = new List<SelectItem>
+        try
         {
-            new SelectItem { Id = "0", Name = "Us English" },
-            new SelectItem { Id = "1", Name = "Arabic" },
-            new SelectItem { Id = "2", Name = "Korean" },
-        };
+            var usuario = await UsuariosApi.GetByIdAsync(usuarioId.Value);
 
-        _timezoneOptions = new List<SelectItem>
+            if (usuario != null)
+            {
+                perfilModel = new PerfilUsuarioModel
+                {
+                    Nombre = usuario.NomUsu ?? string.Empty,
+                    Apellido = usuario.ApeUsu ?? string.Empty,
+                    Correo = usuario.CorUsu ?? string.Empty,
+                    Telefono = usuario.TelUsu ?? string.Empty
+                };
+            }
+            else
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Usuario No Encontrado",
+                    Text = "No se encontró información del usuario.",
+                    Icon = SweetAlertIcon.Warning,
+                    ShowConfirmButton = true
+                });
+            }
+        }
+        catch (Exception ex)
         {
-            new SelectItem { Id = "Pacific/Midway", Name = "(GMT-11:00) Midway Island, Samoa" },
-            new SelectItem { Id = "America/Adak", Name = "(GMT-10:00) Hawaii-Aleutian" },
-            new SelectItem { Id = "Etc/GMT+10", Name = "(GMT-10:00) Hawaii" },
-            new SelectItem { Id = "Pacific/Marquesas", Name = "(GMT-09:30) Marquesas Islands" },
-            new SelectItem { Id = "Pacific/Gambier", Name = "(GMT-09:00) Gambier Islands" },
-            new SelectItem { Id = "America/Anchorage", Name = "(GMT-09:00) Alaska" },
-            new SelectItem { Id = "America/Ensenada", Name = "(GMT-08:00) Tijuana, Baja California" },
-            new SelectItem { Id = "Etc/GMT+8", Name = "(GMT-08:00) Pitcairn Islands" },
-            new SelectItem { Id = "America/Los_Angeles", Name = "(GMT-08:00) Pacific Time (US & Canada)" },
-            new SelectItem { Id = "America/Denver", Name = "(GMT-07:00) Mountain Time (US & Canada)" },
-            new SelectItem { Id = "America/Chihuahua", Name = "(GMT-07:00) Chihuahua, La Paz, Mazatlan" },
-            new SelectItem { Id = "America/Dawson_Creek", Name = "(GMT-07:00) Arizona" },
-            new SelectItem { Id = "America/Belize", Name = "(GMT-06:00) Saskatchewan, Central America" },
-            new SelectItem { Id = "America/Cancun", Name = "(GMT-06:00) Guadalajara, Mexico City, Monterrey" },
-            new SelectItem { Id = "Chile/EasterIsland", Name = "(GMT-06:00) Easter Island" },
-            new SelectItem { Id = "America/Chicago", Name = "(GMT-06:00) Central Time (US & Canada)" },
-            new SelectItem { Id = "America/New_York", Name = "(GMT-05:00) Eastern Time (US & Canada)" },
-            new SelectItem { Id = "America/Havana", Name = "(GMT-05:00) Cuba" },
-            new SelectItem { Id = "America/Bogota", Name = "(GMT-05:00) Bogota, Lima, Quito, Rio Branco" },
-            new SelectItem { Id = "America/Caracas", Name = "(GMT-04:30) Caracas" },
-            new SelectItem { Id = "America/Santiago", Name = "(GMT-04:00) Santiago" },
-            new SelectItem { Id = "America/La_Paz", Name = "(GMT-04:00) La Paz" },
-            new SelectItem { Id = "Atlantic/Stanley", Name = "(GMT-04:00) Faukland Islands" },
-            new SelectItem { Id = "America/Campo_Grande", Name = "(GMT-04:00) Brazil" },
-            new SelectItem { Id = "America/Goose_Bay", Name = "(GMT-04:00) Atlantic Time (Goose Bay)" },
-            new SelectItem { Id = "America/Glace_Bay", Name = "(GMT-04:00) Atlantic Time (Canada)" },
-            new SelectItem { Id = "America/St_Johns", Name = "(GMT-03:30) Newfoundland" },
-            new SelectItem { Id = "America/Araguaina", Name = "(GMT-03:00) UTC-3" },
-            new SelectItem { Id = "America/Montevideo", Name = "(GMT-03:00) Montevideo" },
-            new SelectItem { Id = "America/Miquelon", Name = "(GMT-03:00) Miquelon, St. Pierre" },
-            new SelectItem { Id = "America/Godthab", Name = "(GMT-03:00) Greenland" },
-            new SelectItem { Id = "America/Argentina/Buenos_Aires", Name = "(GMT-03:00) Buenos Aires" },
-            new SelectItem { Id = "America/Sao_Paulo", Name = "(GMT-03:00) Brasilia" },
-            new SelectItem { Id = "America/Noronha", Name = "(GMT-02:00) Mid-Atlantic" },
-            new SelectItem { Id = "Atlantic/Cape_Verde", Name = "(GMT-01:00) Cape Verde Is." },
-            new SelectItem { Id = "Atlantic/Azores", Name = "(GMT-01:00) Azores" },
-            new SelectItem { Id = "Europe/Belfast", Name = "(GMT) Greenwich Mean Time : Belfast" },
-            new SelectItem { Id = "Europe/Dublin", Name = "(GMT) Greenwich Mean Time : Dublin" },
-            new SelectItem { Id = "Europe/Lisbon", Name = "(GMT) Greenwich Mean Time : Lisbon" },
-            new SelectItem { Id = "Europe/London", Name = "(GMT) Greenwich Mean Time : London" },
-            new SelectItem { Id = "Africa/Abidjan", Name = "(GMT) Monrovia, Reykjavik" },
-            new SelectItem { Id = "Europe/Amsterdam", Name = "(GMT+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna" },
-            new SelectItem { Id = "Europe/Belgrade", Name = "(GMT+01:00) Belgrade, Bratislava, Budapest, Ljubljana, Prague" },
-            new SelectItem { Id = "Europe/Brussels", Name = "(GMT+01:00) Brussels, Copenhagen, Madrid, Paris" },
-            new SelectItem { Id = "Africa/Algiers", Name = "(GMT+01:00) West Central Africa" },
-            new SelectItem { Id = "Africa/Windhoek", Name = "(GMT+01:00) Windhoek" },
-            new SelectItem { Id = "Asia/Beirut", Name = "(GMT+02:00) Beirut" },
-            new SelectItem { Id = "Africa/Cairo", Name = "(GMT+02:00) Cairo" },
-            new SelectItem { Id = "Asia/Gaza", Name = "(GMT+02:00) Gaza" },
-            new SelectItem { Id = "Africa/Blantyre", Name = "(GMT+02:00) Harare, Pretoria" },
-            new SelectItem { Id = "Asia/Jerusalem", Name = "(GMT+02:00) Jerusalem" },
-            new SelectItem { Id = "Europe/Minsk", Name = "(GMT+02:00) Minsk" },
-            new SelectItem { Id = "Asia/Damascus", Name = "(GMT+02:00) Syria" },
-            new SelectItem { Id = "Europe/Moscow", Name = "(GMT+03:00) Moscow, St. Petersburg, Volgograd" },
-            new SelectItem { Id = "Africa/Addis_Ababa", Name = "(GMT+03:00) Nairobi" },
-            new SelectItem { Id = "Asia/Tehran", Name = "(GMT+03:30) Tehran" },
-            new SelectItem { Id = "Asia/Dubai", Name = "(GMT+04:00) Abu Dhabi, Muscat" },
-            new SelectItem { Id = "Asia/Yerevan", Name = "(GMT+04:00) Yerevan" },
-            new SelectItem { Id = "Asia/Kabul", Name = "(GMT+04:30) Kabul" },
-            new SelectItem { Id = "Asia/Yekaterinburg", Name = "(GMT+05:00) Ekaterinburg" },
-            new SelectItem { Id = "Asia/Tashkent", Name = "(GMT+05:00) Tashkent" },
-            new SelectItem { Id = "Asia/Kolkata", Name = "(GMT+05:30) Chennai, Kolkata, Mumbai, New Delhi" },
-            new SelectItem { Id = "Asia/Katmandu", Name = "(GMT+05:45) Kathmandu" },
-            new SelectItem { Id = "Asia/Dhaka", Name = "(GMT+06:00) Astana, Dhaka" },
-            new SelectItem { Id = "Asia/Novosibirsk", Name = "(GMT+06:00) Novosibirsk" },
-            new SelectItem { Id = "Asia/Rangoon", Name = "(GMT+06:30) Yangon (Rangoon)" },
-            new SelectItem { Id = "Asia/Bangkok", Name = "(GMT+07:00) Bangkok, Hanoi, Jakarta" },
-            new SelectItem { Id = "Asia/Krasnoyarsk", Name = "(GMT+07:00) Krasnoyarsk" },
-            new SelectItem { Id = "Asia/Hong_Kong", Name = "(GMT+08:00) Beijing, Chongqing, Hong Kong, Urumqi" },
-            new SelectItem { Id = "Asia/Irkutsk", Name = "(GMT+08:00) Irkutsk, Ulaan Bataar" },
-            new SelectItem { Id = "Australia/Perth", Name = "(GMT+08:00) Perth" },
-            new SelectItem { Id = "Australia/Eucla", Name = "(GMT+08:45) Eucla" },
-            new SelectItem { Id = "Asia/Tokyo", Name = "(GMT+09:00) Osaka, Sapporo, Tokyo" },
-            new SelectItem { Id = "Asia/Seoul", Name = "(GMT+09:00) Seoul" },
-            new SelectItem { Id = "Asia/Yakutsk", Name = "(GMT+09:00) Yakutsk" },
-            new SelectItem { Id = "Australia/Adelaide", Name = "(GMT+09:30) Adelaide" },
-            new SelectItem { Id = "Australia/Darwin", Name = "(GMT+09:30) Darwin" },
-            new SelectItem { Id = "Australia/Brisbane", Name = "(GMT+10:00) Brisbane" },
-            new SelectItem { Id = "Australia/Hobart", Name = "(GMT+10:00) Hobart" },
-            new SelectItem { Id = "Asia/Vladivostok", Name = "(GMT+10:00) Vladivostok" },
-            new SelectItem { Id = "Australia/Lord_Howe", Name = "(GMT+10:30) Lord Howe Island" },
-            new SelectItem { Id = "Etc/GMT-11", Name = "(GMT+11:00) Solomon Is., New Caledonia" },
-            new SelectItem { Id = "Asia/Magadan", Name = "(GMT+11:00) Magadan" },
-            new SelectItem { Id = "Pacific/Norfolk", Name = "(GMT+11:30) Norfolk Island" },
-            new SelectItem { Id = "Asia/Anadyr", Name = "(GMT+12:00) Anadyr, Kamchatka" },
-            new SelectItem { Id = "Pacific/Auckland", Name = "(GMT+12:00) Auckland, Wellington" },
-            new SelectItem { Id = "Etc/GMT-12", Name = "(GMT+12:00) Fiji, Kamchatka, Marshall Is." },
-            new SelectItem { Id = "Pacific/Chatham", Name = "(GMT+12:45) Chatham Islands" },
-            new SelectItem { Id = "Pacific/Tongatapu", Name = "(GMT+13:00) Nuku'alofa" },
-            new SelectItem { Id = "Pacific/Kiritimati", Name = "(GMT+14:00) Kiritimati" }
-        };
-        _selectedItems = _timezoneOptions.Take(1).ToList();
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error al Cargar Datos",
+                Text = $"No se pudieron cargar los datos del usuario: {ex.Message}",
+                Icon = SweetAlertIcon.Error,
+                ShowConfirmButton = true
+            });
+        }
     }
 
+    private async Task RecargarDatosUsuarioAsync()
+    {
+        await CargarDatosUsuarioAsync();
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "Datos Restablecidos",
+            Text = "Se han recargado los datos originales del usuario.",
+            Icon = SweetAlertIcon.Info,
+            ShowConfirmButton = true,
+            Timer = 2000
+        });
+    }
 
+    private async Task GuardarDatosAsync()
+    {
+        if (estaGuardandoDatos) return;
+
+        estaGuardandoDatos = true;
+
+        try
+        {
+            var request = new UpdateUsuarioRequest
+            {
+                NomUsu = perfilModel.Nombre,
+                ApeUsu = perfilModel.Apellido,
+                CorUsu = perfilModel.Correo,
+                TelUsu = perfilModel.Telefono
+            };
+
+            var usuarioActualizado = await UsuariosApi.UpdateDatosAsync(request);
+
+            if (usuarioActualizado != null)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "¡Éxito!",
+                    Text = "Tu información de usuario se ha actualizado correctamente.",
+                    Icon = SweetAlertIcon.Success,
+                    ShowConfirmButton = true,
+                    Timer = 3000
+                });
+
+                // Recargar datos actualizados
+                await CargarDatosUsuarioAsync();
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.Message.Contains("400"))
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Datos Inválidos",
+                    Text = "Revisa la información ingresada.",
+                    Icon = SweetAlertIcon.Warning,
+                    ShowConfirmButton = true
+                });
+            }
+            else
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Error",
+                    Text = $"Ocurrió un error al actualizar los datos: {ex.Message}",
+                    Icon = SweetAlertIcon.Error,
+                    ShowConfirmButton = true
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error Inesperado",
+                Text = $"Ocurrió un error inesperado: {ex.Message}",
+                Icon = SweetAlertIcon.Error,
+                ShowConfirmButton = true
+            });
+        }
+        finally
+        {
+            estaGuardandoDatos = false;
+        }
+    }
+
+    private async Task CambiarContrasenaAsync()
+    {
+        if (estaCambiandoContrasena) return;
+
+        if (cambioContrasenaModel.NuevaContrasena != cambioContrasenaModel.ConfirmarContrasena)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Contraseñas No Coinciden",
+                Text = "La nueva contraseña y su confirmación deben ser iguales.",
+                Icon = SweetAlertIcon.Warning,
+                ShowConfirmButton = true
+            });
+            return;
+        }
+
+        estaCambiandoContrasena = true;
+
+        try
+        {
+            var request = new ChangePasswordRequest
+            {
+                ContrasenaActual = cambioContrasenaModel.ContrasenaActual,
+                ContrasenaNueva = cambioContrasenaModel.NuevaContrasena
+            };
+
+            var resultado = await UsuariosApi.CambiarContrasenaAsync(request);
+
+            if (resultado)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "¡Contraseña Actualizada!",
+                    Text = "Tu contraseña se ha cambiado correctamente.",
+                    Icon = SweetAlertIcon.Success,
+                    ShowConfirmButton = true,
+                    Timer = 3000
+                });
+
+                cambioContrasenaModel = new CambiarContrasenaModel();
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.Message.Contains("400"))
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Datos Inválidos",
+                    Text = "Verifica la contraseña actual y los requisitos de la nueva contraseña.",
+                    Icon = SweetAlertIcon.Warning,
+                    ShowConfirmButton = true
+                });
+            }
+            else
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Error",
+                    Text = $"Ocurrió un error al cambiar la contraseña: {ex.Message}",
+                    Icon = SweetAlertIcon.Error,
+                    ShowConfirmButton = true
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error Inesperado",
+                Text = $"Ocurrió un error inesperado: {ex.Message}",
+                Icon = SweetAlertIcon.Error,
+                ShowConfirmButton = true
+            });
+        }
+        finally
+        {
+            estaCambiandoContrasena = false;
+        }
+    }
+
+    public class PerfilUsuarioModel
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [StringLength(50, ErrorMessage = "El nombre no puede exceder 50 caracteres.")]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El apellido es obligatorio.")]
+        [StringLength(50, ErrorMessage = "El apellido no puede exceder 50 caracteres.")]
+        public string Apellido { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
+        [EmailAddress(ErrorMessage = "El correo electrónico no es válido.")]
+        public string Correo { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El teléfono es obligatorio.")]
+        [Phone(ErrorMessage = "El número de teléfono no es válido.")]
+        public string Telefono { get; set; } = string.Empty;
+    }
+
+    public class CambiarContrasenaModel
+    {
+        [Required(ErrorMessage = "La contraseña actual es obligatoria.")]
+        public string ContrasenaActual { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La nueva contraseña es obligatoria.")]
+        [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres.")]
+        public string NuevaContrasena { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Debe confirmar la nueva contraseña.")]
+        [Compare(nameof(NuevaContrasena), ErrorMessage = "Las contraseñas no coinciden.")]
+        public string ConfirmarContrasena { get; set; } = string.Empty;
+    }
 }
