@@ -1,0 +1,239 @@
+﻿/* ==========================================
+   FORMULARIO CREAR LOTE - ESTILOS
+   Mejora de legibilidad en modo claro y oscuro
+   ========================================== */
+
+/* Secciones del formulario */
+.lote-form-section {
+    background-color: var(--form-control-bg, #fff);
+    transition: all 0.2s ease;
+}
+
+/* Labels */
+.lote-form-label {
+    color: var(--default-text-color, #212529);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Inputs */
+.lote-form-input {
+    background-color: var(--form-control-bg, #fff) !important;
+    color: var(--default-text-color, #212529) !important;
+    border-color: var(--default-border, #dee2e6) !important;
+}
+
+    .lote-form-input:focus {
+        background-color: var(--form-control-bg, #fff) !important;
+        color: var(--default-text-color, #212529) !important;
+        border-color: var(--primary, #6366f1) !important;
+        box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25) !important;
+    }
+
+/* Iconos en inputs */
+.lote-input-icon {
+    background-color: var(--form-control-bg, #fff) !important;
+    border-color: var(--default-border, #dee2e6) !important;
+    color: var(--text-muted, #6c757d) !important;
+}
+
+/* Textos de ayuda */
+.lote-help-text {
+    color: var(--text-muted, #6c757d);
+    font-size: 0.813rem;
+    line-height: 1.4;
+}
+
+/* ==========================================
+   ALERTAS
+   ========================================== */
+
+/* Alerta Info */
+.lote-alert-info {
+    background-color: rgba(13, 202, 240, 0.15) !important;
+}
+
+[data-theme-mode="dark"] .lote-alert-info {
+    background-color: rgba(13, 202, 240, 0.2) !important;
+}
+
+/* Alerta Warning */
+.lote-alert-warning {
+    background-color: rgba(255, 193, 7, 0.15) !important;
+}
+
+[data-theme-mode="dark"] .lote-alert-warning {
+    background-color: rgba(255, 193, 7, 0.2) !important;
+}
+
+/* Texto de alertas */
+.lote-alert-text {
+    color: var(--default-text-color, #212529);
+    line-height: 1.5;
+}
+
+/* ==========================================
+   CAJAS DE INFORMACIÓN
+   ========================================== */
+
+.lote-info-box {
+    background-color: var(--light, #f8f9fa);
+    border-color: var(--default-border, #dee2e6) !important;
+    transition: all 0.2s ease;
+}
+
+[data-theme-mode="dark"] .lote-info-box {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.lote-info-title {
+    color: var(--default-text-color, #212529);
+}
+
+.lote-info-content {
+    color: var(--text-muted, #6c757d);
+}
+
+.lote-info-border {
+    border-top: 1px solid var(--default-border, #dee2e6) !important;
+}
+
+[data-theme-mode="dark"] .lote-info-border {
+    border-top-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ==========================================
+   BARRA DE PROGRESO
+   ========================================== */
+
+.lote-progress {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 0.375rem;
+}
+
+[data-theme-mode="dark"] .lote-progress {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================
+   CAJA DE ESTADO
+   ========================================== */
+
+.lote-estado-box {
+    background-color: rgba(25, 135, 84, 0.1);
+    border-color: rgba(25, 135, 84, 0.2) !important;
+    transition: all 0.2s ease;
+}
+
+[data-theme-mode="dark"] .lote-estado-box {
+    background-color: rgba(25, 135, 84, 0.15);
+    border-color: rgba(25, 135, 84, 0.3) !important;
+}
+
+.lote-estado-description {
+    color: var(--text-muted, #6c757d);
+    line-height: 1.5;
+}
+
+/* ==========================================
+   ANÁLISIS DE RENTABILIDAD - Mejora de legibilidad
+   ========================================== */
+
+.lote-info-box .lote-info-content strong {
+    color: var(--default-text-color, #212529);
+    font-weight: 600;
+}
+
+[data-theme-mode="dark"] .lote-info-box .lote-info-content strong {
+    color: var(--default-text-color, #e6e6e6);
+}
+
+.lote-info-box .lote-info-content .text-success {
+    color: #10b981 !important;
+    font-weight: 600;
+}
+
+[data-theme-mode="dark"] .lote-info-box .lote-info-content .text-success {
+    color: #34d399 !important;
+}
+
+.lote-info-box .lote-info-content .text-warning {
+    color: #f59e0b !important;
+    font-weight: 600;
+}
+
+[data-theme-mode="dark"] .lote-info-box .lote-info-content .text-warning {
+    color: #fbbf24 !important;
+}
+
+.lote-info-box .lote-info-content .text-danger {
+    color: #ef4444 !important;
+    font-weight: 600;
+}
+
+[data-theme-mode="dark"] .lote-info-box .lote-info-content .text-danger {
+    color: #f87171 !important;
+}
+
+/* Iconos de rentabilidad */
+.lote-info-content .ri-arrow-down-line,
+.lote-info-content .ri-arrow-up-line,
+.lote-info-content .ri-coin-line {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+/* Labels de resumen de stock */
+.lote-info-content .ri-box-3-line,
+.lote-info-content .ri-shopping-cart-line {
+    opacity: 0.8;
+}
+
+/* Mejorar contraste general del contenido info */
+.lote-info-content {
+    color: var(--default-text-color, #495057);
+}
+
+[data-theme-mode="dark"] .lote-info-content {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* ==========================================
+   FOOTER
+   ========================================== */
+
+.lote-footer-border {
+    border-top: 1px solid var(--default-border, #dee2e6) !important;
+}
+
+[data-theme-mode="dark"] .lote-footer-border {
+    border-top-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.lote-footer-text {
+    color: var(--text-muted, #6c757d);
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .lote-form-section {
+        padding: 1rem !important;
+    }
+
+    .lote-info-box {
+        padding: 0.75rem !important;
+    }
+
+    .lote-form-label {
+        font-size: 0.813rem;
+    }
+
+    .lote-help-text {
+        font-size: 0.75rem;
+    }
+}

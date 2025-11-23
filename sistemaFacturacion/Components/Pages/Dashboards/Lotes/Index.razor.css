@@ -1,102 +1,604 @@
-﻿/* ===========================
-   LOTES DASHBOARD (Dark-first)
-   =========================== */
+﻿/* ==========================================
+   LOTES DASHBOARD - ESTILOS PERSONALIZADOS
+   Temática consistente con otros dashboards
+   ========================================== */
 
+/* Variables locales solo para lotes-dashboard */
+.lotes-dashboard {
+    --ld-primary: #6366f1;
+    --ld-success: #10b981;
+    --ld-danger: #ef4444;
+    --ld-warning: #f59e0b;
+    --ld-info: #3b82f6;
+    --ld-bg-card: #ffffff;
+    --ld-bg-secondary: #f8f9fa;
+    --ld-text-primary: #212529;
+    --ld-text-secondary: #6c757d;
+    --ld-border-color: #dee2e6;
+    --ld-hover-bg: rgba(0, 0, 0, 0.02);
+}
+
+/* Modo oscuro */
+[data-theme-mode="dark"] .lotes-dashboard {
+    --ld-bg-card: #1e1e1e;
+    --ld-bg-secondary: #2a2a2a;
+    --ld-text-primary: #e6e6e6;
+    --ld-text-secondary: #b0b0b0;
+    --ld-border-color: rgba(255, 255, 255, 0.1);
+    --ld-hover-bg: rgba(255, 255, 255, 0.05);
+}
+
+/* ==========================================
+   ENCABEZADO
+   ========================================== */
 .lotes-dashboard .page-title {
-    color: var(--text-light);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0;
+    color: var(--ld-text-primary);
 }
 
-.lotes-dashboard .card {
-    background-color: var(--bg-card);
-    color: var(--text-light);
-    border-radius: 0.8rem;
+.lotes-dashboard .page-subtitle {
+    font-size: 0.813rem;
+    color: var(--ld-text-secondary);
 }
 
-.lotes-dashboard .card-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    color: var(--text-light);
+.lotes-dashboard .header-content {
+    transition: all 0.3s ease;
 }
 
-.lotes-dashboard .text-muted {
-    color: #b0b0b0 !important;
+/* ==========================================
+   SECCIÓN DE PRODUCTOS DISPONIBLES
+   ========================================== */
+.lotes-dashboard .productos-header {
+    background-color: var(--ld-bg-secondary);
+    border-radius: 8px 8px 0 0;
+    padding: 1rem 1.25rem;
+    border-bottom: 2px solid var(--ld-border-color);
 }
 
-/* Hover scale para tarjetas de accesos rápidos */
-.hover-scale {
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-    will-change: transform;
+.lotes-dashboard .productos-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ld-text-primary);
+    margin-bottom: 0.25rem;
 }
 
-    .hover-scale:hover {
+.lotes-dashboard .productos-subtitle {
+    font-size: 0.75rem;
+    color: var(--ld-text-secondary);
+    margin-bottom: 0;
+}
+
+.lotes-dashboard .productos-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.lotes-dashboard .productos-controls-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 300px;
+}
+
+.lotes-dashboard .productos-controls-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ==========================================
+   KPI CARDS - Estilo simple y limpio
+   ========================================== */
+.lotes-dashboard .kpi-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background-color: var(--ld-bg-card);
+    border-color: var(--ld-border-color);
+}
+
+    .lotes-dashboard .kpi-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
     }
 
-/* Colores de “subtle” si no tienes variables de Bootstrap 5.3 */
-.bg-primary-subtle {
-    background-color: rgba(14, 165, 233, 0.12) !important;
+.lotes-dashboard .kpi-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.bg-warning-subtle {
-    background-color: rgba(245, 158, 11, 0.14) !important;
-}
-
-.bg-success-subtle {
-    background-color: rgba(34, 197, 94, 0.14) !important;
-}
-
-/* Links */
-.lotes-dashboard a.link-primary {
-    color: var(--accent);
-    text-decoration: none;
-}
-
-    .lotes-dashboard a.link-primary:hover {
-        color: var(--accent-hover);
-        text-decoration: underline;
+    .lotes-dashboard .kpi-icon-wrapper.primary {
+        background-color: rgba(99, 102, 241, 0.1);
     }
 
-/* Tabla */
-.lotes-dashboard .table {
-    color: var(--text-light);
-    --tbl-border: rgba(255, 255, 255, 0.08);
+    .lotes-dashboard .kpi-icon-wrapper.success {
+        background-color: rgba(16, 185, 129, 0.1);
+    }
+
+    .lotes-dashboard .kpi-icon-wrapper.danger {
+        background-color: rgba(239, 68, 68, 0.1);
+    }
+
+    .lotes-dashboard .kpi-icon-wrapper.warning {
+        background-color: rgba(245, 158, 11, 0.1);
+    }
+
+.lotes-dashboard .kpi-icon {
+    font-size: 1.5rem;
 }
 
-    .lotes-dashboard .table thead {
-        background: rgba(255, 255, 255, 0.02);
-    }
+.lotes-dashboard .kpi-icon-wrapper.primary .kpi-icon {
+    color: var(--ld-primary);
+}
 
-        .lotes-dashboard .table thead th {
-            border-bottom: 1px solid var(--tbl-border);
-            color: #cfd2d8;
-            font-weight: 600;
-        }
+.lotes-dashboard .kpi-icon-wrapper.success .kpi-icon {
+    color: var(--ld-success);
+}
 
-    .lotes-dashboard .table tbody tr + tr td {
-        border-top: 1px solid var(--tbl-border);
-    }
+.lotes-dashboard .kpi-icon-wrapper.danger .kpi-icon {
+    color: var(--ld-danger);
+}
 
-/* Badges */
-.lotes-dashboard .badge {
-    border-radius: 10rem;
-    padding: 0.4rem 0.6rem;
+.lotes-dashboard .kpi-icon-wrapper.warning .kpi-icon {
+    color: var(--ld-warning);
+}
+
+.lotes-dashboard .kpi-label {
+    font-size: 0.75rem;
+    color: var(--ld-text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.lotes-dashboard .kpi-value {
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--ld-text-primary);
+}
+
+.lotes-dashboard .kpi-footer {
+    font-size: 0.75rem;
+    color: var(--ld-text-secondary);
+    margin-top: 0.5rem;
+}
+
+/* ==========================================
+   BADGES - Consistente con otros dashboards
+   ========================================== */
+.lotes-dashboard .badge-trend {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
     font-weight: 600;
 }
 
-/* Responsive tweaks */
-@media (max-width: 575.98px) {
-    .lotes-dashboard .card-body .fs-3 {
-        font-size: 1.6rem !important;
+    .lotes-dashboard .badge-trend.trend-up {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--ld-success);
     }
 
-    .lotes-dashboard h5 {
-        font-size: 1rem;
+    .lotes-dashboard .badge-trend.trend-down {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--ld-danger);
+    }
+
+    .lotes-dashboard .badge-trend.trend-neutral {
+        background-color: rgba(99, 102, 241, 0.1);
+        color: var(--ld-primary);
+    }
+
+.lotes-dashboard .badge-category {
+    background-color: rgba(99, 102, 241, 0.1);
+    color: var(--ld-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.lotes-dashboard .badge-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+    .lotes-dashboard .badge-status.status-active {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--ld-success);
+    }
+
+    .lotes-dashboard .badge-status.status-inactive {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--ld-danger);
+    }
+
+.lotes-dashboard .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.lotes-dashboard .badge-status.status-active .status-dot {
+    background-color: var(--ld-success);
+}
+
+.lotes-dashboard .badge-status.status-inactive .status-dot {
+    background-color: var(--ld-danger);
+}
+
+/* ==========================================
+   TABLA
+   ========================================== */
+.lotes-dashboard .table-modern {
+    margin-bottom: 0;
+    color: var(--ld-text-primary);
+}
+
+    .lotes-dashboard .table-modern thead th {
+        background-color: var(--ld-bg-secondary);
+        border-bottom: 2px solid var(--ld-border-color);
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--ld-text-secondary);
+        padding: 0.75rem;
+    }
+
+    .lotes-dashboard .table-modern tbody tr {
+        transition: background-color 0.15s ease;
+        border-bottom: 1px solid var(--ld-border-color);
+    }
+
+        .lotes-dashboard .table-modern tbody tr:hover {
+            background-color: var(--ld-hover-bg);
+        }
+
+    .lotes-dashboard .table-modern tbody td {
+        padding: 0.75rem;
+        vertical-align: middle;
+        font-size: 0.875rem;
+        color: var(--ld-text-primary);
+    }
+
+.lotes-dashboard .product-code {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: var(--ld-primary);
+    background-color: rgba(99, 102, 241, 0.08);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.813rem;
+}
+
+.lotes-dashboard .product-name {
+    font-weight: 600;
+    color: var(--ld-text-primary);
+}
+
+.lotes-dashboard .product-description {
+    color: var(--ld-text-secondary);
+    font-size: 0.813rem;
+}
+
+/* ==========================================
+   CONTROLES DE BÚSQUEDA
+   ========================================== */
+.lotes-dashboard .search-box {
+    flex: 1;
+    min-width: 250px;
+}
+
+.lotes-dashboard .input-group-text {
+    background-color: var(--ld-bg-card);
+    border: 1px solid var(--ld-border-color);
+    border-right: 0;
+    color: var(--ld-text-secondary);
+}
+
+.lotes-dashboard .form-control {
+    background-color: var(--ld-bg-card);
+    border: 1px solid var(--ld-border-color);
+    border-left: 0;
+    color: var(--ld-text-primary);
+}
+
+    .lotes-dashboard .form-control::placeholder {
+        color: var(--ld-text-secondary);
+    }
+
+    .lotes-dashboard .form-control:focus {
+        background-color: var(--ld-bg-card);
+        box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+        border-color: var(--ld-primary);
+        color: var(--ld-text-primary);
+    }
+
+        .lotes-dashboard .form-control:focus + .input-group-text,
+        .lotes-dashboard .input-group:focus-within .input-group-text {
+            border-color: var(--ld-primary);
+        }
+
+.lotes-dashboard .form-select-modern {
+    background-color: var(--ld-bg-card);
+    border: 1px solid var(--ld-border-color);
+    color: var(--ld-text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+}
+
+    .lotes-dashboard .form-select-modern:focus {
+        background-color: var(--ld-bg-card);
+        border-color: var(--ld-primary);
+        box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+        color: var(--ld-text-primary);
+    }
+
+/* ==========================================
+   BOTONES
+   ========================================== */
+.lotes-dashboard .btn-create-lote {
+    font-size: 0.813rem;
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+    background-color: #8b5cf6;
+    border-color: #8b5cf6;
+    color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+    .lotes-dashboard .btn-create-lote:hover {
+        background-color: #7c3aed;
+        border-color: #7c3aed;
+        color: #ffffff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+    }
+
+    .lotes-dashboard .btn-create-lote:active {
+        background-color: #6d28d9;
+        border-color: #6d28d9;
+        transform: translateY(0);
+    }
+
+    .lotes-dashboard .btn-create-lote:focus {
+        box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.5);
+    }
+
+/* Modo oscuro - asegurar visibilidad del hover */
+[data-theme-mode="dark"] .lotes-dashboard .btn-create-lote {
+    background-color: #9333ea;
+    border-color: #9333ea;
+}
+
+    [data-theme-mode="dark"] .lotes-dashboard .btn-create-lote:hover {
+        background-color: #a855f7;
+        border-color: #a855f7;
+        box-shadow: 0 4px 8px rgba(168, 85, 247, 0.4);
+    }
+
+    [data-theme-mode="dark"] .lotes-dashboard .btn-create-lote:active {
+        background-color: #7e22ce;
+        border-color: #7e22ce;
+    }
+
+.lotes-dashboard .btn-icon {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ==========================================
+   PAGINACIÓN
+   ========================================== */
+.lotes-dashboard .pagination-info {
+    font-size: 0.875rem;
+    color: var(--ld-text-secondary);
+}
+
+    .lotes-dashboard .pagination-info strong {
+        color: var(--ld-text-primary);
+    }
+
+.lotes-dashboard .pagination-modern .page-link {
+    background-color: var(--ld-bg-card);
+    border: 1px solid var(--ld-border-color);
+    color: var(--ld-text-primary);
+    border-radius: 4px;
+    margin: 0 0.125rem;
+    min-width: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .lotes-dashboard .pagination-modern .page-link:hover:not(:disabled) {
+        background-color: var(--ld-hover-bg);
+        border-color: var(--ld-primary);
+    }
+
+.lotes-dashboard .pagination-modern .page-item.active .page-link {
+    background-color: var(--ld-primary);
+    border-color: var(--ld-primary);
+    color: #ffffff;
+}
+
+.lotes-dashboard .pagination-modern .page-item.disabled .page-link {
+    background-color: var(--ld-bg-secondary);
+    border-color: var(--ld-border-color);
+    color: var(--ld-text-secondary);
+    opacity: 0.6;
+}
+
+.lotes-dashboard .card-footer {
+    background-color: var(--ld-bg-secondary);
+    border-top: 2px solid var(--ld-border-color);
+}
+
+/* ==========================================
+   ESTADOS VACÍOS
+   ========================================== */
+.lotes-dashboard .empty-state {
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+    .lotes-dashboard .empty-state i {
+        font-size: 3rem;
+        color: var(--ld-border-color);
+        margin-bottom: 1rem;
+    }
+
+    .lotes-dashboard .empty-state p {
+        color: var(--ld-text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 0;
+    }
+
+/* ==========================================
+   GRÁFICOS
+   ========================================== */
+.lotes-dashboard .chart-card {
+    transition: box-shadow 0.2s ease;
+    background-color: var(--ld-bg-card);
+    border-color: var(--ld-border-color);
+}
+
+    .lotes-dashboard .chart-card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .lotes-dashboard .chart-card .card-header {
+        background-color: transparent;
+        border-bottom: 2px solid var(--ld-border-color);
+    }
+
+    .lotes-dashboard .chart-card .card-title {
+        color: var(--ld-text-primary);
+    }
+
+    .lotes-dashboard .chart-card .card-subtitle {
+        color: var(--ld-text-secondary);
+    }
+
+.lotes-dashboard .chart-indicator {
+    display: flex;
+    align-items: center;
+}
+
+.lotes-dashboard .indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--ld-border-color);
+}
+
+    .lotes-dashboard .indicator-dot.active {
+        background-color: var(--ld-success);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+
+/* ==========================================
+   ALERTAS
+   ========================================== */
+.lotes-dashboard .alert-modern {
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+/* ==========================================
+   ANIMACIONES SUTILES
+   ========================================== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-/* Accesibilidad: foco visible en tarjetas (al navegar con teclado) */
-.lotes-dashboard a .card:focus-within,
-.lotes-dashboard a:focus .card {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+.lotes-dashboard .animate-fade-in {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+/* ==========================================
+   UTILIDADES ADICIONALES
+   ========================================== */
+.lotes-dashboard .th-content,
+.lotes-dashboard .td-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.lotes-dashboard .kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.lotes-dashboard .kpi-content {
+    margin-top: 0.5rem;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+@media (max-width: 768px) {
+    .lotes-dashboard .page-title {
+        font-size: 1.125rem;
+    }
+
+    .lotes-dashboard .kpi-value {
+        font-size: 1.5rem;
+    }
+
+    .lotes-dashboard .search-box {
+        min-width: 100%;
+    }
+
+    .lotes-dashboard .table-modern {
+        font-size: 0.813rem;
+    }
+
+    .lotes-dashboard .productos-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .lotes-dashboard .productos-controls-left {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .lotes-dashboard .productos-controls-right {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+@media (min-width: 769px) {
+    .lotes-dashboard .productos-controls {
+        justify-content: space-between;
+    }
 }
