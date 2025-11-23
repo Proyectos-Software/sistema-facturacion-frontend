@@ -323,59 +323,27 @@ else
 
                                 <div class="col-12">
                                     <label class="form-label lote-form-label">
-                                        Precio de venta <span class="text-danger">*</span>
+                                        Precio de venta (referencial)
                                     </label>
                                     <div class="input-group">
-                                        <span class="input-group-text lote-input-icon">$</span>
-                                        <InputNumber class="form-control lote-form-input" @bind-Value="vm.PreVen" />
+                                        <span class="input-group-text lote-input-icon">
+                                            <i class="ri-lightbulb-line"></i>
+                                        </span>
+                                        <input class="form-control lote-form-input"
+                                               value="El precio de venta se gestiona desde el módulo de productos."
+                                               disabled />
                                     </div>
-                                    <ValidationMessage For="@(() => vm.PreVen)" />
+
                                     @if (precioMinSugerido.HasValue && precioMaxSugerido.HasValue)
                                     {
                                         <small class="d-block lote-help-text mt-1">
                                             <i class="ri-lightbulb-line me-1"></i>
-                                            Rango sugerido: <strong>$@(precioMinSugerido!.Value)</strong> – <strong>$@(precioMaxSugerido!.Value)</strong>
+                                            Rango sugerido para precio de venta futuro:
+                                            <strong>$@(precioMinSugerido ?? 0.00m)</strong> – <strong>$@(precioMaxSugerido ?? 0.00m)</strong>
                                         </small>
                                     }
                                 </div>
 
-                                @if (vm.PreCom > 0 && vm.PreVen > 0)
-                                {
-                                    var margen = ((vm.PreVen - vm.PreCom) / vm.PreCom) * 100;
-                                    var ganancia = vm.PreVen - vm.PreCom;
-                                    var margenClase = margen >= 20 ? "success" : (margen >= 10 ? "warning" : "danger");
-
-                                    <div class="col-12">
-                                        <div class="lote-info-box rounded border p-3">
-                                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <span class="fw-semibold fs-13 lote-info-title">Análisis de rentabilidad</span>
-                                                <span class="badge bg-@margenClase-subtle text-@margenClase">
-                                                    @Math.Round(margen, 2)% margen
-                                                </span>
-                                            </div>
-                                            <div class="row g-2 lote-info-content fs-12">
-                                                <div class="col-6">
-                                                    <div class="d-flex align-items-center gap-1">
-                                                        <i class="ri-arrow-down-line text-danger"></i>
-                                                        <span>Costo: <strong>$@vm.PreCom.ToString("0.00")</strong></span>
-                                                    </div>
-                                                </div>
-                                                <div class="col-6">
-                                                    <div class="d-flex align-items-center gap-1">
-                                                        <i class="ri-arrow-up-line text-success"></i>
-                                                        <span>Venta: <strong>$@vm.PreVen.ToString("0.00")</strong></span>
-                                                    </div>
-                                                </div>
-                                                <div class="lote-info-border col-12 mt-2 pt-2">
-                                                    <div class="d-flex align-items-center gap-1">
-                                                        <i class="ri-coin-line text-@margenClase"></i>
-                                                        <span>Ganancia unitaria: <strong class="text-@margenClase">$@ganancia.ToString("0.00")</strong></span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
                             </div>
                         </div>
 
@@ -477,9 +445,9 @@ else
                 CanLot = dto.CanLot,
                 CanDis = dto.CanDis,
                 PreCom = dto.PreCom,
-                PreVen = dto.PreVen,
                 EstLot = dto.EstLot
             };
+
 
             try
             {
@@ -543,24 +511,7 @@ else
             return false;
         }
 
-        var rango = await ObtenerRangoPrecioAsync();
-        if (rango is null)
-        {
-            return true;
-        }
-
-        var (min, max) = rango.Value;
-
-        if (vm.PreVen < min || vm.PreVen > max)
-        {
-            await Alert(
-                "Precio de venta fuera de rango",
-                $"El precio de venta debe estar entre <strong>${min:0.00}</strong> y <strong>${max:0.00}</strong> " +
-                "para mantener la rentabilidad del producto."
-            );
-            return false;
-        }
-
+        // Ya no se valida precio de venta porque no se envía al backend.
         return true;
     }
 
@@ -652,9 +603,9 @@ else
                 FecExp = vm.FecExp,
                 CanLot = vm.CanLot,
                 CanDis = vm.CanDis,
-                PreCom = vm.PreCom,
-                PreVen = vm.PreVen
+                PreCom = vm.PreCom
             };
+
 
             await LotesApi.UpdateAsync(vm.Id, req);
 
@@ -715,10 +666,7 @@ else
         public int CanDis { get; set; }
 
         [Range(0, 999999, ErrorMessage = "Debe ser ≥ 0")]
-        public decimal PreCom { get; set; }
-
-        [Range(0, 999999, ErrorMessage = "Debe ser ≥ 0")]
-        public decimal PreVen { get; set; }
+        public decimal PreCom { get; set; } 
 
         public bool EstLot { get; set; }
     }

@@ -780,25 +780,24 @@ else
             error = null;
 
             var lotes = await LotesApi.GetAllAsync();
-
             items = lotes
-                .Select(l => new RowVM
-                {
-                    Id = l.Id,
-                    CodLot = l.CodLot,
-                    NombreProducto = l.NombreProducto ?? string.Empty,
-                    NombreCategoria = l.NombreCategoria,
-                    NombreTipoTributario = l.NombreTipoTributario,
-                    FecCom = l.FecCom,
-                    FecExp = l.FecExp,
-                    CanLot = l.CanLot,
-                    CanDis = l.CanDis,
-                    PreCom = l.PreCom,
-                    PreVen = l.PreVen,
-                    EstLot = l.EstLot
-                })
-                .OrderByDescending(r => r.FecCom)
-                .ToList();
+               .Select(l => new RowVM
+               {
+                   Id = l.Id,
+                   CodLot = l.CodLot,
+                   NombreProducto = l.NombreProducto ?? string.Empty,
+                   NombreCategoria = l.NombreCategoria ?? string.Empty,
+                   FecCom = l.FecCom,
+                   FecExp = l.FecExp,
+                   CanLot = l.CanLot,
+                   CanDis = l.CanDis,
+                   PreCom = l.PreCom,
+                   PreVen = l.PreVen,
+                   EstLot = l.EstLot
+               })
+               .OrderByDescending(r => r.FecCom)
+               .ToList();
+
 
             categoriasProductos.Clear();
             categoriasProductos.AddRange(
@@ -1193,7 +1192,6 @@ else
         public string? CodLot { get; init; }
         public string NombreProducto { get; init; } = string.Empty;
         public string NombreCategoria { get; init; } = string.Empty;
-        public string NombreTipoTributario { get; init; } = string.Empty;
         public DateTime FecCom { get; init; }
         public DateTime FecExp { get; init; }
         public int CanLot { get; init; }
@@ -1202,4 +1200,5 @@ else
         public decimal PreVen { get; init; }
         public bool EstLot { get; set; }
     }
+
 }

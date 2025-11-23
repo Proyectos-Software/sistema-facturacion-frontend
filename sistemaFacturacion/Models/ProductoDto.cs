@@ -14,7 +14,7 @@ namespace sistemaFacturacion.Models
 
         // Categoría
         [JsonPropertyName("idCatPro")]
-        public int IdCategoria { get; set; }
+        public int? IdCategoria { get; set; }
 
         [JsonPropertyName("nomCatPro")]
         public string NombreCategoria { get; set; } = string.Empty;
@@ -32,6 +32,10 @@ namespace sistemaFacturacion.Models
 
         [JsonPropertyName("desPro")]
         public string Descripcion { get; set; } = string.Empty;
+
+        // ⭐ FALTABA ESTE CAMPO OBLIGATORIO DEL BACKEND
+        [JsonPropertyName("preVen")]
+        public decimal PrecioVenta { get; set; }
 
         // Estado
         [JsonPropertyName("estPro")]

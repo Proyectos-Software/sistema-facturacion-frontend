@@ -39,17 +39,20 @@ public class ProductosApiClient : IProductosApiClient
     {
         await EnsureAuthAsync();
 
-        using var content = new StringContent(JsonSerializer.Serialize(dto, _json), Encoding.UTF8, "application/json");
+        var json = JsonSerializer.Serialize(dto, _json);
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
         using var resp = await _http.PostAsync(Resource, content, ct);
 
         if (!resp.IsSuccessStatusCode)
         {
-            var errorBody = await resp.Content.ReadAsStringAsync(ct);
-            throw new HttpRequestException($"Error al crear el producto ({(int)resp.StatusCode}): {errorBody}");
+            var body = await resp.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException($"Error al crear producto: {body}");
         }
 
         return await resp.Content.ReadFromJsonAsync<ProductoDto>(_json, ct);
     }
+
 
     public async Task<List<ProductoDto>> GetAllAsync(CancellationToken ct = default)
     {

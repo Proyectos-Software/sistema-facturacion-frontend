@@ -189,12 +189,30 @@ else if (form is not null)
                             </h6>
 
                             <div class="row g-3">
+                                <!-- NOMBRE -->
                                 <div class="col-12">
                                     <label class="form-label">Nombre</label>
                                     <InputText class="form-control" @bind-Value="form.Nombre" />
                                     <ValidationMessage For="@(() => form.Nombre)" />
                                 </div>
 
+                                <!-- PRECIO DE VENTA -->
+                                <div class="col-12">
+                                    <label class="form-label">Precio de venta</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="ri-money-dollar-circle-line"></i>
+                                        </span>
+                                        <InputNumber @bind-Value="form.PrecioVenta"
+                                                     class="form-control" />
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Precio unitario de venta del producto.
+                                    </small>
+                                    <ValidationMessage For="@(() => form.PrecioVenta)" />
+                                </div>
+
+                                <!-- DESCRIPCIÓN -->
                                 <div class="col-12">
                                     <label class="form-label">Descripción</label>
                                     <InputTextArea class="form-control"
@@ -203,6 +221,7 @@ else if (form is not null)
                                     <ValidationMessage For="@(() => form.Descripcion)" />
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -269,8 +288,15 @@ else if (yaBusco)
         [Required, StringLength(200)]
         public string? Descripcion { get; set; }
 
+        // ⭐ Nuevo: precio de venta editable
+        [Required(ErrorMessage = "El precio de venta es obligatorio.")]
+        [Range(0.01, 999999.99, ErrorMessage = "El precio debe ser mayor a 0.")]
+        public decimal? PrecioVenta { get; set; }
+
+        // Estado solo para mostrar badge, no se manda en el PUT
         public bool Estado { get; set; }
     }
+
 
     private List<CategoriaProductoDto> categorias = new();
     private List<TipoTributarioDto> tiposTributarios = new();
@@ -473,10 +499,11 @@ else if (yaBusco)
             IdTipoTributario = dto.IdTipoTributario,
             Nombre = dto.Nombre,
             Descripcion = dto.Descripcion,
+            PrecioVenta = dto.PrecioVenta, 
             Estado = dto.Estado
         };
     }
-
+     
     private async Task GuardarCambios()
     {
         if (productoIdActual is null || form is null)
@@ -487,7 +514,7 @@ else if (yaBusco)
         var confirmar = await Swal.FireAsync(new SweetAlertOptions
         {
             Title = "¿Guardar cambios?",
-            Text = "Se actualizarán la categoría, el tipo tributario, el nombre y la descripción.",
+            Text = "Se actualizarán la categoría, el tipo tributario, el nombre, la descripción y el precio de venta.",
             Icon = SweetAlertIcon.Question,
             ShowCancelButton = true,
             ConfirmButtonText = "Sí, guardar",
@@ -508,7 +535,7 @@ else if (yaBusco)
                 IdTipoTributario = form.IdTipoTributario!.Value,
                 Nombre = form.Nombre!.Trim(),
                 Descripcion = form.Descripcion!.Trim(),
-                Estado = form.Estado
+                PrecioVenta = form.PrecioVenta!.Value    
             };
 
             var actualizado = await ProductosApi.UpdateAsync(productoIdActual.Value, payload);

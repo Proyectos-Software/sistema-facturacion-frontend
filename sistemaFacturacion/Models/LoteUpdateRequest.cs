@@ -26,8 +26,4 @@ public class LoteUpdateRequest
     [JsonPropertyName("preCom")]
     [Range(0, 999999)]
     public decimal PreCom { get; set; }
-
-    [JsonPropertyName("preVen")]
-    [Range(0, 999999)]
-    public decimal PreVen { get; set; }
 }

@@ -2,11 +2,11 @@
 
 public class ProductoCreateRequest
 {
-    // Categoría del producto
+    // Categoría (opcional)
     [JsonPropertyName("idCatPro")]
-    public int IdCategoria { get; set; }
+    public int? IdCategoria { get; set; }
 
-    // Tipo tributario del producto
+    // Tipo tributario (obligatorio)
     [JsonPropertyName("idTipTrib")]
     public int IdTipoTributario { get; set; }
 
@@ -14,11 +14,11 @@ public class ProductoCreateRequest
     [JsonPropertyName("nomPro")]
     public string Nombre { get; set; } = string.Empty;
 
-    // Descripción del producto
+    // Descripción
     [JsonPropertyName("desPro")]
-    public string Descripcion { get; set; } = string.Empty;
+    public string? Descripcion { get; set; }
 
-    // Estado del producto (activo/inactivo)
-    [JsonPropertyName("estPro")]
-    public bool Estado { get; set; } = true;
+    // ⭐ ESTE ES OBLIGATORIO EN BACKEND
+    [JsonPropertyName("preVen")]
+    public decimal PrecioVenta { get; set; }
 }
