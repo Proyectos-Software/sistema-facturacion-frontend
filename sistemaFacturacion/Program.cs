@@ -57,6 +57,7 @@ namespace sistemaFacturacion
             builder.Services.AddScoped<ILotesApiClient, LotesApiClient>();
             builder.Services.AddScoped<IUsuariosApiClient, UsuariosApiClient>();
             builder.Services.AddScoped<IEmpleadosApiClient, EmpleadosApiClient>();
+            builder.Services.AddScoped<IFacturasApiClient, FacturasApiClient>();
 
             await builder.Build().RunAsync();
         }
