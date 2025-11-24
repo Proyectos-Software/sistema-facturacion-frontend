@@ -6,13 +6,15 @@
 @inject IClientesApiClient ClientesApi
 @inject IProductosApiClient ProductosApi
 @inject IFacturasApiClient FacturasApi
-@inject     AuthenticationStateProvider AuthStateProvider
+@inject AuthenticationStateProvider AuthStateProvider
 @inject SweetAlertService Swal
 @inject NavigationManager NavigationManager
 
-<div class="page-header-breadcrumb mb-3">
+<div class="page-header-breadcrumb mb-4">
     <div class="d-flex align-center justify-content-between flex-wrap">
-        <h1 class="page-title fw-medium fs-18 mb-0">Crear Factura</h1>
+        <h1 class="page-title fw-medium fs-18 mb-0">
+            <i class="ri-file-add-line me-2"></i>Crear Nueva Factura
+        </h1>
         <ol class="breadcrumb mb-0">
             <li class="breadcrumb-item"><a href="javascript:void(0);">Ventas</a></li>
             <li class="breadcrumb-item active" aria-current="page">Nueva Factura</li>
@@ -23,297 +25,498 @@
 @if (_isLoading)
 {
     <div class="text-center py-5">
-        <div class="spinner-border" role="status">
+        <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Cargando...</span>
         </div>
-        <p class="mt-2 text-muted">Cargando información necesaria...</p>
+        <p class="mt-3 text-muted">Preparando formulario...</p>
     </div>
 }
 else
 {
-    <div class="row">
-        <div class="col-xl-12">
-            <div class="card custom-card factura-card">
-                <div class="card-header factura-header">
-                    <div class="d-flex justify-content-between align-items-center w-100">
-                        <div class="d-flex align-items-center">
-                            <i class="ri-file-text-line fs-24 me-2 text-primary"></i>
-                            <h4 class="mb-0 fw-semibold">Nueva Factura</h4>
-                        </div>
-                        <div class="factura-numero-badge">
-                            <span class="badge bg-primary-transparent">
-                                <i class="ri-hashtag me-1"></i>Nueva factura
-                            </span>
-                        </div>
+    <div class="row g-3">
+        <!-- PANEL IZQUIERDO: Cliente y Productos -->
+        <div class="col-xl-8">
+            <!-- SECCIÓN CLIENTE -->
+            <div class="card custom-card shadow-sm mb-3">
+                <div class="card-header bg-primary-transparent">
+                    <div class="d-flex align-items-center">
+                        <i class="ri-user-line fs-20 me-2 text-primary"></i>
+                        <h5 class="mb-0 fw-semibold">Cliente</h5>
                     </div>
                 </div>
-
                 <div class="card-body p-4">
-                    <!-- INFORMACIÓN GENERAL -->
-                    <div class="row mb-4">
-                        <!-- CLIENTE -->
-                        <div class="col-md-6">
-                            <div class="info-section">
-                                <h6 class="section-title mb-3">
-                                    <i class="ri-user-line me-2"></i>Información del Cliente
-                                </h6>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-medium">
+                                Tipo de identificación <span class="text-danger">*</span>
+                            </label>
 
-                                <div class="mb-3">
-                                    <label class="form-label">Identificación del cliente <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">
-                                            <i class="ri-search-line"></i>
-                                        </span>
-                                        <input type="text"
-                                               class="form-control"
-                                               placeholder="Cédula / RUC..."
-                                               @bind="_busquedaDocumento" />
-                                        <button class="btn btn-primary" type="button" @onclick="BuscarClienteAsync">
-                                            <i class="ri-search-2-line me-1"></i>Buscar
-                                        </button>
-                                    </div>
-                                    <small class="text-muted">
-                                        La búsqueda se realiza por documento (cédula / RUC) usando el endpoint <code>by-documento</code>.
-                                    </small>
-                                </div>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text bg-light">
+                                    <i class="ri-id-card-line"></i>
+                                </span>
 
-                                @if (_clienteSeleccionado is not null)
-                                {
-                                    <div class="cliente-seleccionado">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div>
-                                                <p class="mb-1 fw-semibold">
-                                                    @_clienteSeleccionado.NomCli @_clienteSeleccionado.ApeCli
-                                                </p>
-                                                <p class="mb-1 text-muted small">
-                                                    <i class="ri-bank-card-line me-1"></i>@_clienteSeleccionado.IdeCli
-                                                </p>
-                                                <p class="mb-1 text-muted small">
-                                                    <i class="ri-mail-line me-1"></i>@_clienteSeleccionado.CorCli
-                                                </p>
-                                                <p class="mb-0 text-muted small">
-                                                    <i class="ri-phone-line me-1"></i>@_clienteSeleccionado.TelCli
-                                                </p>
-                                            </div>
-                                            <button class="btn btn-sm btn-light" @onclick="LimpiarCliente">
-                                                <i class="ri-close-line"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="alert alert-warning mt-3 mb-0 py-2">
-                                        <small>Sin cliente seleccionado.</small>
-                                    </div>
-                                }
+                                <select class="form-select"
+                                        @bind="_tipoDocumentoSeleccionado">
+                                    <option value="">-- Seleccionar tipo --</option>
+                                    <option value="CEDULA">Cédula</option>
+                                    <option value="RUC">RUC</option>
+                                    <option value="PASAPORTE">Pasaporte</option>
+                                </select>
+                            </div>
+
+                            <label class="form-label fw-medium mt-2">
+                                Identificación / RUC / Pasaporte <span class="text-danger">*</span>
+                            </label>
+
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="ri-bank-card-line"></i>
+                                </span>
+
+                                <input type="text"
+                                       class="form-control"
+                                       placeholder="Ingrese la identificación"
+                                       @bind="_busquedaDocumento"
+                                       @bind:event="oninput"
+                                       @onkeyup="OnEnterBuscarCliente" />
+
+                                <button class="btn btn-primary"
+                                        type="button"
+                                        @onclick="BuscarClienteAsync">
+                                    <i class="ri-search-line me-1"></i>Buscar
+                                </button>
                             </div>
                         </div>
 
-                        <!-- DETALLES GENERALES (solo informativos) -->
-                        <div class="col-md-6">
-                            <div class="info-section">
-                                <h6 class="section-title mb-3">
-                                    <i class="ri-calendar-line me-2"></i>Detalles de la Factura
-                                </h6>
-
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Fecha de emisión</label>
-                                        <input type="date"
-                                               class="form-control"
-                                               value="@_fechaEmision.ToString("yyyy-MM-dd")"
-                                               disabled />
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Usuario</label>
-                                        <input type="text"
-                                               class="form-control"
-                                               value="@_nombreUsuario"
-                                               disabled />
-                                    </div>
-                                </div>
-
-                                <div class="alert alert-info border-0 mb-0 py-2">
-                                    <small>
-                                        La fecha, numeración, totales e IVA se calculan en el backend.
-                                        Aquí solo se muestra información referencial.
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
-                    <!-- ITEMS DE LA FACTURA -->
-                    <div class="items-section mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="section-title mb-0">
-                                <i class="ri-shopping-cart-line me-2"></i>Items de la Factura
-                            </h6>
-                            <button class="btn btn-sm btn-primary" @onclick="AgregarItem">
-                                <i class="ri-add-line me-1"></i>Agregar Item
-                            </button>
+                    @if (_clienteSeleccionado is not null)
+                    {
+                        <div class="mt-3 p-3 bg-light rounded-3 border border-success">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-success-transparent me-2">
+                                            <i class="ri-checkbox-circle-line"></i> Seleccionado
+                                        </span>
+                                    </div>
+                                    <h6 class="fw-bold mb-2">
+                                        @_clienteSeleccionado.NomCli @_clienteSeleccionado.ApeCli
+                                    </h6>
+                                    <div class="row g-2 small text-muted">
+                                        <div class="col-md-6">
+                                            <i class="ri-bank-card-line me-1"></i>
+                                            <strong>ID:</strong> @_clienteSeleccionado.IdeCli
+                                        </div>
+                                        <div class="col-md-6">
+                                            <i class="ri-phone-line me-1"></i>
+                                            <strong>Tel:</strong> @_clienteSeleccionado.TelCli
+                                        </div>
+                                        <div class="col-12">
+                                            <i class="ri-mail-line me-1"></i>
+                                            <strong>Email:</strong> @_clienteSeleccionado.CorCli
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-danger-light" @onclick="LimpiarCliente" title="Cambiar cliente">
+                                    <i class="ri-close-line"></i>
+                                </button>
+                            </div>
                         </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning mt-3 mb-0 d-flex align-items-center">
+                            <i class="ri-alert-line fs-20 me-2"></i>
+                            <span>Debe seleccionar un cliente para continuar</span>
+                        </div>
+                    }
+                </div>
+            </div>
 
+            <!-- SECCIÓN PRODUCTOS -->
+            <div class="card custom-card shadow-sm">
+                <div class="card-header bg-info-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <i class="ri-shopping-cart-line fs-20 me-2 text-info"></i>
+                            <h5 class="mb-0 fw-semibold">Productos</h5>
+                        </div>
+                        <button class="btn btn-sm btn-info" @onclick="AgregarItem">
+                            <i class="ri-add-line me-1"></i>Agregar Producto
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @if (_items.Any())
+                    {
                         <div class="table-responsive">
-                            <table class="table table-hover factura-items-table">
-                                <thead>
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
                                     <tr>
-                                        <th width="5%">#</th>
-                                        <th width="40%">Producto</th>
-                                        <th width="15%">Cantidad</th>
-                                        <th width="20%">Precio Unit. (ref)</th>
-                                        <th width="20%">Subtotal (ref)</th>
-                                        <th width="5%"></th>
+                                        <th width="5%" class="text-center">#</th>
+                                        <th width="45%">Producto</th>
+                                        <th width="15%" class="text-center">Cantidad</th>
+                                        <th width="15%" class="text-end">P. Unit.</th>
+                                        <th width="15%" class="text-end">Subtotal</th>
+                                        <th width="5%" class="text-center">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if (_items.Any())
+                                    @for (int i = 0; i < _items.Count; i++)
                                     {
-                                        @for (int i = 0; i < _items.Count; i++)
-                                        {
-                                            var index = i;
-                                            var item = _items[i];
-                                            <tr>
-                                                <td class="align-middle text-center">@(i + 1)</td>
-                                                <td>
-                                                    <select class="form-select form-select-sm"
-                                                            value="@item.ProductoId"
-                                                            @onchange="e => OnProductoChanged(item, e)">
-                                                        <option value="">Seleccionar producto...</option>
-                                                        @foreach (var p in _productos)
-                                                        {
-                                                            <option value="@p.Id">
-                                                                @p.Nombre (@p.Codigo)
-                                                            </option>
-                                                        }
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <input type="number"
-                                                           class="form-control form-control-sm text-end"
-                                                           min="1"
-                                                           value="@item.Cantidad"
-                                                           @onchange="e => OnCantidadChanged(item, e)" />
-                                                </td>
-                                                <td class="align-middle text-end">
+                                        var index = i;
+                                        var item = _items[i];
+                                        <tr class="align-middle">
+                                            <td class="text-center fw-bold text-muted">@(i + 1)</td>
+                                            <td>
+                                                <select class="form-select form-select-sm @(item.ProductoId.HasValue ? "border-success" : "")"
+                                                        value="@item.ProductoId"
+                                                        @onchange="e => OnProductoChanged(item, e)">
+                                                    <option value="">-- Seleccione un producto --</option>
+                                                    @foreach (var p in _productos)
+                                                    {
+                                                        <option value="@p.Id">
+                                                            @p.Nombre (@p.Codigo)
+                                                        </option>
+                                                    }
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="number"
+                                                       class="form-control form-control-sm text-center"
+                                                       min="1"
+                                                       value="@item.Cantidad"
+                                                       @onchange="e => OnCantidadChanged(item, e)"
+                                                       disabled="@(!item.ProductoId.HasValue)" />
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="badge bg-secondary-transparent">
                                                     $@item.PrecioUnitario.ToString("N2")
-                                                </td>
-                                                <td class="align-middle text-end">
-                                                    <span class="fw-semibold">$@item.Subtotal.ToString("N2")</span>
-                                                </td>
-                                                <td class="align-middle text-center">
-                                                    <button class="btn btn-sm btn-danger-light"
-                                                            @onclick="@(() => EliminarItem(index))">
-                                                        <i class="ri-delete-bin-line"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <tr>
-                                            <td colspan="6" class="text-center py-4 text-muted">
-                                                <i class="ri-inbox-line fs-20 d-block mb-2"></i>
-                                                No hay items agregados. Haz clic en "Agregar Item" para comenzar.
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="fw-bold text-primary">
+                                                    $@item.Subtotal.ToString("N2")
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-danger-light"
+                                                        @onclick="@(() => EliminarItem(index))"
+                                                        title="Eliminar item">
+                                                    <i class="ri-delete-bin-line"></i>
+                                                </button>
                                             </td>
                                         </tr>
                                     }
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-
-                    <!-- TOTALES (solo referenciales) -->
-                    <div class="row">
-                        <div class="col-md-7">
-                            <div class="alert alert-info border-0">
-                                <div class="d-flex align-items-start">
-                                    <i class="ri-information-line fs-20 me-2"></i>
-                                    <div>
-                                        <h6 class="alert-heading mb-1">Información Importante</h6>
-                                        <p class="mb-1 small">
-                                            Los totales mostrados son referenciales y se calculan en el cliente
-                                            usando los precios de productos. El cálculo definitivo de subtotal, IVA
-                                            y total lo realiza el backend al crear la factura.
-                                        </p>
-                                        <p class="mb-0 small">
-                                            Para guardar la factura es obligatorio seleccionar un cliente y al menos un producto.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="totales-card">
-                                <div class="totales-header">
-                                    <h6 class="mb-0 fw-semibold">Resumen referencial</h6>
-                                </div>
-                                <div class="totales-body">
-                                    <div class="total-row">
-                                        <span>Subtotal:</span>
-                                        <span>$@_subtotal.ToString("N2")</span>
-                                    </div>
-                                    <div class="total-row">
-                                        <span>IVA (15% estimado):</span>
-                                        <span>$@_iva.ToString("N2")</span>
-                                    </div>
-                                    <div class="total-row total-final">
-                                        <span class="fw-bold">TOTAL estimado:</span>
-                                        <span class="fw-bold text-primary fs-20">$@_total.ToString("N2")</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- BOTONES DE ACCIÓN -->
-                    <div class="d-flex justify-content-between mt-4 pt-3 border-top">
-                        <button class="btn btn-light" @onclick="Cancelar">
-                            <i class="ri-close-line me-1"></i>Cancelar
-                        </button>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-success"
-                                    @onclick="GuardarFacturaAsync"
-                                    disabled="@_isSaving">
-                                <i class="ri-check-line me-1"></i>
-                                @(_isSaving ? "Guardando..." : "Guardar factura")
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="ri-inbox-line fs-48 text-muted opacity-50 d-block mb-3"></i>
+                            <p class="text-muted mb-2">No hay productos agregados</p>
+                            <button class="btn btn-sm btn-primary" @onclick="AgregarItem">
+                                <i class="ri-add-line me-1"></i>Agregar primer producto
                             </button>
                         </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL DERECHO: Resumen y Acciones -->
+        <div class="col-xl-4">
+            <!-- INFORMACIÓN DE LA FACTURA -->
+            <div class="card custom-card shadow-sm mb-3">
+                <div class="card-header bg-secondary-transparent">
+                    <div class="d-flex align-items-center">
+                        <i class="ri-information-line fs-20 me-2"></i>
+                        <h6 class="mb-0 fw-semibold">Información</h6>
                     </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted mb-1">Fecha de emisión</label>
+                        <input type="date"
+                               class="form-control form-control-sm"
+                               value="@_fechaEmision.ToString("yyyy-MM-dd")"
+                               disabled />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small text-muted mb-1">Usuario</label>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               value="@_nombreUsuario"
+                               disabled />
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESUMEN DE TOTALES -->
+            <div class="card custom-card shadow-sm mb-3">
+                <div class="card-header bg-success-transparent">
+                    <div class="d-flex align-items-center">
+                        <i class="ri-money-dollar-circle-line fs-20 me-2 text-success"></i>
+                        <h6 class="mb-0 fw-semibold">Resumen</h6>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <span class="text-muted">Subtotal:</span>
+                        <span class="fw-semibold">$@_subtotal.ToString("N2")</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <span class="text-muted">IVA (15%):</span>
+                        <span class="fw-semibold">$@_iva.ToString("N2")</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pt-2">
+                        <span class="fw-bold fs-16">TOTAL:</span>
+                        <span class="fw-bold text-success fs-20">$@_total.ToString("N2")</span>
+                    </div>
+
+                    <div class="alert alert-info border-0 mt-3 mb-0 py-2">
+                        <small class="d-flex">
+                            <i class="ri-information-line me-2 mt-1"></i>
+                            <span>Los totales son referenciales. El cálculo final se realiza en el backend.</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTONES DE ACCIÓN -->
+            <div class="card custom-card shadow-sm">
+                <div class="card-body">
+                    <button class="btn btn-success w-100 mb-2 btn-lg"
+                            @onclick="MostrarModalConfirmacion"
+                            disabled="@(!PuedeGuardar || _isSaving)">
+                        <i class="ri-save-line me-2"></i>
+                        @(_isSaving ? "Procesando..." : "Guardar Factura")
+                    </button>
+                    <button class="btn btn-light w-100" @onclick="Cancelar" disabled="@_isSaving">
+                        <i class="ri-close-line me-1"></i>Cancelar
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 }
 
+<!-- MODAL DE CONFIRMACIÓN -->
+@if (_mostrarModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="ri-file-list-3-line me-2"></i>Confirmar Factura
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal" disabled="@_isSaving"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_clienteSeleccionado is not null)
+                    {
+                        <!-- Información del Cliente -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3 text-primary">
+                                <i class="ri-user-line me-2"></i>Información del Cliente
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block">Nombre:</small>
+                                    <strong>@_clienteSeleccionado.NomCli @_clienteSeleccionado.ApeCli</strong>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block">Identificación:</small>
+                                    <strong>@_clienteSeleccionado.IdeCli</strong>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block">Email:</small>
+                                    <strong>@_clienteSeleccionado.CorCli</strong>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block">Teléfono:</small>
+                                    <strong>@_clienteSeleccionado.TelCli</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <!-- Detalles de Productos -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3 text-primary">
+                                <i class="ri-shopping-cart-line me-2"></i>Detalle de Productos
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="5%">#</th>
+                                            <th width="45%">Producto</th>
+                                            <th width="15%" class="text-center">Cantidad</th>
+                                            <th width="17%" class="text-end">P. Unit.</th>
+                                            <th width="18%" class="text-end">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            var detallesValidos = _items.Where(i => i.ProductoId.HasValue && i.Cantidad > 0).ToList();
+                                        }
+                                        @for (int i = 0; i < detallesValidos.Count; i++)
+                                        {
+                                            var item = detallesValidos[i];
+                                            <tr>
+                                                <td class="text-center">@(i + 1)</td>
+                                                <td>@item.NombreProducto</td>
+                                                <td class="text-center">@item.Cantidad</td>
+                                                <td class="text-end">$@item.PrecioUnitario.ToString("N2")</td>
+                                                <td class="text-end fw-bold">$@item.Subtotal.ToString("N2")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <!-- Totales -->
+                        <div class="bg-light p-3 rounded">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Subtotal:</span>
+                                <span class="fw-semibold">$@_subtotal.ToString("N2")</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>IVA (15%):</span>
+                                <span class="fw-semibold">$@_iva.ToString("N2")</span>
+                            </div>
+                            <div class="d-flex justify-content-between pt-2 border-top border-2">
+                                <span class="fw-bold fs-18">TOTAL:</span>
+                                <span class="fw-bold text-success fs-20">$@_total.ToString("N2")</span>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <small class="d-flex align-items-start">
+                                <i class="ri-error-warning-line me-2 mt-1"></i>
+                                <span>Por favor, verifique que todos los datos sean correctos antes de confirmar. Esta acción creará, firmará y enviará la factura al SRI.</span>
+                            </small>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" @onclick="CerrarModal" disabled="@_isSaving">
+                        <i class="ri-close-line me-1"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" @onclick="ConfirmarYGuardarAsync" disabled="@_isSaving">
+                        <i class="ri-check-line me-1"></i>
+                        @(_isSaving ? "Procesando..." : "Confirmar y Guardar")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .card.custom-card {
+        border: none;
+        border-radius: 0.75rem;
+        transition: transform 0.2s ease;
+    }
+
+        .card.custom-card:hover {
+            transform: translateY(-2px);
+        }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(99, 102, 241, 0.05);
+    }
+
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.1rem;
+    }
+
+    .modal.show {
+        animation: fadeIn 0.3s ease;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .bg-primary-transparent {
+        background-color: rgba(99, 102, 241, 0.1) !important;
+    }
+
+    .bg-info-transparent {
+        background-color: rgba(13, 202, 240, 0.1) !important;
+    }
+
+    .bg-success-transparent {
+        background-color: rgba(25, 135, 84, 0.1) !important;
+    }
+
+    .bg-secondary-transparent {
+        background-color: rgba(108, 117, 125, 0.1) !important;
+    }
+</style>
+
 @code {
-    // --- Estado general ---
     private bool _isLoading = true;
     private bool _isSaving = false;
+    private bool _mostrarModal = false;
 
-    // Usuario/empresa/empleado
     private int _idUsu;
-    private int _idEmp = 1;      // TODO: ajustar según cómo obtengas el empleado
-    private int _idEmpresa = 1;  // TODO: ajustar si viene del token u otro servicio
+    private int _idEmp = 1;
+    private int _idEmpresa = 3;
     private string _nombreUsuario = string.Empty;
     private DateTime _fechaEmision = DateTime.Now;
 
-    // Cliente
     private string _busquedaDocumento = string.Empty;
     private ClienteDto? _clienteSeleccionado;
 
-    // Productos
     private List<ProductoDto> _productos = new();
-
-    // Items
     private readonly List<FacturaItemModel> _items = new();
+    // Subtotales separados por tipo de IVA
+    private decimal _subtotalIva0 => _items
+        .Where(i => i.TarifaTributaria == 0)
+        .Sum(i => i.Subtotal);
 
-    // Totales referenciales
-    private decimal _subtotal => _items.Sum(x => x.Subtotal);
-    private decimal _iva => _subtotal * 0.15m;
+    private decimal _subtotalIva15 => _items
+        .Where(i => i.TarifaTributaria == 15)
+        .Sum(i => i.Subtotal);
+
+    // IVA calculado por línea
+    private decimal _iva => _items.Sum(i =>
+        i.Subtotal * (i.TarifaTributaria / 100m)
+    );
+
+    // Total general
+    private decimal _subtotal => _subtotalIva0 + _subtotalIva15;
     private decimal _total => _subtotal + _iva;
+
+    private bool PuedeGuardar =>
+        _clienteSeleccionado is not null &&
+        _items.Any(i => i.ProductoId.HasValue && i.Cantidad > 0) &&
+        _idUsu != 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -325,13 +528,11 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine("ERROR DURANTE INICIALIZACION: " + ex);
-            await Swal.FireAsync("Error", ex.ToString(), "error");
+            await Swal.FireAsync("Error", $"Error durante la inicialización: {ex.Message}", "error");
         }
 
         _isLoading = false;
     }
-
 
     private async Task CargarUsuarioActualAsync()
     {
@@ -344,16 +545,13 @@ else
             _idUsu = idUsu;
         }
 
-        _nombreUsuario = user.Identity?.Name ?? string.Empty;
+        _nombreUsuario = user.Identity?.Name ?? "Usuario";
 
-        // Si en el futuro agregas idEmp e idEmpresa como claims, se leen aquí:
         var idEmpClaim = user.FindFirst("idEmp")?.Value;
         if (int.TryParse(idEmpClaim, out var idEmp))
             _idEmp = idEmp;
 
-        var idEmpresaClaim = user.FindFirst("idEmpresa")?.Value;
-        if (int.TryParse(idEmpresaClaim, out var idEmpre))
-            _idEmpresa = idEmpre;
+        
     }
 
     private async Task CargarProductosAsync()
@@ -367,28 +565,47 @@ else
             await Swal.FireAsync("Error", $"No se pudieron cargar los productos: {ex.Message}", "error");
         }
     }
+    private string _tipoDocumentoSeleccionado = "";
 
     private async Task BuscarClienteAsync()
     {
+        if (string.IsNullOrWhiteSpace(_tipoDocumentoSeleccionado))
+        {
+            await Swal.FireAsync("Atención", "Seleccione el tipo de documento.", "warning");
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(_busquedaDocumento))
         {
-            await Swal.FireAsync("Atención", "Ingresa una cédula o RUC para buscar al cliente.", "warning");
+            await Swal.FireAsync("Atención", "Ingrese el número del documento.", "warning");
             return;
         }
 
         try
         {
-            // El tipo se normaliza en el cliente, aquí usamos un valor genérico
-            _clienteSeleccionado = await ClientesApi.GetByDocumentoAsync("CEDULA", _busquedaDocumento);
+            _clienteSeleccionado = await ClientesApi.GetByDocumentoAsync(
+                _tipoDocumentoSeleccionado,
+                _busquedaDocumento
+            );
 
             if (_clienteSeleccionado is null)
             {
-                await Swal.FireAsync("Sin resultados", "No se encontró ningún cliente con ese documento.", "info");
+                await Swal.FireAsync("Sin resultados",
+                    $"No se encontró un cliente con {_tipoDocumentoSeleccionado} {_busquedaDocumento}.",
+                    "info");
             }
         }
         catch (Exception ex)
         {
             await Swal.FireAsync("Error", $"Error al buscar cliente: {ex.Message}", "error");
+        }
+    }
+
+    private async Task OnEnterBuscarCliente(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await BuscarClienteAsync();
         }
     }
 
@@ -410,7 +627,6 @@ else
             _items.RemoveAt(index);
         }
     }
-
     private void OnProductoChanged(FacturaItemModel item, ChangeEventArgs e)
     {
         if (!int.TryParse(e.Value?.ToString(), out var id)) return;
@@ -423,6 +639,13 @@ else
             item.NombreProducto = prod.Nombre;
             item.PrecioUnitario = prod.PrecioVenta;
 
+            // Asignar tarifa según el tipo tributario del producto
+            item.TarifaTributaria = prod.IdTipoTributario switch
+            {
+                1 => 0,   // IVA 0%
+                2 => 15,  // IVA 15%
+                _ => 0
+            };
         }
     }
 
@@ -438,33 +661,32 @@ else
         }
     }
 
-    private async Task GuardarFacturaAsync()
+    private void MostrarModalConfirmacion()
     {
-        if (_clienteSeleccionado is null)
+        if (!PuedeGuardar)
         {
-            await Swal.FireAsync("Validación", "Debes seleccionar un cliente antes de guardar.", "warning");
             return;
         }
+        _mostrarModal = true;
+    }
 
+    private void CerrarModal()
+    {
+        if (!_isSaving)
+        {
+            _mostrarModal = false;
+        }
+    }
+
+    private async Task ConfirmarYGuardarAsync()
+    {
         var detallesValidos = _items
             .Where(i => i.ProductoId.HasValue && i.Cantidad > 0)
             .ToList();
 
-        if (!detallesValidos.Any())
-        {
-            await Swal.FireAsync("Validación", "Agrega al menos un producto válido a la factura.", "warning");
-            return;
-        }
-
-        if (_idUsu == 0)
-        {
-            await Swal.FireAsync("Error", "No se pudo determinar el usuario actual (idUsu).", "error");
-            return;
-        }
-
         var request = new FacturaCreateRequest
         {
-            IdCli = _clienteSeleccionado.IdCli,
+            IdCli = _clienteSeleccionado!.IdCli,
             IdEmp = _idEmp,
             IdUsu = _idUsu,
             IdEmpresa = _idEmpresa,
@@ -482,10 +704,13 @@ else
             _isSaving = true;
             var facturaCreada = await FacturasApi.CrearFacturaAsync(request);
             _isSaving = false;
+            _mostrarModal = false;
 
-            await Swal.FireAsync("Factura creada",
-                $"Factura #{facturaCreada.NumFac} creada correctamente.",
-                "success");
+            await Swal.FireAsync(
+                "¡Éxito!",
+                $"Factura #{facturaCreada.NumFac} creada, firmada y enviada correctamente.",
+                "success"
+            );
 
             NavigationManager.NavigateTo("/dashboards/facturas");
         }
@@ -500,15 +725,16 @@ else
     {
         NavigationManager.NavigateTo("/dashboards/facturas");
     }
-
-    // Modelo local para la tabla de items (solo UI)
     private sealed class FacturaItemModel
     {
         public int? ProductoId { get; set; }
         public string NombreProducto { get; set; } = string.Empty;
         public int Cantidad { get; set; } = 1;
         public decimal PrecioUnitario { get; set; } = 0m;
+         
+        public int TarifaTributaria { get; set; } = 0;
 
         public decimal Subtotal => Cantidad * PrecioUnitario;
     }
+
 }

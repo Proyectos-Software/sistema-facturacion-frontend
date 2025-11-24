@@ -529,7 +529,7 @@ else
             cargando = true;
             error = null;
 
-            items = await FacturasApi.GetAllAsync() ?? new List<FacturaDto>();
+            items = await FacturasApi.GetFacturasAsync() ?? new List<FacturaDto>();
 
             var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
             await Swal.FireAsync(new SweetAlertOptions
