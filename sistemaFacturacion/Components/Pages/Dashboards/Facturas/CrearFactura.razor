@@ -510,8 +510,8 @@ else
     private List<ClienteDto> _sugerenciasClientes = new();
 
     private int _idUsu;
-    private int _idEmp = 1;
-    private int _idEmpresa = 3;
+    private int _idEmp = 18;
+    private int _idEmpresa = 4;
     private string _nombreUsuario = string.Empty;
     private DateTime _fechaEmision = DateTime.Now;
 
@@ -644,9 +644,7 @@ else
 
         _nombreUsuario = user.Identity?.Name ?? "Usuario";
 
-        var idEmpClaim = user.FindFirst("idEmp")?.Value;
-        if (int.TryParse(idEmpClaim, out var idEmp))
-            _idEmp = idEmp;
+        
     }
 
     private async Task CargarProductosAsync()
