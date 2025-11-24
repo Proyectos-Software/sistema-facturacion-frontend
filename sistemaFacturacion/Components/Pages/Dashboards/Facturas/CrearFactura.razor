@@ -28,16 +28,14 @@
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Cargando...</span>
         </div>
-        <p class="text-muted mt-3">Preparando formulario...</p>
+        <p class="text-muted mt-3">Cargando datos del sistema...</p>
     </div>
 }
 else
 {
     <div class="row g-3">
-        <!-- PANEL IZQUIERDO: Cliente y Productos -->
         <div class="col-xl-8">
-            <!-- SECCIÓN CLIENTE -->
-            <div class="card custom-card mb-3 shadow-sm">
+            <div class="card custom-card mb-3 shadow-sm" style="overflow: visible;">
                 <div class="card-header bg-primary-transparent">
                     <div class="d-flex align-items-center">
                         <i class="ri-user-line fs-20 text-primary me-2"></i>
@@ -46,7 +44,7 @@ else
                 </div>
                 <div class="card-body p-4">
                     <div class="row g-3">
-                        <div class="col-md-8">
+                        <div class="col-md-8 position-relative">
                             <label class="form-label fw-medium">
                                 Tipo de identificación <span class="text-danger">*</span>
                             </label>
@@ -56,9 +54,7 @@ else
                                     <i class="ri-id-card-line"></i>
                                 </span>
 
-                                <select class="form-select"
-                                        @bind="_tipoDocumentoSeleccionado">
-                                    <option value="">-- Seleccionar tipo --</option>
+                                <select class="form-select" @bind="_tipoDocumentoSeleccionado">
                                     <option value="CEDULA">Cédula</option>
                                     <option value="RUC">RUC</option>
                                     <option value="PASAPORTE">Pasaporte</option>
@@ -66,29 +62,47 @@ else
                             </div>
 
                             <label class="form-label fw-medium mt-2">
-                                Identificación / RUC / Pasaporte <span class="text-danger">*</span>
+                                Buscar Cliente (Identificación o Nombre) <span class="text-danger">*</span>
                             </label>
 
                             <div class="input-group">
                                 <span class="input-group-text bg-light">
-                                    <i class="ri-bank-card-line"></i>
+                                    <i class="ri-search-line"></i>
                                 </span>
 
                                 <input type="text"
                                        class="form-control"
-                                       placeholder="Ingrese la identificación"
+                                       placeholder="Escriba identificación o nombre..."
                                        @bind="_busquedaDocumento"
-                                       @bind:event="oninput"
-                                       @onkeyup="OnEnterBuscarCliente" />
+                                       @oninput="OnInputBusqueda"
+                                       @onfocusout="OcultarSugerenciasDelay"
+                                       autocomplete="off" />
 
                                 <button class="btn btn-primary"
                                         type="button"
                                         @onclick="BuscarClienteAsync">
-                                    <i class="ri-search-line me-1"></i>Buscar
+                                    <i class="ri-check-line me-1"></i> Cargar
                                 </button>
                             </div>
-                        </div>
 
+                            @if (_mostrarSugerencias && _sugerenciasClientes.Any())
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm" style="max-height: 250px; overflow-y: auto;">
+                                    @foreach (var c in _sugerenciasClientes)
+                                    {
+                                        <button type="button" class="dropdown-item d-flex justify-content-between align-items-center"
+                                                @onclick="() => SeleccionarSugerencia(c)">
+                                            <div>
+                                                <strong>@c.NomCli @c.ApeCli</strong>
+                                                <br />
+                                                <small class="text-muted">@c.IdeCli</small>
+                                            </div>
+                                            <span class="badge bg-light text-dark border">@c.TipCli</span>
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
 
                     @if (_clienteSeleccionado is not null)
@@ -125,17 +139,9 @@ else
                             </div>
                         </div>
                     }
-                    else
-                    {
-                        <div class="alert alert-warning d-flex align-items-center mt-3 mb-0">
-                            <i class="ri-alert-line fs-20 me-2"></i>
-                            <span>Debe seleccionar un cliente para continuar</span>
-                        </div>
-                    }
                 </div>
             </div>
 
-            <!-- SECCIÓN PRODUCTOS -->
             <div class="card custom-card shadow-sm">
                 <div class="card-header bg-info-transparent">
                     <div class="d-flex justify-content-between align-items-center">
@@ -143,9 +149,6 @@ else
                             <i class="ri-shopping-cart-line fs-20 text-info me-2"></i>
                             <h5 class="fw-semibold mb-0">Productos</h5>
                         </div>
-                        <button class="btn btn-sm btn-info" @onclick="AgregarItem">
-                            <i class="ri-add-line me-1"></i>Agregar Producto
-                        </button>
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -210,6 +213,15 @@ else
                                             </td>
                                         </tr>
                                     }
+                                    <tr class="bg-light-hover">
+                                        <td colspan="6" class="p-0">
+                                            <button class="btn btn-link text-decoration-none fw-medium w-100 py-2 ps-4 text-start"
+                                                    style="border-radius: 0; color: var(--primary-color);"
+                                                    @onclick="AgregarItem">
+                                                <i class="ri-add-circle-line fs-16 me-2 align-middle"></i>Agregar nueva línea
+                                            </button>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -228,9 +240,7 @@ else
             </div>
         </div>
 
-        <!-- PANEL DERECHO: Resumen y Acciones -->
         <div class="col-xl-4">
-            <!-- INFORMACIÓN DE LA FACTURA -->
             <div class="card custom-card mb-3 shadow-sm">
                 <div class="card-header bg-secondary-transparent">
                     <div class="d-flex align-items-center">
@@ -256,7 +266,6 @@ else
                 </div>
             </div>
 
-            <!-- RESUMEN DE TOTALES -->
             <div class="card custom-card mb-3 shadow-sm">
                 <div class="card-header bg-success-transparent">
                     <div class="d-flex align-items-center">
@@ -266,8 +275,12 @@ else
                 </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pb-2">
-                        <span class="text-muted">Subtotal:</span>
-                        <span class="fw-semibold">$@_subtotal.ToString("N2")</span>
+                        <span class="text-muted">Subtotal IVA 0%:</span>
+                        <span class="fw-semibold">$@_subtotalIva0.ToString("N2")</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pb-2">
+                        <span class="text-muted">Subtotal IVA 15%:</span>
+                        <span class="fw-semibold">$@_subtotalIva15.ToString("N2")</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pb-2">
                         <span class="text-muted">IVA (15%):</span>
@@ -287,7 +300,6 @@ else
                 </div>
             </div>
 
-            <!-- BOTONES DE ACCIÓN -->
             <div class="card custom-card shadow-sm">
                 <div class="card-body">
                     <button class="btn btn-success btn-lg mb-2 w-100"
@@ -305,7 +317,6 @@ else
     </div>
 }
 
-<!-- MODAL DE CONFIRMACIÓN -->
 @if (_mostrarModal)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
@@ -320,7 +331,6 @@ else
                 <div class="modal-body">
                     @if (_clienteSeleccionado is not null)
                     {
-                        <!-- Información del Cliente -->
                         <div class="mb-4">
                             <h6 class="fw-bold text-primary mb-3">
                                 <i class="ri-user-line me-2"></i>Información del Cliente
@@ -347,7 +357,6 @@ else
 
                         <hr />
 
-                        <!-- Detalles de Productos -->
                         <div class="mb-4">
                             <h6 class="fw-bold text-primary mb-3">
                                 <i class="ri-shopping-cart-line me-2"></i>Detalle de Productos
@@ -385,11 +394,14 @@ else
 
                         <hr />
 
-                        <!-- Totales -->
                         <div class="bg-light rounded p-3">
                             <div class="d-flex justify-content-between mb-2">
-                                <span>Subtotal:</span>
-                                <span class="fw-semibold">$@_subtotal.ToString("N2")</span>
+                                <span>Subtotal IVA 0%:</span>
+                                <span class="fw-semibold">$@_subtotalIva0.ToString("N2")</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Subtotal IVA 15%:</span>
+                                <span class="fw-semibold">$@_subtotalIva15.ToString("N2")</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span>IVA (15%):</span>
@@ -477,6 +489,14 @@ else
     .bg-secondary-transparent {
         background-color: rgba(108, 117, 125, 0.1) !important;
     }
+
+    .bg-light-hover:hover {
+        background-color: #f8f9fa;
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
+    }
 </style>
 
 @code {
@@ -484,18 +504,25 @@ else
     private bool _isSaving = false;
     private bool _mostrarModal = false;
 
+    // Variables para la búsqueda dinámica con autocompletado
+    private bool _mostrarSugerencias = false;
+    private List<ClienteDto> _todosLosClientes = new(); // Carga local para filtrado rápido
+    private List<ClienteDto> _sugerenciasClientes = new();
+
     private int _idUsu;
-    private int _idEmp = 18;
-    private int _idEmpresa = 4;
+    private int _idEmp = 1;
+    private int _idEmpresa = 3;
     private string _nombreUsuario = string.Empty;
     private DateTime _fechaEmision = DateTime.Now;
 
+    private string _tipoDocumentoSeleccionado = "CEDULA"; // Valor por defecto
     private string _busquedaDocumento = string.Empty;
     private ClienteDto? _clienteSeleccionado;
 
     private List<ProductoDto> _productos = new();
     private readonly List<FacturaItemModel> _items = new();
-    // Subtotales separados por tipo de IVA
+
+    // --- LÓGICA DE IMPUESTOS (RESTAURADA DE TU CÓDIGO) ---
     private decimal _subtotalIva0 => _items
         .Where(i => i.TarifaTributaria == 0)
         .Sum(i => i.Subtotal);
@@ -504,14 +531,13 @@ else
         .Where(i => i.TarifaTributaria == 15)
         .Sum(i => i.Subtotal);
 
-    // IVA calculado por línea
     private decimal _iva => _items.Sum(i =>
         i.Subtotal * (i.TarifaTributaria / 100m)
     );
 
-    // Total general
     private decimal _subtotal => _subtotalIva0 + _subtotalIva15;
     private decimal _total => _subtotal + _iva;
+    // -----------------------------------------------------
 
     private bool PuedeGuardar =>
         _clienteSeleccionado is not null &&
@@ -523,7 +549,12 @@ else
         try
         {
             await CargarUsuarioActualAsync();
-            await CargarProductosAsync();
+
+            // Carga paralela de productos y clientes (para el filtrado local)
+            var tProductos = CargarProductosAsync();
+            var tClientes = CargarTodosLosClientesAsync();
+            await Task.WhenAll(tProductos, tClientes);
+
             AgregarItem();
         }
         catch (Exception ex)
@@ -533,6 +564,72 @@ else
 
         _isLoading = false;
     }
+
+    // --- IMPLEMENTACIÓN AUTOCOMPLETADO (BASADO EN TU REFERENCIA) ---
+
+    private async Task CargarTodosLosClientesAsync()
+    {
+        try
+        {
+            _todosLosClientes = await ClientesApi.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error cargando clientes para autocompletado: " + ex.Message);
+        }
+    }
+
+    private void OnInputBusqueda(ChangeEventArgs e)
+    {
+        _busquedaDocumento = e.Value?.ToString() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(_busquedaDocumento))
+        {
+            _sugerenciasClientes.Clear();
+            _mostrarSugerencias = false;
+            return;
+        }
+
+        // Lógica de filtrado local similar a tu /clientes/listar
+        // Filtramos por Identificación O Nombre/Apellido
+        _sugerenciasClientes = _todosLosClientes
+            .Where(c =>
+                ContainsIgnoreCase(c.IdeCli, _busquedaDocumento) ||
+                ContainsIgnoreCase(c.NomCli, _busquedaDocumento) ||
+                ContainsIgnoreCase(c.ApeCli, _busquedaDocumento)
+            )
+            .Take(5) // Limitamos a 5 sugerencias
+            .ToList();
+
+        _mostrarSugerencias = _sugerenciasClientes.Any();
+    }
+
+    private void SeleccionarSugerencia(ClienteDto cliente)
+    {
+        _busquedaDocumento = cliente.IdeCli; // Rellenar el input con la identificación
+        _tipoDocumentoSeleccionado = cliente.TipCli; // Ajustar el tipo
+        _mostrarSugerencias = false;
+        // Opcional: Cargar directamente el cliente aquí si lo deseas,
+        // pero mantengo el flujo de "dar click en Buscar" o enter si prefieres.
+        // Para este caso, cargamos directamente para mejor UX:
+        _clienteSeleccionado = cliente;
+    }
+
+    private async Task OcultarSugerenciasDelay()
+    {
+        // Delay para permitir el click en la sugerencia
+        await Task.Delay(200);
+        _mostrarSugerencias = false;
+    }
+
+    private static bool ContainsIgnoreCase(string? source, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(value))
+            return false;
+        return source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    // -------------------------------------------------------------
 
     private async Task CargarUsuarioActualAsync()
     {
@@ -550,8 +647,6 @@ else
         var idEmpClaim = user.FindFirst("idEmp")?.Value;
         if (int.TryParse(idEmpClaim, out var idEmp))
             _idEmp = idEmp;
-
-        
     }
 
     private async Task CargarProductosAsync()
@@ -565,10 +660,12 @@ else
             await Swal.FireAsync("Error", $"No se pudieron cargar los productos: {ex.Message}", "error");
         }
     }
-    private string _tipoDocumentoSeleccionado = "";
 
     private async Task BuscarClienteAsync()
     {
+        // Si ya se seleccionó por sugerencia, no hacemos nada extra, o recargamos si se desea.
+        if (_clienteSeleccionado != null && _clienteSeleccionado.IdeCli == _busquedaDocumento) return;
+
         if (string.IsNullOrWhiteSpace(_tipoDocumentoSeleccionado))
         {
             await Swal.FireAsync("Atención", "Seleccione el tipo de documento.", "warning");
@@ -577,16 +674,27 @@ else
 
         if (string.IsNullOrWhiteSpace(_busquedaDocumento))
         {
-            await Swal.FireAsync("Atención", "Ingrese el número del documento.", "warning");
+            await Swal.FireAsync("Atención", "Ingrese el número del documento o nombre.", "warning");
             return;
         }
 
         try
         {
-            _clienteSeleccionado = await ClientesApi.GetByDocumentoAsync(
-                _tipoDocumentoSeleccionado,
-                _busquedaDocumento
-            );
+            // Intentamos buscar en la lista local primero
+            var clienteLocal = _todosLosClientes.FirstOrDefault(c => c.IdeCli == _busquedaDocumento && c.TipCli == _tipoDocumentoSeleccionado);
+
+            if (clienteLocal != null)
+            {
+                _clienteSeleccionado = clienteLocal;
+            }
+            else
+            {
+                // Si no está en local, intentamos por API específica (fallback)
+                _clienteSeleccionado = await ClientesApi.GetByDocumentoAsync(
+                    _tipoDocumentoSeleccionado,
+                    _busquedaDocumento
+                );
+            }
 
             if (_clienteSeleccionado is null)
             {
@@ -598,14 +706,6 @@ else
         catch (Exception ex)
         {
             await Swal.FireAsync("Error", $"Error al buscar cliente: {ex.Message}", "error");
-        }
-    }
-
-    private async Task OnEnterBuscarCliente(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter")
-        {
-            await BuscarClienteAsync();
         }
     }
 
@@ -627,6 +727,7 @@ else
             _items.RemoveAt(index);
         }
     }
+
     private void OnProductoChanged(FacturaItemModel item, ChangeEventArgs e)
     {
         if (!int.TryParse(e.Value?.ToString(), out var id)) return;
@@ -639,7 +740,7 @@ else
             item.NombreProducto = prod.Nombre;
             item.PrecioUnitario = prod.PrecioVenta;
 
-            // Asignar tarifa según el tipo tributario del producto
+            // LÓGICA DE TARIFA TRIBUTARIA (Restaurada)
             item.TarifaTributaria = prod.IdTipoTributario switch
             {
                 1 => 0,   // IVA 0%
@@ -725,16 +826,18 @@ else
     {
         NavigationManager.NavigateTo("/dashboards/facturas");
     }
+
+    // Modelo Interno Restaurado
     private sealed class FacturaItemModel
     {
         public int? ProductoId { get; set; }
         public string NombreProducto { get; set; } = string.Empty;
         public int Cantidad { get; set; } = 1;
         public decimal PrecioUnitario { get; set; } = 0m;
-         
+
+        // Propiedad restaurada
         public int TarifaTributaria { get; set; } = 0;
 
         public decimal Subtotal => Cantidad * PrecioUnitario;
     }
-
 }
