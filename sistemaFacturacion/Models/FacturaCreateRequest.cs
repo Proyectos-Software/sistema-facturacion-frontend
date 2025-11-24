@@ -1,6 +1,7 @@
 ﻿// Models/Facturas/FacturaCreateRequest.cs
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace sistemaFacturacion.Models
 {
@@ -10,23 +11,27 @@ namespace sistemaFacturacion.Models
     public class FacturaCreateRequest
     {
         [Required]
-        public int IdCli { get; set; }      // Cliente
+        [JsonPropertyName("idCli")]
+        public int IdCli { get; set; }
 
         [Required]
+        [JsonPropertyName("idEmp")]
         public int IdEmp { get; set; }      // Empleado (quien atiende)
 
         [Required]
-        public int IdUsu { get; set; }     // Usuario del sistema que genera la factura
+        [JsonPropertyName("idUsu")]
+        public int IdUsu { get; set; }      // Usuario del sistema que genera la factura
 
         [Required]
+        [JsonPropertyName("idEmpresa")]
         public int IdEmpresa { get; set; }  // Empresa emisora
 
         /// <summary>
         /// Lista de productos seleccionados (FIFO según lotes).
         /// </summary>
         [MinLength(1, ErrorMessage = "Debe incluir al menos un detalle.")]
-        public List<FacturaDetalleCreateRequest> Detalles { get; set; }
-            = new();
+        [JsonPropertyName("detalles")]
+        public List<FacturaDetalleCreateRequest> Detalles { get; set; } = new();
     }
 
     /// <summary>
@@ -35,10 +40,12 @@ namespace sistemaFacturacion.Models
     public class FacturaDetalleCreateRequest
     {
         [Required]
+        [JsonPropertyName("idPro")]
         public int IdPro { get; set; }      // Producto
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "La cantidad debe ser mayor que cero.")]
+        [JsonPropertyName("cantidad")]
         public int Cantidad { get; set; }   // Cantidad solicitada
     }
 }

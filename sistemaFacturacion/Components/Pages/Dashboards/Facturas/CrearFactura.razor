@@ -24,11 +24,11 @@
 
 @if (_isLoading)
 {
-    <div class="text-center py-5">
+    <div class="py-5 text-center">
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Cargando...</span>
         </div>
-        <p class="mt-3 text-muted">Preparando formulario...</p>
+        <p class="text-muted mt-3">Preparando formulario...</p>
     </div>
 }
 else
@@ -37,11 +37,11 @@ else
         <!-- PANEL IZQUIERDO: Cliente y Productos -->
         <div class="col-xl-8">
             <!-- SECCIÓN CLIENTE -->
-            <div class="card custom-card shadow-sm mb-3">
+            <div class="card custom-card mb-3 shadow-sm">
                 <div class="card-header bg-primary-transparent">
                     <div class="d-flex align-items-center">
-                        <i class="ri-user-line fs-20 me-2 text-primary"></i>
-                        <h5 class="mb-0 fw-semibold">Cliente</h5>
+                        <i class="ri-user-line fs-20 text-primary me-2"></i>
+                        <h5 class="fw-semibold mb-0">Cliente</h5>
                     </div>
                 </div>
                 <div class="card-body p-4">
@@ -93,7 +93,7 @@ else
 
                     @if (_clienteSeleccionado is not null)
                     {
-                        <div class="mt-3 p-3 bg-light rounded-3 border border-success">
+                        <div class="bg-light rounded-3 border-success mt-3 border p-3">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div class="flex-grow-1">
                                     <div class="d-flex align-items-center mb-2">
@@ -127,7 +127,7 @@ else
                     }
                     else
                     {
-                        <div class="alert alert-warning mt-3 mb-0 d-flex align-items-center">
+                        <div class="alert alert-warning d-flex align-items-center mt-3 mb-0">
                             <i class="ri-alert-line fs-20 me-2"></i>
                             <span>Debe seleccionar un cliente para continuar</span>
                         </div>
@@ -140,8 +140,8 @@ else
                 <div class="card-header bg-info-transparent">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center">
-                            <i class="ri-shopping-cart-line fs-20 me-2 text-info"></i>
-                            <h5 class="mb-0 fw-semibold">Productos</h5>
+                            <i class="ri-shopping-cart-line fs-20 text-info me-2"></i>
+                            <h5 class="fw-semibold mb-0">Productos</h5>
                         </div>
                         <button class="btn btn-sm btn-info" @onclick="AgregarItem">
                             <i class="ri-add-line me-1"></i>Agregar Producto
@@ -152,7 +152,7 @@ else
                     @if (_items.Any())
                     {
                         <div class="table-responsive">
-                            <table class="table table-hover mb-0">
+                            <table class="table-hover mb-0 table">
                                 <thead class="table-light">
                                     <tr>
                                         <th width="5%" class="text-center">#</th>
@@ -169,7 +169,7 @@ else
                                         var index = i;
                                         var item = _items[i];
                                         <tr class="align-middle">
-                                            <td class="text-center fw-bold text-muted">@(i + 1)</td>
+                                            <td class="fw-bold text-muted text-center">@(i + 1)</td>
                                             <td>
                                                 <select class="form-select form-select-sm @(item.ProductoId.HasValue ? "border-success" : "")"
                                                         value="@item.ProductoId"
@@ -216,8 +216,8 @@ else
                     }
                     else
                     {
-                        <div class="text-center py-5">
-                            <i class="ri-inbox-line fs-48 text-muted opacity-50 d-block mb-3"></i>
+                        <div class="py-5 text-center">
+                            <i class="ri-inbox-line fs-48 text-muted d-block mb-3 opacity-50"></i>
                             <p class="text-muted mb-2">No hay productos agregados</p>
                             <button class="btn btn-sm btn-primary" @onclick="AgregarItem">
                                 <i class="ri-add-line me-1"></i>Agregar primer producto
@@ -231,11 +231,11 @@ else
         <!-- PANEL DERECHO: Resumen y Acciones -->
         <div class="col-xl-4">
             <!-- INFORMACIÓN DE LA FACTURA -->
-            <div class="card custom-card shadow-sm mb-3">
+            <div class="card custom-card mb-3 shadow-sm">
                 <div class="card-header bg-secondary-transparent">
                     <div class="d-flex align-items-center">
                         <i class="ri-information-line fs-20 me-2"></i>
-                        <h6 class="mb-0 fw-semibold">Información</h6>
+                        <h6 class="fw-semibold mb-0">Información</h6>
                     </div>
                 </div>
                 <div class="card-body">
@@ -257,19 +257,19 @@ else
             </div>
 
             <!-- RESUMEN DE TOTALES -->
-            <div class="card custom-card shadow-sm mb-3">
+            <div class="card custom-card mb-3 shadow-sm">
                 <div class="card-header bg-success-transparent">
                     <div class="d-flex align-items-center">
-                        <i class="ri-money-dollar-circle-line fs-20 me-2 text-success"></i>
-                        <h6 class="mb-0 fw-semibold">Resumen</h6>
+                        <i class="ri-money-dollar-circle-line fs-20 text-success me-2"></i>
+                        <h6 class="fw-semibold mb-0">Resumen</h6>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pb-2">
                         <span class="text-muted">Subtotal:</span>
                         <span class="fw-semibold">$@_subtotal.ToString("N2")</span>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pb-2">
                         <span class="text-muted">IVA (15%):</span>
                         <span class="fw-semibold">$@_iva.ToString("N2")</span>
                     </div>
@@ -278,7 +278,7 @@ else
                         <span class="fw-bold text-success fs-20">$@_total.ToString("N2")</span>
                     </div>
 
-                    <div class="alert alert-info border-0 mt-3 mb-0 py-2">
+                    <div class="alert alert-info mt-3 mb-0 border-0 py-2">
                         <small class="d-flex">
                             <i class="ri-information-line me-2 mt-1"></i>
                             <span>Los totales son referenciales. El cálculo final se realiza en el backend.</span>
@@ -290,7 +290,7 @@ else
             <!-- BOTONES DE ACCIÓN -->
             <div class="card custom-card shadow-sm">
                 <div class="card-body">
-                    <button class="btn btn-success w-100 mb-2 btn-lg"
+                    <button class="btn btn-success btn-lg mb-2 w-100"
                             @onclick="MostrarModalConfirmacion"
                             disabled="@(!PuedeGuardar || _isSaving)">
                         <i class="ri-save-line me-2"></i>
@@ -322,7 +322,7 @@ else
                     {
                         <!-- Información del Cliente -->
                         <div class="mb-4">
-                            <h6 class="fw-bold mb-3 text-primary">
+                            <h6 class="fw-bold text-primary mb-3">
                                 <i class="ri-user-line me-2"></i>Información del Cliente
                             </h6>
                             <div class="row g-2">
@@ -349,11 +349,11 @@ else
 
                         <!-- Detalles de Productos -->
                         <div class="mb-4">
-                            <h6 class="fw-bold mb-3 text-primary">
+                            <h6 class="fw-bold text-primary mb-3">
                                 <i class="ri-shopping-cart-line me-2"></i>Detalle de Productos
                             </h6>
                             <div class="table-responsive">
-                                <table class="table table-sm table-bordered mb-0">
+                                <table class="table-sm table-bordered mb-0 table">
                                     <thead class="table-light">
                                         <tr>
                                             <th width="5%">#</th>
@@ -375,7 +375,7 @@ else
                                                 <td>@item.NombreProducto</td>
                                                 <td class="text-center">@item.Cantidad</td>
                                                 <td class="text-end">$@item.PrecioUnitario.ToString("N2")</td>
-                                                <td class="text-end fw-bold">$@item.Subtotal.ToString("N2")</td>
+                                                <td class="fw-bold text-end">$@item.Subtotal.ToString("N2")</td>
                                             </tr>
                                         }
                                     </tbody>
@@ -386,7 +386,7 @@ else
                         <hr />
 
                         <!-- Totales -->
-                        <div class="bg-light p-3 rounded">
+                        <div class="bg-light rounded p-3">
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Subtotal:</span>
                                 <span class="fw-semibold">$@_subtotal.ToString("N2")</span>
@@ -395,7 +395,7 @@ else
                                 <span>IVA (15%):</span>
                                 <span class="fw-semibold">$@_iva.ToString("N2")</span>
                             </div>
-                            <div class="d-flex justify-content-between pt-2 border-top border-2">
+                            <div class="d-flex justify-content-between border-top border-2 pt-2">
                                 <span class="fw-bold fs-18">TOTAL:</span>
                                 <span class="fw-bold text-success fs-20">$@_total.ToString("N2")</span>
                             </div>
@@ -485,8 +485,8 @@ else
     private bool _mostrarModal = false;
 
     private int _idUsu;
-    private int _idEmp = 1;
-    private int _idEmpresa = 3;
+    private int _idEmp = 18;
+    private int _idEmpresa = 4;
     private string _nombreUsuario = string.Empty;
     private DateTime _fechaEmision = DateTime.Now;
 
