@@ -1,29 +1,22 @@
-﻿using System.Text.Json.Serialization;
+﻿// Models/Facturas/FacturaCreateRequest.cs (o donde lo tengas)
 using System.Collections.Generic;
 
-public class FacturaCreateRequest
+namespace sistemaFacturacion.Models
 {
-    [JsonPropertyName("idCli")]
-    public int IdCli { get; set; }
+    public class FacturaCreateRequest
+    {
+        public int IdCli { get; set; }      // Id del cliente
+        public int IdEmp { get; set; }      // Id del empleado
+        public int IdUsu { get; set; }      // Id del usuario que factura
+        public int IdEmpresa { get; set; }  // Id de la empresa
 
-    [JsonPropertyName("idEmp")]
-    public int IdEmp { get; set; }
+        public List<FacturaDetalleCreateRequest> Detalles { get; set; }
+            = new();
+    }
 
-    [JsonPropertyName("idUsu")]
-    public int IdUsu { get; set; }
-
-    [JsonPropertyName("detalles")]
-    public List<DetalleFacturaCreateRequest> Detalles { get; set; } = new();
-}
-
-public class DetalleFacturaCreateRequest
-{
-    [JsonPropertyName("idPro")]
-    public int IdPro { get; set; }
-
-    [JsonPropertyName("idLot")]
-    public int IdLot { get; set; }
-
-    [JsonPropertyName("cantidad")]
-    public int Cantidad { get; set; }
+    public class FacturaDetalleCreateRequest
+    {
+        public int IdPro { get; set; }      // Producto
+        public int Cantidad { get; set; }   // Cantidad
+    }
 }

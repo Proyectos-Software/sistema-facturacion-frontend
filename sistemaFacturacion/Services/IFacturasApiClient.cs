@@ -1,18 +1,14 @@
 ﻿using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
-using sistemaFacturacion.Models;
+using sistemaFacturacion.Models; 
 
-namespace sistemaFacturacion.Services
+public interface IFacturasApiClient
 {
-    public interface IFacturasApiClient
-    {
-        Task<List<FacturaDto>> GetAllAsync(CancellationToken ct = default);
-        Task<FacturaDto?> GetByIdAsync(int id, CancellationToken ct = default);
-
-        Task<FacturaDto?> CreateAsync(CrearFacturaRequest request, CancellationToken ct = default);
-
-
-        Task<bool> CambiarEstadoAsync(int id, string nuevoEstado, CancellationToken ct = default);
-    }
+    Task<List<FacturaDto>> GetFacturasAsync();
+    Task<FacturaDto?> GetFacturaPorIdAsync(int id);
+    Task<FacturaDto> CrearFacturaAsync(FacturaCreateRequest request);
+     
+    // Opcional: XML
+    Task<string> ObtenerXmlAsync(int id);
+    Task<byte[]> DescargarXmlAsync(int id);
 }

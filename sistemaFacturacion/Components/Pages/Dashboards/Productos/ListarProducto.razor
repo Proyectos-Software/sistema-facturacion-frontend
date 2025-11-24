@@ -267,8 +267,9 @@ else
                                     <td>@p.NombreCategoria</td>
                                     <td><small>@p.Descripcion</small></td>
                                     <td class="text-end">
-                                        <small>@FormatMoney(GetPrecioActual(p.Id))</small>
+                                        <small>@FormatMoney(p.PrecioVenta)</small>
                                     </td>
+
                                     <td>
                                         @if (p.Estado)
                                         {

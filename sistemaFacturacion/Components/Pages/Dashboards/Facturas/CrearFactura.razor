@@ -1,9 +1,14 @@
 ﻿@page "/dashboards/facturas/crear"
-
+@using Microsoft.AspNetCore.Components.Authorization
 @using sistemaFacturacion.Models
-@using sistemaFacturacion.Components.Pages.Dashboards.Facturas.Steps
+@using sistemaFacturacion.Services
+@using CurrieTechnologies.Razor.SweetAlert2
+@inject IClientesApiClient ClientesApi
+@inject IProductosApiClient ProductosApi
+@inject IFacturasApiClient FacturasApi
+@inject     AuthenticationStateProvider AuthStateProvider
+@inject SweetAlertService Swal
 @inject NavigationManager NavigationManager
-
 
 <div class="page-header-breadcrumb mb-3">
     <div class="d-flex align-center justify-content-between flex-wrap">
@@ -15,208 +20,495 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card custom-card">
-            <div class="card-header">
-                <div class="card-title">
-                    <i class="ri-file-list-3-line me-2"></i> NUEVA FACTURA
-                </div>
-            </div>
-
-            <div class="card-body crear-factura-wizard">
-
-                <!-- TIMELINE / WIZARD -->
-                <div class="wizard-timeline mb-4">
-                    <!-- Paso 1 -->
-                    <div class="@GetStepCss(1)" @onclick="@(() => IrPaso(1))">
-                        <div class="step-circle">
-                            <span class="step-number">1</span>
-                            @if (EsPasoCompletado(1))
-                            {
-                                <span class="step-check"><i class="ri-check-line"></i></span>
-                            }
+@if (_isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-2 text-muted">Cargando información necesaria...</p>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card custom-card factura-card">
+                <div class="card-header factura-header">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <div class="d-flex align-items-center">
+                            <i class="ri-file-text-line fs-24 me-2 text-primary"></i>
+                            <h4 class="mb-0 fw-semibold">Nueva Factura</h4>
                         </div>
-                        <div class="step-label">Cliente</div>
-                    </div>
-
-                    <!-- Paso 2 -->
-                    <div class="@GetStepCss(2)" @onclick="@(() => IrPaso(2))">
-                        <div class="step-circle">
-                            <span class="step-number">2</span>
-                            @if (EsPasoCompletado(2))
-                            {
-                                <span class="step-check"><i class="ri-check-line"></i></span>
-                            }
+                        <div class="factura-numero-badge">
+                            <span class="badge bg-primary-transparent">
+                                <i class="ri-hashtag me-1"></i>Nueva factura
+                            </span>
                         </div>
-                        <div class="step-label">Ítems</div>
-                    </div>
-
-                    <!-- Paso 3 -->
-                    <div class="@GetStepCss(3)" @onclick="@(() => IrPaso(3))">
-                        <div class="step-circle">
-                            <span class="step-number">3</span>
-                            @if (EsPasoCompletado(3))
-                            {
-                                <span class="step-check"><i class="ri-check-line"></i></span>
-                            }
-                        </div>
-                        <div class="step-label">Totales</div>
-                    </div>
-
-                    <!-- Paso 4 -->
-                    <div class="@GetStepCss(4)" @onclick="@(() => IrPaso(4))">
-                        <div class="step-circle">
-                            <span class="step-number">4</span>
-                            @if (EsPasoCompletado(4))
-                            {
-                                <span class="step-check"><i class="ri-check-line"></i></span>
-                            }
-                        </div>
-                        <div class="step-label">Confirmar</div>
                     </div>
                 </div>
 
-                <!-- CONTENIDO DEL WIZARD -->
-                <div class="wizard-body">
-                    @if (_pasoActual == 1)
-                    {
-                        <!-- Paso 1: Selección de Cliente -->
-                        <Paso1SeleccionCliente Factura="@_facturaDraft" />
-                    }
-                    else if (_pasoActual == 2)
-                    {
-                        <!-- Paso 2: Selección de Ítems -->
-                        <Paso2SeleccionItems Factura="@_facturaDraft" />
-                    }
-                    else if (_pasoActual == 3)
-                    {
-                        <!-- Paso 3: Totales y Pago -->
-                        <Paso3TotalesPago Factura="@_facturaDraft" />
-                    }
-                    else if (_pasoActual == 4)
-                    {
-                        <!-- Paso 4: Confirmación -->
-                        <Paso4Confirmacion
-                            Factura="@_facturaDraft"
-                            OnNuevaFactura="@HandleNuevaFactura" />
-                    }
-                </div>
+                <div class="card-body p-4">
+                    <!-- INFORMACIÓN GENERAL -->
+                    <div class="row mb-4">
+                        <!-- CLIENTE -->
+                        <div class="col-md-6">
+                            <div class="info-section">
+                                <h6 class="section-title mb-3">
+                                    <i class="ri-user-line me-2"></i>Información del Cliente
+                                </h6>
 
-                <!-- FOOTER / NAVEGACIÓN -->
-                <div class="wizard-footer d-flex justify-content-between align-items-center mt-4">
-                    <button type="button"
-                            class="btn btn-outline-secondary"
-                            disabled="@(!_puedeIrAtras)"
-                            @onclick="PasoAnterior">
-                        <i class="ri-arrow-left-line me-1"></i> Anterior
-                    </button>
+                                <div class="mb-3">
+                                    <label class="form-label">Identificación del cliente <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="ri-search-line"></i>
+                                        </span>
+                                        <input type="text"
+                                               class="form-control"
+                                               placeholder="Cédula / RUC..."
+                                               @bind="_busquedaDocumento" />
+                                        <button class="btn btn-primary" type="button" @onclick="BuscarClienteAsync">
+                                            <i class="ri-search-2-line me-1"></i>Buscar
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">
+                                        La búsqueda se realiza por documento (cédula / RUC) usando el endpoint <code>by-documento</code>.
+                                    </small>
+                                </div>
 
-                    <div class="d-flex gap-2">
-                        <button type="button"
-                                class="btn btn-outline-warning"
-                                @onclick="ReiniciarFactura">
-                            <i class="ri-refresh-line me-1"></i> Reiniciar
+                                @if (_clienteSeleccionado is not null)
+                                {
+                                    <div class="cliente-seleccionado">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <p class="mb-1 fw-semibold">
+                                                    @_clienteSeleccionado.NomCli @_clienteSeleccionado.ApeCli
+                                                </p>
+                                                <p class="mb-1 text-muted small">
+                                                    <i class="ri-bank-card-line me-1"></i>@_clienteSeleccionado.IdeCli
+                                                </p>
+                                                <p class="mb-1 text-muted small">
+                                                    <i class="ri-mail-line me-1"></i>@_clienteSeleccionado.CorCli
+                                                </p>
+                                                <p class="mb-0 text-muted small">
+                                                    <i class="ri-phone-line me-1"></i>@_clienteSeleccionado.TelCli
+                                                </p>
+                                            </div>
+                                            <button class="btn btn-sm btn-light" @onclick="LimpiarCliente">
+                                                <i class="ri-close-line"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-warning mt-3 mb-0 py-2">
+                                        <small>Sin cliente seleccionado.</small>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- DETALLES GENERALES (solo informativos) -->
+                        <div class="col-md-6">
+                            <div class="info-section">
+                                <h6 class="section-title mb-3">
+                                    <i class="ri-calendar-line me-2"></i>Detalles de la Factura
+                                </h6>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Fecha de emisión</label>
+                                        <input type="date"
+                                               class="form-control"
+                                               value="@_fechaEmision.ToString("yyyy-MM-dd")"
+                                               disabled />
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Usuario</label>
+                                        <input type="text"
+                                               class="form-control"
+                                               value="@_nombreUsuario"
+                                               disabled />
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info border-0 mb-0 py-2">
+                                    <small>
+                                        La fecha, numeración, totales e IVA se calculan en el backend.
+                                        Aquí solo se muestra información referencial.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ITEMS DE LA FACTURA -->
+                    <div class="items-section mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="section-title mb-0">
+                                <i class="ri-shopping-cart-line me-2"></i>Items de la Factura
+                            </h6>
+                            <button class="btn btn-sm btn-primary" @onclick="AgregarItem">
+                                <i class="ri-add-line me-1"></i>Agregar Item
+                            </button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover factura-items-table">
+                                <thead>
+                                    <tr>
+                                        <th width="5%">#</th>
+                                        <th width="40%">Producto</th>
+                                        <th width="15%">Cantidad</th>
+                                        <th width="20%">Precio Unit. (ref)</th>
+                                        <th width="20%">Subtotal (ref)</th>
+                                        <th width="5%"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (_items.Any())
+                                    {
+                                        @for (int i = 0; i < _items.Count; i++)
+                                        {
+                                            var index = i;
+                                            var item = _items[i];
+                                            <tr>
+                                                <td class="align-middle text-center">@(i + 1)</td>
+                                                <td>
+                                                    <select class="form-select form-select-sm"
+                                                            value="@item.ProductoId"
+                                                            @onchange="e => OnProductoChanged(item, e)">
+                                                        <option value="">Seleccionar producto...</option>
+                                                        @foreach (var p in _productos)
+                                                        {
+                                                            <option value="@p.Id">
+                                                                @p.Nombre (@p.Codigo)
+                                                            </option>
+                                                        }
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <input type="number"
+                                                           class="form-control form-control-sm text-end"
+                                                           min="1"
+                                                           value="@item.Cantidad"
+                                                           @onchange="e => OnCantidadChanged(item, e)" />
+                                                </td>
+                                                <td class="align-middle text-end">
+                                                    $@item.PrecioUnitario.ToString("N2")
+                                                </td>
+                                                <td class="align-middle text-end">
+                                                    <span class="fw-semibold">$@item.Subtotal.ToString("N2")</span>
+                                                </td>
+                                                <td class="align-middle text-center">
+                                                    <button class="btn btn-sm btn-danger-light"
+                                                            @onclick="@(() => EliminarItem(index))">
+                                                        <i class="ri-delete-bin-line"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4 text-muted">
+                                                <i class="ri-inbox-line fs-20 d-block mb-2"></i>
+                                                No hay items agregados. Haz clic en "Agregar Item" para comenzar.
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TOTALES (solo referenciales) -->
+                    <div class="row">
+                        <div class="col-md-7">
+                            <div class="alert alert-info border-0">
+                                <div class="d-flex align-items-start">
+                                    <i class="ri-information-line fs-20 me-2"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-1">Información Importante</h6>
+                                        <p class="mb-1 small">
+                                            Los totales mostrados son referenciales y se calculan en el cliente
+                                            usando los precios de productos. El cálculo definitivo de subtotal, IVA
+                                            y total lo realiza el backend al crear la factura.
+                                        </p>
+                                        <p class="mb-0 small">
+                                            Para guardar la factura es obligatorio seleccionar un cliente y al menos un producto.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="totales-card">
+                                <div class="totales-header">
+                                    <h6 class="mb-0 fw-semibold">Resumen referencial</h6>
+                                </div>
+                                <div class="totales-body">
+                                    <div class="total-row">
+                                        <span>Subtotal:</span>
+                                        <span>$@_subtotal.ToString("N2")</span>
+                                    </div>
+                                    <div class="total-row">
+                                        <span>IVA (15% estimado):</span>
+                                        <span>$@_iva.ToString("N2")</span>
+                                    </div>
+                                    <div class="total-row total-final">
+                                        <span class="fw-bold">TOTAL estimado:</span>
+                                        <span class="fw-bold text-primary fs-20">$@_total.ToString("N2")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BOTONES DE ACCIÓN -->
+                    <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                        <button class="btn btn-light" @onclick="Cancelar">
+                            <i class="ri-close-line me-1"></i>Cancelar
                         </button>
-
-                        @if (_pasoActual < TotalPasos)
-                        {
-                            <button type="button"
-                                    class="btn btn-primary"
-                                    @onclick="SiguientePaso">
-                                Siguiente <i class="ri-arrow-right-line ms-1"></i>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success"
+                                    @onclick="GuardarFacturaAsync"
+                                    disabled="@_isSaving">
+                                <i class="ri-check-line me-1"></i>
+                                @(_isSaving ? "Guardando..." : "Guardar factura")
                             </button>
-                        }
-                        else
-                        {
-                            <!-- Opcional: botón adicional en el último paso -->
-                            <button type="button"
-                                    class="btn btn-success"
-                                    @onclick="ReiniciarFactura">
-                                Nueva factura
-                            </button>
-                        }
+                        </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
-</div>
+}
 
 @code {
-    // Paso actual del wizard
-    private int _pasoActual = 1;
-    private const int TotalPasos = 4;
+    // --- Estado general ---
+    private bool _isLoading = true;
+    private bool _isSaving = false;
 
-    // Estado compartido entre todos los pasos
-    private FacturaDraft _facturaDraft = new();
+    // Usuario/empresa/empleado
+    private int _idUsu;
+    private int _idEmp = 1;      // TODO: ajustar según cómo obtengas el empleado
+    private int _idEmpresa = 1;  // TODO: ajustar si viene del token u otro servicio
+    private string _nombreUsuario = string.Empty;
+    private DateTime _fechaEmision = DateTime.Now;
 
-    private bool _puedeIrAtras => _pasoActual > 1;
+    // Cliente
+    private string _busquedaDocumento = string.Empty;
+    private ClienteDto? _clienteSeleccionado;
 
-    /// <summary>
-    /// Ir a un paso específico haciendo clic en el timeline.
-    /// Solo permite navegar hacia atrás o al paso actual (no saltar hacia adelante sin completar).
-    /// </summary>
-    private void IrPaso(int paso)
+    // Productos
+    private List<ProductoDto> _productos = new();
+
+    // Items
+    private readonly List<FacturaItemModel> _items = new();
+
+    // Totales referenciales
+    private decimal _subtotal => _items.Sum(x => x.Subtotal);
+    private decimal _iva => _subtotal * 0.15m;
+    private decimal _total => _subtotal + _iva;
+
+    protected override async Task OnInitializedAsync()
     {
-        if (paso <= _pasoActual && paso >= 1 && paso <= TotalPasos)
+        try
         {
-            _pasoActual = paso;
+            await CargarUsuarioActualAsync();
+            await CargarProductosAsync();
+            AgregarItem();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("ERROR DURANTE INICIALIZACION: " + ex);
+            await Swal.FireAsync("Error", ex.ToString(), "error");
+        }
+
+        _isLoading = false;
+    }
+
+
+    private async Task CargarUsuarioActualAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var idUsuClaim = user.FindFirst("idUsu")?.Value;
+        if (int.TryParse(idUsuClaim, out var idUsu))
+        {
+            _idUsu = idUsu;
+        }
+
+        _nombreUsuario = user.Identity?.Name ?? string.Empty;
+
+        // Si en el futuro agregas idEmp e idEmpresa como claims, se leen aquí:
+        var idEmpClaim = user.FindFirst("idEmp")?.Value;
+        if (int.TryParse(idEmpClaim, out var idEmp))
+            _idEmp = idEmp;
+
+        var idEmpresaClaim = user.FindFirst("idEmpresa")?.Value;
+        if (int.TryParse(idEmpresaClaim, out var idEmpre))
+            _idEmpresa = idEmpre;
+    }
+
+    private async Task CargarProductosAsync()
+    {
+        try
+        {
+            _productos = await ProductosApi.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync("Error", $"No se pudieron cargar los productos: {ex.Message}", "error");
         }
     }
 
-    private void SiguientePaso()
+    private async Task BuscarClienteAsync()
     {
-        if (_pasoActual < TotalPasos)
+        if (string.IsNullOrWhiteSpace(_busquedaDocumento))
         {
-            _pasoActual++;
+            await Swal.FireAsync("Atención", "Ingresa una cédula o RUC para buscar al cliente.", "warning");
+            return;
+        }
+
+        try
+        {
+            // El tipo se normaliza en el cliente, aquí usamos un valor genérico
+            _clienteSeleccionado = await ClientesApi.GetByDocumentoAsync("CEDULA", _busquedaDocumento);
+
+            if (_clienteSeleccionado is null)
+            {
+                await Swal.FireAsync("Sin resultados", "No se encontró ningún cliente con ese documento.", "info");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync("Error", $"Error al buscar cliente: {ex.Message}", "error");
         }
     }
 
-    private void PasoAnterior()
+    private void LimpiarCliente()
     {
-        if (_pasoActual > 1)
+        _clienteSeleccionado = null;
+        _busquedaDocumento = string.Empty;
+    }
+
+    private void AgregarItem()
+    {
+        _items.Add(new FacturaItemModel());
+    }
+
+    private void EliminarItem(int index)
+    {
+        if (index >= 0 && index < _items.Count)
         {
-            _pasoActual--;
+            _items.RemoveAt(index);
         }
     }
 
-    /// <summary>
-    /// Reinicia la factura y vuelve al paso 1.
-    /// </summary>
-    private void ReiniciarFactura()
+    private void OnProductoChanged(FacturaItemModel item, ChangeEventArgs e)
     {
-        _facturaDraft = new FacturaDraft();
-        _pasoActual = 1;
-        StateHasChanged();
+        if (!int.TryParse(e.Value?.ToString(), out var id)) return;
+
+        item.ProductoId = id;
+
+        var prod = _productos.FirstOrDefault(p => p.Id == id);
+        if (prod is not null)
+        {
+            item.NombreProducto = prod.Nombre;
+            item.PrecioUnitario = prod.PrecioVenta;
+
+        }
     }
 
-    /// <summary>
-    /// Callback para cuando desde el paso de confirmación se selecciona "Nueva factura".
-    /// </summary>
-    private void HandleNuevaFactura()
+    private void OnCantidadChanged(FacturaItemModel item, ChangeEventArgs e)
     {
-        ReiniciarFactura();
+        if (int.TryParse(e.Value?.ToString(), out var cant) && cant > 0)
+        {
+            item.Cantidad = cant;
+        }
+        else
+        {
+            item.Cantidad = 1;
+        }
     }
 
-    /// <summary>
-    /// Devuelve la clase CSS del step en el timeline según si está activo, completado o pendiente.
-    /// </summary>
-    private string GetStepCss(int step)
+    private async Task GuardarFacturaAsync()
     {
-        if (_pasoActual == step)
-            return "wizard-step-item active";
+        if (_clienteSeleccionado is null)
+        {
+            await Swal.FireAsync("Validación", "Debes seleccionar un cliente antes de guardar.", "warning");
+            return;
+        }
 
-        if (_pasoActual > step)
-            return "wizard-step-item completed";
+        var detallesValidos = _items
+            .Where(i => i.ProductoId.HasValue && i.Cantidad > 0)
+            .ToList();
 
-        return "wizard-step-item pending";
+        if (!detallesValidos.Any())
+        {
+            await Swal.FireAsync("Validación", "Agrega al menos un producto válido a la factura.", "warning");
+            return;
+        }
+
+        if (_idUsu == 0)
+        {
+            await Swal.FireAsync("Error", "No se pudo determinar el usuario actual (idUsu).", "error");
+            return;
+        }
+
+        var request = new FacturaCreateRequest
+        {
+            IdCli = _clienteSeleccionado.IdCli,
+            IdEmp = _idEmp,
+            IdUsu = _idUsu,
+            IdEmpresa = _idEmpresa,
+            Detalles = detallesValidos
+                .Select(i => new FacturaDetalleCreateRequest
+                {
+                    IdPro = i.ProductoId!.Value,
+                    Cantidad = i.Cantidad
+                })
+                .ToList()
+        };
+
+        try
+        {
+            _isSaving = true;
+            var facturaCreada = await FacturasApi.CrearFacturaAsync(request);
+            _isSaving = false;
+
+            await Swal.FireAsync("Factura creada",
+                $"Factura #{facturaCreada.NumFac} creada correctamente.",
+                "success");
+
+            NavigationManager.NavigateTo("/dashboards/facturas");
+        }
+        catch (Exception ex)
+        {
+            _isSaving = false;
+            await Swal.FireAsync("Error", $"Error al crear la factura: {ex.Message}", "error");
+        }
     }
 
-    /// <summary>
-    /// Determina si un paso ya fue "completado" visualmente (para mostrar el check).
-    /// </summary>
-    private bool EsPasoCompletado(int step)
-        => _pasoActual > step;
+    private void Cancelar()
+    {
+        NavigationManager.NavigateTo("/dashboards/facturas");
+    }
+
+    // Modelo local para la tabla de items (solo UI)
+    private sealed class FacturaItemModel
+    {
+        public int? ProductoId { get; set; }
+        public string NombreProducto { get; set; } = string.Empty;
+        public int Cantidad { get; set; } = 1;
+        public decimal PrecioUnitario { get; set; } = 0m;
+
+        public decimal Subtotal => Cantidad * PrecioUnitario;
+    }
 }
