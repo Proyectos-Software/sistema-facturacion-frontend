@@ -87,6 +87,9 @@ namespace sistemaFacturacion.Models
         [JsonPropertyName("idEmp")]
         public int IdEmp { get; set; }
 
+        [JsonPropertyName("apeEmp")]
+        public string? ApeEmp { get; set; }
+
         [JsonPropertyName("nomEmp")]
         public string NomEmp { get; set; } = string.Empty;
     }

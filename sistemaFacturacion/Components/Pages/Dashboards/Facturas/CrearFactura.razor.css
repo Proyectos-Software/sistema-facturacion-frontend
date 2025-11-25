@@ -401,3 +401,14 @@ html[data-theme-mode="dark"] .productos-dashboard .table thead th {
     .autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
         background: #555;
     }
+
+.card.custom-card.dropdown-activo {
+    position: relative;
+    z-index: 1050 !important;
+}
+
+/* La tarjeta de productos queda por debajo */
+.card.custom-card:not(.dropdown-activo) {
+    position: relative;
+    z-index: 1;
+}

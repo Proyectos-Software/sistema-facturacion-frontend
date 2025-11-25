@@ -44,10 +44,9 @@ else
                     <label class="form-label">Estado</label>
                     <select class="form-select" @bind="FiltroEstado">
                         <option value="">Todos</option>
-                        <option value="Emitida">Emitida</option>
-                        <option value="Anulada">Anulada</option>
-                        <option value="Pagada">Pagada</option>
-                        <option value="Pendiente">Pendiente</option>
+                        <option value="AUTORIZADO">Autorizado</option>
+                        <option value="FIRMADO">Firmado</option>
+                        <option value="RECHAZADO_SRI">Rechazado SRI</option>
                     </select>
                 </div>
                 <div class="col-lg-2 col-6">
@@ -63,10 +62,17 @@ else
                     <button class="btn btn-success" @onclick="IrACrear">
                         <i class="ri-add-line me-1"></i>Nueva Factura
                     </button>
-                    <button type="button" class="btn btn-outline-secondary" @onclick="Recargar">
+                </div>
+            </div>
+
+            <div class="row g-2 mt-1">
+                <div class="col-auto">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="Recargar">
                         <i class="ri-refresh-line me-1"></i>Recargar
                     </button>
-                    <button type="button" class="btn btn-outline-secondary" @onclick="LimpiarFiltros">
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="LimpiarFiltros">
                         <i class="ri-filter-off-line me-1"></i>Limpiar
                     </button>
                 </div>
@@ -87,7 +93,7 @@ else
             @if (mostrarFiltrosAvanzados)
             {
                 <div class="row g-3 mt-2">
-                    <div class="col-lg-4 col-md-6">
+                    <div class="col-lg-3 col-md-6">
                         <label class="form-label">Cliente</label>
                         <div class="position-relative">
                             <input class="form-control"
@@ -111,7 +117,7 @@ else
                         </div>
                     </div>
 
-                    <div class="col-lg-4 col-md-6">
+                    <div class="col-lg-3 col-md-6">
                         <label class="form-label">Empleado</label>
                         <div class="position-relative">
                             <input class="form-control"
@@ -135,7 +141,32 @@ else
                         </div>
                     </div>
 
-                    <div class="col-lg-4 col-md-6">
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">Código de Autorización</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@FiltroAutorizacion"
+                                   @oninput="OnAutorizacionInput"
+                                   placeholder="Buscar por código..."
+                                   autocomplete="off" />
+                            @if (sugerenciasAutorizacion.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasAutorizacion)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaAutorizacion(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <small class="text-muted">Filtra por código del SRI</small>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6">
                         <label class="form-label">Rango de fechas</label>
                         <div class="d-flex gap-2">
                             <input type="date"
@@ -316,13 +347,27 @@ else
                                         </span>
                                     </td>
                                     <td>
+                                        @{
+                                            var esEmpresa = f.Cliente?.ApeCli?.Contains("-") ?? false;
+                                            var nombreCliente = esEmpresa
+                                                ? f.Cliente?.NomCli
+                                                : $"{f.Cliente?.NomCli} {f.Cliente?.ApeCli}";
+                                        }
                                         <div class="d-flex flex-column">
-                                            <span class="fw-medium">@(f.Cliente?.NomCli ?? "-")</span>
-                                            <small class="text-muted">@(f.Cliente?.DirCli ?? "")</small>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <i class="@(esEmpresa ? "ri-building-line" : "ri-user-3-line") text-muted"></i>
+                                                <span class="fw-medium">@(nombreCliente ?? "-")</span>
+                                            </div>
+                                            <small class="text-muted">@(f.Cliente?.IdeCli ?? "")</small>
                                         </div>
                                     </td>
                                     <td>
-                                        <small>@(f.Empleado?.NomEmp ?? "-")</small>
+                                        @{
+                                            var nombreEmpleado = GetNombreCompletoEmpleado(f);
+                                        }
+                                        <div class="d-flex flex-column">
+                                            <span class="fw-medium">@(!string.IsNullOrWhiteSpace(nombreEmpleado) ? nombreEmpleado : "-")</span>
+                                        </div>
                                     </td>
                                     <td>
                                         <small class="text-muted">
@@ -358,13 +403,13 @@ else
                                                     title="Ver detalles">
                                                 <i class="ri-eye-line"></i>
                                             </button>
-                                            @if (f.EstFac != "Anulada")
+                                            @if (f.EstFac == "FIRMADO")
                                             {
                                                 <button type="button"
                                                         class="btn btn-outline-warning"
-                                                        @onclick="() => CambiarEstado(f)"
-                                                        title="Cambiar estado">
-                                                    <i class="ri-refresh-line"></i>
+                                                        @onclick="() => ReenviarFactura(f)"
+                                                        title="Reenviar al SRI para autorización">
+                                                    <i class="ri-send-plane-2-line"></i>
                                                 </button>
                                             }
                                             <button type="button"
@@ -392,6 +437,7 @@ else
 
     private string? _filtroTexto;
     private string? _filtroEstado;
+    private string? _filtroAutorizacion;
 
     private string? FiltroTexto
     {
@@ -414,6 +460,19 @@ else
             if (_filtroEstado != value)
             {
                 _filtroEstado = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private string? FiltroAutorizacion
+    {
+        get => _filtroAutorizacion;
+        set
+        {
+            if (_filtroAutorizacion != value)
+            {
+                _filtroAutorizacion = value;
                 pageIndex = 1;
             }
         }
@@ -454,6 +513,7 @@ else
 
     private List<string> sugerenciasCliente = new();
     private List<string> sugerenciasEmpleado = new();
+    private List<string> sugerenciasAutorizacion = new();
 
     private string _filtroMontoModo = "todos";
     private decimal? _filtroMontoMin;
@@ -585,6 +645,7 @@ else
     {
         FiltroTexto = null;
         FiltroEstado = null;
+        FiltroAutorizacion = null;
         filtroCliente = null;
         filtroEmpleado = null;
         FechaDesde = null;
@@ -612,19 +673,56 @@ else
         filtroCliente = e.Value?.ToString();
         sugerenciasCliente = CalcularSugerencias(
             filtroCliente,
-            x => x.Cliente?.NomCli
+            x => GetNombreCompletoCliente(x)
         );
         pageIndex = 1;
     }
+
 
     private void OnEmpleadoInput(ChangeEventArgs e)
     {
         filtroEmpleado = e.Value?.ToString();
         sugerenciasEmpleado = CalcularSugerencias(
             filtroEmpleado,
-            x => x.Empleado?.NomEmp
+            x => GetNombreCompletoEmpleado(x)
         );
         pageIndex = 1;
+    }
+
+    private void OnAutorizacionInput(ChangeEventArgs e)
+    {
+        var valor = e.Value?.ToString();
+        FiltroAutorizacion = valor; // Usa el setter para mantener la lógica de paginación
+
+        sugerenciasAutorizacion = CalcularSugerencias(
+            FiltroAutorizacion,
+            x => x.AutFac
+        );
+    }
+
+    private static string GetNombreCompletoCliente(FacturaDto x)
+    {
+        if (x?.Cliente == null) return string.Empty;
+
+        var nombre = x.Cliente.NomCli ?? string.Empty;
+        var apellido = x.Cliente.ApeCli ?? string.Empty;
+
+        // Mantiene tu criterio de empresa vs persona
+        var esEmpresa = x.Cliente.ApeCli?.Contains("-") == true;
+
+        return esEmpresa
+            ? nombre.Trim()
+            : $"{nombre} {apellido}".Trim();
+    }
+
+    private static string GetNombreCompletoEmpleado(FacturaDto x)
+    {
+        if (x?.Empleado == null) return string.Empty;
+
+        var nombre = x.Empleado.NomEmp ?? string.Empty;
+        var apellido = x.Empleado.ApeEmp ?? string.Empty; // Se asume propiedad ApeEmp en tu DTO
+
+        return $"{nombre} {apellido}".Trim();
     }
 
     private void SeleccionarSugerenciaCliente(string valor)
@@ -641,6 +739,12 @@ else
         pageIndex = 1;
     }
 
+    private void SeleccionarSugerenciaAutorizacion(string valor)
+    {
+        FiltroAutorizacion = valor;
+        sugerenciasAutorizacion.Clear();
+        pageIndex = 1;
+    }
     private List<string> CalcularSugerencias(string? valor, Func<FacturaDto, string?> selector)
     {
         if (string.IsNullOrWhiteSpace(valor))
@@ -672,8 +776,8 @@ else
                 var q = _filtroTexto.Trim();
                 r = r.Where(x =>
                     ContainsIgnoreCase(x.NumFac, q) ||
-                    ContainsIgnoreCase(x.Cliente?.NomCli, q) ||
-                    ContainsIgnoreCase(x.Empleado?.NomEmp, q) ||
+                    ContainsIgnoreCase(GetNombreCompletoCliente(x), q) ||
+                    ContainsIgnoreCase(GetNombreCompletoEmpleado(x), q) ||
                     ContainsIgnoreCase(x.Usuario?.NomUsu, q));
             }
 
@@ -682,16 +786,22 @@ else
                 r = r.Where(x => string.Equals(x.EstFac, _filtroEstado, StringComparison.OrdinalIgnoreCase));
             }
 
+            if (!string.IsNullOrWhiteSpace(_filtroAutorizacion))
+            {
+                var q = _filtroAutorizacion.Trim();
+                r = r.Where(x => ContainsIgnoreCase(x.AutFac, q));
+            }
+
             if (!string.IsNullOrWhiteSpace(filtroCliente))
             {
                 var q = filtroCliente.Trim();
-                r = r.Where(x => ContainsIgnoreCase(x.Cliente?.NomCli, q));
+                r = r.Where(x => ContainsIgnoreCase(GetNombreCompletoCliente(x), q));
             }
 
             if (!string.IsNullOrWhiteSpace(filtroEmpleado))
             {
                 var q = filtroEmpleado.Trim();
-                r = r.Where(x => ContainsIgnoreCase(x.Empleado?.NomEmp, q));
+                r = r.Where(x => ContainsIgnoreCase(GetNombreCompletoEmpleado(x), q));
             }
 
             if (FechaDesde.HasValue)
@@ -838,8 +948,8 @@ else
         var html = "<div class='text-start'>" +
                   $"<p><strong>Número:</strong> {Escape(f.NumFac)}</p>" +
                   $"<p><strong>Cliente:</strong> {Escape(f.Cliente?.NomCli)}</p>" +
-                  $"<p><strong>Dirección:</strong> {Escape(f.Cliente?.DirCli)}</p>" +
-                  $"<p><strong>Empleado:</strong> {Escape(f.Empleado?.NomEmp)}</p>" +
+                  $"<p><strong>Cliente:</strong> {Escape(GetNombreCompletoCliente(f))}</p>" +
+                  $"<p><strong>Empleado:</strong> {Escape(GetNombreCompletoEmpleado(f))}</p>" +
                   $"<p><strong>Fecha:</strong> {f.FecFac:dd/MM/yyyy HH:mm}</p>" +
                   $"<hr/>" +
                   $"<p><strong>Subtotal:</strong> {FormatMoney(f.SubFac)}</p>" +
@@ -860,64 +970,171 @@ else
         });
     }
 
-    private async Task CambiarEstado(FacturaDto f)
+    // Método ReenviarFactura - NUEVO
+    // Línea: ~900-1020
+    // Efecto: Reenvía factura al SRI con límite de 15 intentos
+    private async Task ReenviarFactura(FacturaDto f)
     {
-        var inputOptions = new Dictionary<string, string>
-    {
-        { "Emitida", "Emitida" },
-        { "Pagada", "Pagada" },
-        { "Pendiente", "Pendiente" },
-        { "Anulada", "Anulada" }
-    };
+        const int INTENTOS_MAXIMOS = 1;
+        int intentosRealizados = 0;
+        bool aprobada = false;
+        string? mensajeRechazo = null;
+        bool esMantenimientoSri = false;
 
         var result = await Swal.FireAsync(new SweetAlertOptions
         {
-            Title = "Cambiar estado",
-            Text = $"Selecciona el nuevo estado para la factura {f.NumFac}",
+            Title = "Reenviar al SRI",
+            Html = $"<p>¿Deseas intentar autorizar la factura <strong>{f.NumFac}</strong> con el SRI?</p>" +
+                   $"<small class='text-muted'>Se realizará hasta {INTENTOS_MAXIMOS} intento de autorización.</small>",
             Icon = SweetAlertIcon.Question,
-            Input = SweetAlertInputType.Select,
-            InputOptions = inputOptions,
-            InputValue = f.EstFac ?? "Emitida",
             ShowCancelButton = true,
-            ConfirmButtonText = "Cambiar",
-            CancelButtonText = "Cancelar"
+            ConfirmButtonText = "Sí, reenviar",
+            CancelButtonText = "Cancelar",
+            ConfirmButtonColor = "#f59e0b"
         });
 
-        if (result.IsConfirmed && !string.IsNullOrEmpty(result.Value))
-        {
-            try
-            {
-                var ok = await FacturasApi.CambiarEstadoAsync(f.IdFac, result.Value);
-                if (ok)
-                {
-                    f.EstFac = result.Value;
-                    StateHasChanged();
+        if (!result.IsConfirmed) return;
 
-                    var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
-                    await Swal.FireAsync(new SweetAlertOptions
-                    {
-                        Toast = true,
-                        Position = SweetAlertPosition.TopEnd,
-                        Icon = SweetAlertIcon.Success,
-                        Title = "Estado actualizado",
-                        ShowConfirmButton = false,
-                        Timer = 1600,
-                        TimerProgressBar = true,
-                        Background = isDark ? "#1e1e1e" : null,
-                        Color = isDark ? "#e6e6e6" : null
-                    });
+        // Mostrar progreso con animación Lottie (NO se espera el resultado para no bloquear el flujo)
+        _ = Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "Enviando factura al SRI",
+            Html =
+                "<div class='text-center'>" +
+                    "<div class='mb-3'>" +
+                        "<span class='badge bg-warning-subtle text-warning rounded-pill px-3 py-2'>" +
+                            "<i class='ri-send-plane-2-line me-1'></i>" +
+                            "Comunicando con el SRI" +
+                        "</span>" +
+                    "</div>" +
+                    "<p class='text-muted small mb-2'>" +
+                        "Por favor espera mientras procesamos la autorización de tu comprobante." +
+                    "</p>" +
+                    "<div style='width:160px;height:160px;margin:0 auto;display:flex;align-items:center;justify-content:center;'>" +
+                        "<lottie-player src='/assets/animations/loading-factura.json' " +
+                            "background='transparent' speed='0.75' " +
+                            "style='width:160px;height:160px;' " +
+                            "loop autoplay>" +
+                        "</lottie-player>" +
+                    "</div>" +
+                    $"<p class='text-muted mt-3 mb-1'><small>Intento <strong>1</strong> de {INTENTOS_MAXIMOS}</small></p>" +
+                    "<p class='text-muted mb-0'>" +
+                        "<small><i class='ri-information-line me-1'></i>No cierres esta ventana hasta que el proceso termine.</small>" +
+                    "</p>" +
+                "</div>",
+            ShowConfirmButton = false,
+            AllowOutsideClick = false,
+            AllowEscapeKey = false,
+            Width = "420px"
+        });
+
+        try
+        {
+            intentosRealizados = 1;
+
+            var response = await FacturasApi.ReenviarFacturaAsync(f.IdFac);
+
+            if (response.Success && response.Estado == "AUTORIZADO")
+            {
+                aprobada = true;
+                // Mantener coherencia con el backend
+                f.EstFac = response.Estado ?? "AUTORIZADO";
+                f.AutFac = response.NumeroAutorizacion;
+            }
+            else
+            {
+                // Obtener mensaje de rechazo
+                mensajeRechazo = !string.IsNullOrWhiteSpace(response.Mensaje)
+                    ? response.Mensaje
+                    : $"Estado: {response.Estado}";
+
+                esMantenimientoSri = DetectarMantenimientoSri(mensajeRechazo);
+
+                // Si el estado es RECHAZADO_SRI, actualizar estado de la factura
+                if (response.Estado == "RECHAZADO_SRI")
+                {
+                    f.EstFac = "RECHAZADO_SRI";
                 }
             }
-            catch (Exception ex)
+
+            StateHasChanged();
+
+            // Mostrar resultado
+            if (aprobada)
             {
                 await Swal.FireAsync(new SweetAlertOptions
                 {
+                    Title = "¡Factura Autorizada!",
+                    Html = $"<div class='text-center'>" +
+                           $"<p class='mt-3'>La factura <strong>{f.NumFac}</strong> fue autorizada correctamente por el SRI.</p>" +
+                           $"<p class='text-muted'><small>Código de autorización: <strong>{f.AutFac}</strong></small></p>" +
+                           $"<p class='text-muted'><small>Intentos realizados: {intentosRealizados}/{INTENTOS_MAXIMOS}</small></p>" +
+                           $"</div>",
+                    Icon = SweetAlertIcon.Success,
+                    ConfirmButtonText = "Entendido",
+                    ConfirmButtonColor = "#10b981"
+                });
+            }
+            else if (esMantenimientoSri)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Mantenimiento del SRI",
+                    Html = $"<div class='text-center'>" +
+                           $"<p class='mt-3'>El Servicio de Rentas Internas (SRI) se encuentra en <strong>mantenimiento</strong>.</p>" +
+                           $"<p class='text-muted'>Por favor, intenta nuevamente más tarde.</p>" +
+                           $"<hr class='my-3'/>" +
+                           $"<p class='small text-muted'><strong>Mensaje del SRI:</strong><br/>{Escape(mensajeRechazo)}</p>" +
+                           $"<p class='text-muted'><small>Intentos realizados: {intentosRealizados}/{INTENTOS_MAXIMOS}</small></p>" +
+                           $"</div>",
+                    Icon = SweetAlertIcon.Warning,
+                    ConfirmButtonText = "Entendido",
+                    ConfirmButtonColor = "#f59e0b"
+                });
+            }
+            else
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Factura Rechazada",
+                    Html = $"<div class='text-center'>" +
+                           $"<p class='mt-3'>La factura <strong>{f.NumFac}</strong> fue rechazada por el SRI.</p>" +
+                           $"<hr class='my-3'/>" +
+                           $"<p class='small text-danger'><strong>Motivo del rechazo:</strong><br/>{Escape(mensajeRechazo)}</p>" +
+                           $"<p class='text-muted mt-3'><small>Se realizó {intentosRealizados} intento de autorización. " +
+                           $"Por favor revisa los datos de la factura y vuelve a intentar más tarde.</small></p>" +
+                           $"</div>",
                     Icon = SweetAlertIcon.Error,
-                    Title = "Error",
-                    Text = ex.Message
+                    ConfirmButtonText = "Entendido",
+                    ConfirmButtonColor = "#ef4444"
                 });
             }
         }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error de Conexión",
+                Html = $"<p>No se pudo comunicar con el servidor.</p>" +
+                       $"<small class='text-muted'>{Escape(ex.Message)}</small>",
+                Icon = SweetAlertIcon.Error,
+                ConfirmButtonText = "Entendido"
+            });
+        }
+    }
+
+    // Método auxiliar para detectar mantenimiento del SRI
+    // Línea: ~1020-1030
+    private static bool DetectarMantenimientoSri(string? mensaje)
+    {
+        if (string.IsNullOrWhiteSpace(mensaje)) return false;
+
+        var mensajeLower = mensaje.ToLower();
+        return mensajeLower.Contains("mantenimiento") ||
+               mensajeLower.Contains("no disponible") ||
+               mensajeLower.Contains("fuera de servicio") ||
+               mensajeLower.Contains("temporalmente") ||
+               mensajeLower.Contains("maintenance");
     }
 
     private async Task DescargarPDF(FacturaDto f)
@@ -944,14 +1161,16 @@ else
         Navigation.NavigateTo("/dashboards/facturas/crear");
     }
 
+    // Método GetEstadoBadge - MODIFICADO
+    // Línea: ~1080-1090
+    // Efecto: Retorna badge y icono según estado de factura (AUTHORIZADO, FIRMADO, RECHAZADO_SRI)
     private static (string badgeClass, string icon) GetEstadoBadge(string? estado)
     {
         return estado switch
         {
-            "Emitida" => ("bg-success-subtle text-success", "ri-check-line"),
-            "Pagada" => ("bg-info-subtle text-info", "ri-money-dollar-circle-line"),
-            "Pendiente" => ("bg-warning-subtle text-warning", "ri-time-line"),
-            "Anulada" => ("bg-danger-subtle text-danger", "ri-close-circle-line"),
+            "AUTHORIZADO" => ("bg-success-subtle text-success", "ri-checkbox-circle-line"),
+            "FIRMADO" => ("bg-warning-subtle text-warning", "ri-file-shield-line"),
+            "RECHAZADO_SRI" => ("bg-danger-subtle text-danger", "ri-close-circle-line"),
             _ => ("bg-secondary-subtle text-secondary", "ri-question-line")
         };
     }

@@ -35,7 +35,8 @@ else
 {
     <div class="row g-3">
         <div class="col-xl-8">
-            <div class="card custom-card mb-3 shadow-sm" style="overflow: visible;">
+            <div class="card custom-card mb-3 shadow-sm @(_mostrarSugerencias ? "dropdown-activo" : "")"
+                 style="overflow: visible;">
                 <div class="card-header bg-primary-transparent">
                     <div class="d-flex align-items-center">
                         <i class="ri-user-line fs-20 text-primary me-2"></i>
@@ -87,17 +88,26 @@ else
 
                             @if (_mostrarSugerencias && _sugerenciasClientes.Any())
                             {
-                                <div class="dropdown-menu show w-100 shadow-sm" style="max-height: 250px; overflow-y: auto;">
+                                <div class="autocomplete-dropdown-custom">
                                     @foreach (var c in _sugerenciasClientes)
                                     {
-                                        <button type="button" class="dropdown-item d-flex justify-content-between align-items-center"
-                                                @onclick="() => SeleccionarSugerencia(c)">
-                                            <div>
-                                                <strong>@c.NomCli @c.ApeCli</strong>
-                                                <br />
-                                                <small class="text-muted">@c.IdeCli</small>
+                                        var esPersonaJuridica = c.ApeCli?.Contains("-") ?? false;
+                                        <button type="button" class="autocomplete-item-custom"
+                                                @onmousedown="() => SeleccionarSugerencia(c)">
+                                            <div class="d-flex align-items-center w-100">
+                                                <div class="autocomplete-avatar">
+                                                    <i class="@(esPersonaJuridica ? "ri-building-line" : "ri-user-3-line")"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <div class="fw-semibold text-dark">
+                                                        @(esPersonaJuridica ? c.NomCli : $"{c.NomCli} {c.ApeCli}")
+                                                    </div>
+                                                    <small class="text-muted">
+                                                        <i class="ri-bank-card-line me-1"></i>@c.IdeCli
+                                                    </small>
+                                                </div>
+                                                <span class="badge bg-primary-transparent">@c.TipCli</span>
                                             </div>
-                                            <span class="badge bg-light text-dark border">@c.TipCli</span>
                                         </button>
                                     }
                                 </div>
@@ -107,6 +117,7 @@ else
 
                     @if (_clienteSeleccionado is not null)
                     {
+                        var esPersonaJuridicaSeleccionada = _clienteSeleccionado.ApeCli?.Contains("-") ?? false;
                         <div class="bg-light rounded-3 border-success mt-3 border p-3">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div class="flex-grow-1">
@@ -114,9 +125,13 @@ else
                                         <span class="badge bg-success-transparent me-2">
                                             <i class="ri-checkbox-circle-line"></i> Seleccionado
                                         </span>
+                                        <span class="badge bg-info-transparent">
+                                            <i class="@(esPersonaJuridicaSeleccionada ? "ri-building-line" : "ri-user-3-line") me-1"></i>
+                                            @(esPersonaJuridicaSeleccionada ? "Empresa" : "Persona Natural")
+                                        </span>
                                     </div>
                                     <h6 class="fw-bold mb-2">
-                                        @_clienteSeleccionado.NomCli @_clienteSeleccionado.ApeCli
+                                        @(esPersonaJuridicaSeleccionada ? _clienteSeleccionado.NomCli : $"{_clienteSeleccionado.NomCli} {_clienteSeleccionado.ApeCli}")
                                     </h6>
                                     <div class="row g-2 small text-muted">
                                         <div class="col-md-6">
@@ -436,30 +451,170 @@ else
 }
 
 <style>
+    /* ==========================
+       CARDS & GENERAL STYLES
+       ========================== */
     .card.custom-card {
         border: none;
         border-radius: 0.75rem;
-        transition: transform 0.2s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-        .card.custom-card:hover {
-            transform: translateY(-2px);
-        }
+    .card.custom-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+    }
 
-    .form-control:focus, .form-select:focus {
+    /* ==========================
+       AUTOCOMPLETE DROPDOWN - CRITICAL Z-INDEX
+       ========================== */
+    .autocomplete-dropdown-custom {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        max-height: 320px;
+        overflow-y: auto;
+        z-index: 99999 !important; /* ⭐ CRÍTICO: Por encima de todo */
+        animation: slideDownFade 0.2s ease-out;
+    }
+
+    @@keyframes slideDownFade {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .autocomplete-item-custom {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: none;
+        background: white;
+        border-bottom: 1px solid #f3f4f6;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        text-align: left;
+        display: block;
+    }
+
+    .autocomplete-item-custom:last-child {
+        border-bottom: none;
+    }
+
+    .autocomplete-item-custom:hover {
+        background: linear-gradient(to right, #f0f9ff 0%, #e0f2fe 100%);
+        border-left: 3px solid #3b82f6;
+        padding-left: calc(1rem - 3px);
+    }
+
+    .autocomplete-item-custom:active {
+        background: #dbeafe;
+    }
+
+    .autocomplete-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+        margin-right: 0.875rem;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Scrollbar personalizada */
+    .autocomplete-dropdown-custom::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .autocomplete-dropdown-custom::-webkit-scrollbar-track {
+        background: #f3f4f6;
+        border-radius: 10px;
+    }
+
+    .autocomplete-dropdown-custom::-webkit-scrollbar-thumb {
+        background: #9ca3af;
+        border-radius: 10px;
+    }
+
+    .autocomplete-dropdown-custom::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+    }
+
+    /* ==========================
+       FORM CONTROLS
+       ========================== */
+    .form-control:focus,
+    .form-select:focus {
         border-color: #6366f1;
-        box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.15);
+    }
+
+    .form-control.is-valid {
+        border-color: #10b981;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2310b981' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    }
+
+    /* ==========================
+       TABLE STYLES
+       ========================== */
+    .table-hover tbody tr {
+        transition: all 0.2s ease;
     }
 
     .table-hover tbody tr:hover {
-        background-color: rgba(99, 102, 241, 0.05);
+        background-color: rgba(99, 102, 241, 0.06);
+        transform: scale(1.005);
     }
 
+    /* ==========================
+       BUTTONS
+       ========================== */
     .btn-lg {
-        padding: 0.75rem 1.5rem;
+        padding: 0.875rem 1.75rem;
         font-size: 1.1rem;
+        font-weight: 600;
     }
 
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+    }
+
+    .btn-success:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+    }
+
+    /* ==========================
+       MODAL ANIMATIONS
+       ========================== */
     .modal.show {
         animation: fadeIn 0.3s ease;
     }
@@ -468,12 +623,14 @@ else
         from {
             opacity: 0;
         }
-
         to {
             opacity: 1;
         }
     }
 
+    /* ==========================
+       COLOR TRANSPARENCY
+       ========================== */
     .bg-primary-transparent {
         background-color: rgba(99, 102, 241, 0.1) !important;
     }
@@ -494,8 +651,41 @@ else
         background-color: #f8f9fa;
     }
 
+    /* ==========================
+       UTILITIES
+       ========================== */
     .cursor-pointer {
         cursor: pointer;
+    }
+
+    /* Cliente seleccionado mejorado */
+    .border-success {
+        border-color: #10b981 !important;
+        border-width: 2px !important;
+    }
+
+    .badge {
+        padding: 0.375rem 0.75rem;
+        font-weight: 500;
+    }
+
+    /* ==========================
+       RESPONSIVE ADJUSTMENTS
+       ========================== */
+    @@media (max-width: 768px) {
+        .autocomplete-dropdown-custom {
+            max-height: 240px;
+        }
+
+        .autocomplete-avatar {
+            width: 36px;
+            height: 36px;
+            font-size: 1.1rem;
+        }
+
+        .autocomplete-item-custom {
+            padding: 0.625rem 0.75rem;
+        }
     }
 </style>
 
@@ -590,15 +780,16 @@ else
             return;
         }
 
-        // Lógica de filtrado local similar a tu /clientes/listar
-        // Filtramos por Identificación O Nombre/Apellido
+        // FILTRADO CON TIPO DE DOCUMENTO - CRÍTICO
+        // Solo muestra clientes del tipo seleccionado (CEDULA, RUC, PASAPORTE)
         _sugerenciasClientes = _todosLosClientes
+            .Where(c => c.TipCli == _tipoDocumentoSeleccionado) // ⭐ FILTRO POR TIPO
             .Where(c =>
                 ContainsIgnoreCase(c.IdeCli, _busquedaDocumento) ||
                 ContainsIgnoreCase(c.NomCli, _busquedaDocumento) ||
                 ContainsIgnoreCase(c.ApeCli, _busquedaDocumento)
             )
-            .Take(5) // Limitamos a 5 sugerencias
+            .Take(8) // Limitamos a 8 sugerencias
             .ToList();
 
         _mostrarSugerencias = _sugerenciasClientes.Any();

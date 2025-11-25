@@ -11,6 +11,9 @@ public interface IFacturasApiClient
     // Cambiar estado de una factura
     Task<bool> CambiarEstadoAsync(int idFactura, string nuevoEstado);
 
+    // Reenviar factura al SRI para autorización
+    Task<SriEnvioResponse> ReenviarFacturaAsync(int idFactura);
+
     // Opcional: XML
     Task<string> ObtenerXmlAsync(int id);
     Task<byte[]> DescargarXmlAsync(int id);

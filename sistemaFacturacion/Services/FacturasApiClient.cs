@@ -59,6 +59,31 @@ namespace sistemaFacturacion.Services
             return response.IsSuccessStatusCode;
         }
 
+        /// <summary>
+        /// Reenvía una factura al SRI para autorización
+        /// Ubicación: Services/FacturasApiClient.cs - Línea ~54-73
+        /// Efecto en el Front: Permite reintentar la autorización de facturas en estado FIRMADO
+        /// Endpoint: POST api/Sri/enviar/{idFactura}
+        /// </summary>
+        public async Task<SriEnvioResponse> ReenviarFacturaAsync(int idFactura)
+        {
+            var response = await _http.PostAsync($"api/Sri/enviar/{idFactura}", null);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException(
+                    $"Error al reenviar factura al SRI. Código {(int)response.StatusCode}: {errorBody}");
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<SriEnvioResponse>();
+
+            if (result is null)
+                throw new HttpRequestException("El backend devolvió una respuesta vacía al reenviar la factura.");
+
+            return result;
+        }
+
         public async Task<string> ObtenerXmlAsync(int id)
         {
             // devuelve string XML en texto
