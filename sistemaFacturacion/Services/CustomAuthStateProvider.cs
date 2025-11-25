@@ -140,6 +140,16 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
             {
                 claims.Add(new Claim("idUsu", idUsu.ToString() ?? ""));
             }
+            if (keyValuePairs.TryGetValue("idEmp", out object? idEmp) && idEmp != null)
+            {
+                claims.Add(new Claim("idEmp", idEmp.ToString() ?? ""));
+            }
+
+            if (keyValuePairs.TryGetValue("nomEmp", out object? nomEmp) && nomEmp != null)
+            {
+                claims.Add(new Claim("nomEmp", nomEmp.ToString() ?? ""));
+            }
+
         }
 
         return claims;

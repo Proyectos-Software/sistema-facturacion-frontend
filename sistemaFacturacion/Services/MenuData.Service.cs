@@ -128,6 +128,52 @@ public class MenuDataService
                 ),
             }
         ),
+
+        // ───────────────────────────
+// SECCIÓN: CONFIGURACIÓN
+// ───────────────────────────
+new MainMenuItems(menuTitle: "Configuración"),
+
+new MainMenuItems(
+    type: "sub",
+    title: "Configuración del Sistema",
+    svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu__icon' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M168.6 118a40.1 40.1 0 0 0 0 20 8 8 0 0 1-5.7 9.8l-14.2 3.8a8 8 0 0 1-9.6-4.1 40.1 40.1 0 0 0-13.8-13.8 8 8 0 0 1-4.1-9.6l3.8-14.2a8 8 0 0 1 9.8-5.7 40.1 40.1 0 0 0 20 0 8 8 0 0 1 9.6 4.1l14.2 3.8a8 8 0 0 1 5.8 9.9z' stroke='currentColor' stroke-width='16'/> </svg>",
+    selected: false,
+    active: false,
+    dirChange: false,
+    roles: new[] { "Admin" }, // ✨ Solo visible para Administradores
+    children: new MainMenuItems[]
+    {
+        new MainMenuItems(
+            path: "/dashboards/configuracion/empresa",
+            type: "link",
+            title: "Empresa",
+            selected: false,
+            active: false,
+            dirChange: false,
+            roles: new[] { "Admin" }
+        ),
+        new MainMenuItems(
+            path: "/dashboards/configuracion/facturacion-electronica",
+            type: "link",
+            title: "Facturación Electrónica",
+            selected: false,
+            active: false,
+            dirChange: false,
+            roles: new[] { "Admin" }
+        ),
+        new MainMenuItems(
+            path: "/dashboards/configuracion/certificado-digital",
+            type: "link",
+            title: "Certificado Digital",
+            selected: false,
+            active: false,
+            dirChange: false,
+            roles: new[] { "Admin" }
+        )
+    }
+),
+
             
         // (Opcional) Otras páginas base si quieres mantener
         // new MainMenuItems(menuTitle: "Pages"),

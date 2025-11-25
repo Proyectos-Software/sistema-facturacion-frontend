@@ -131,4 +131,24 @@ public class AuthService
 
         return null;
     }
+
+
+    public async Task<int?> GetCurrentEmpresaIdAsync()
+    {
+        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? false)
+            return null;
+
+        var claim = user.FindFirst("idEmp");
+        if (claim == null)
+            return null;
+
+        if (int.TryParse(claim.Value, out var idEmpresa))
+            return idEmpresa;
+
+        return null;
+    }
+
 }
