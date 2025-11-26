@@ -1,10 +1,13 @@
 ﻿@page "/dashboards/facturas/crear"
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
 @using sistemaFacturacion.Models
 @using sistemaFacturacion.Services
 @using CurrieTechnologies.Razor.SweetAlert2
 @inject IClientesApiClient ClientesApi
 @inject IProductosApiClient ProductosApi
+@inject ILotesApiClient LotesApi
 @inject IFacturasApiClient FacturasApi
 @inject AuthenticationStateProvider AuthStateProvider
 @inject SweetAlertService Swal
@@ -66,7 +69,7 @@ else
                                 Buscar Cliente (Identificación o Nombre) <span class="text-danger">*</span>
                             </label>
 
-                            <div class="input-group">
+                            <div class="input-group mb-2">
                                 <span class="input-group-text bg-light">
                                     <i class="ri-search-line"></i>
                                 </span>
@@ -86,6 +89,12 @@ else
                                 </button>
                             </div>
 
+                            <button class="btn btn-sm btn-outline-primary w-100"
+                                    type="button"
+                                    @onclick="AbrirModalCrearCliente">
+                                <i class="ri-user-add-line me-1"></i>Crear Nuevo Cliente
+                            </button>
+
                             @if (_mostrarSugerencias && _sugerenciasClientes.Any())
                             {
                                 <div class="autocomplete-dropdown-custom">
@@ -100,7 +109,7 @@ else
                                                 </div>
                                                 <div class="flex-grow-1">
                                                     <div class="fw-semibold text-dark">
-                                                        @(esPersonaJuridica ? c.NomCli : $"{c.NomCli} {c.ApeCli}")
+                                                        @(esPersonaJuridica? c.NomCli: $"{c.NomCli} {c.ApeCli}")
                                                     </div>
                                                     <small class="text-muted">
                                                         <i class="ri-bank-card-line me-1"></i>@c.IdeCli
@@ -131,7 +140,7 @@ else
                                         </span>
                                     </div>
                                     <h6 class="fw-bold mb-2">
-                                        @(esPersonaJuridicaSeleccionada ? _clienteSeleccionado.NomCli : $"{_clienteSeleccionado.NomCli} {_clienteSeleccionado.ApeCli}")
+                                        @(esPersonaJuridicaSeleccionada? _clienteSeleccionado.NomCli: $"{_clienteSeleccionado.NomCli} {_clienteSeleccionado.ApeCli}")
                                     </h6>
                                     <div class="row g-2 small text-muted">
                                         <div class="col-md-6">
@@ -164,6 +173,7 @@ else
                             <i class="ri-shopping-cart-line fs-20 text-info me-2"></i>
                             <h5 class="fw-semibold mb-0">Productos</h5>
                         </div>
+                        @* Botón "Cargar Productos" eliminado según requerimiento *@
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -188,18 +198,46 @@ else
                                         var item = _items[i];
                                         <tr class="align-middle">
                                             <td class="fw-bold text-muted text-center">@(i + 1)</td>
-                                            <td>
-                                                <select class="form-select form-select-sm @(item.ProductoId.HasValue ? "border-success" : "")"
-                                                        value="@item.ProductoId"
-                                                        @onchange="e => OnProductoChanged(item, e)">
-                                                    <option value="">-- Seleccione un producto --</option>
-                                                    @foreach (var p in _productos)
+                                            <td class="position-relative">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="text"
+                                                           class="form-control @(item.ProductoId.HasValue ? "border-success" : "")"
+                                                           placeholder="Buscar producto..."
+                                                           value="@GetProductoNombre(item)"
+                                                           @oninput="e => OnInputBusquedaProducto(item, e)"
+                                                           @onfocusout="() => OcultarSugerenciasProductoDelay(item)"
+                                                           autocomplete="off" />
+                                                    @if (item.ProductoId.HasValue)
                                                     {
-                                                        <option value="@p.Id">
-                                                            @p.Nombre (@p.Codigo)
-                                                        </option>
+                                                        <button class="btn btn-sm btn-outline-danger" type="button" @onclick="() => LimpiarProducto(item)">
+                                                            <i class="ri-close-line"></i>
+                                                        </button>
                                                     }
-                                                </select>
+                                                </div>
+
+                                                @if (_mostrarSugerenciasProducto.GetValueOrDefault(item, false) && _sugerenciasProductos.GetValueOrDefault(item, new()).Any())
+                                                {
+                                                    <div class="autocomplete-dropdown-productos">
+                                                        @foreach (var p in _sugerenciasProductos[item])
+                                                        {
+                                                            <button type="button" class="autocomplete-item-producto"
+                                                                    @onmousedown="() => SeleccionarProducto(item, p)">
+                                                                <div class="d-flex justify-content-between w-100">
+                                                                    <div class="flex-grow-1">
+                                                                        <div class="fw-semibold">@p.Nombre</div>
+                                                                        <small class="text-muted">Código: @p.Codigo</small>
+                                                                    </div>
+                                                                    <div class="text-end">
+                                                                        <div class="badge bg-success-subtle text-success">
+                                                                            Stock: @GetStockProducto(p.Id)
+                                                                        </div>
+                                                                        <small class="text-muted d-block">$@p.PrecioVenta.ToString("N2")</small>
+                                                                    </div>
+                                                                </div>
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                }
                                             </td>
                                             <td>
                                                 <input type="number"
@@ -230,11 +268,18 @@ else
                                     }
                                     <tr class="bg-light-hover">
                                         <td colspan="6" class="p-0">
-                                            <button class="btn btn-link text-decoration-none fw-medium w-100 py-2 ps-4 text-start"
-                                                    style="border-radius: 0; color: var(--primary-color);"
-                                                    @onclick="AgregarItem">
-                                                <i class="ri-add-circle-line fs-16 me-2 align-middle"></i>Agregar nueva línea
-                                            </button>
+                                            <div class="d-flex">
+                                                <button class="btn btn-link text-decoration-none fw-medium flex-fill py-2 ps-4 text-start"
+                                                        style="border-radius: 0; color: var(--primary-color);"
+                                                        @onclick="AbrirModalProductos">
+                                                    <i class="ri-add-circle-line fs-16 me-2 align-middle"></i>Seleccionar productos desde lista
+                                                </button>
+                                                <button class="btn btn-link text-decoration-none fw-medium py-2 pe-4 text-end"
+                                                        style="border-radius: 0; border-left: 1px solid #e9ecef; color: #6366f1;"
+                                                        @onclick="AgregarItem">
+                                                    <i class="ri-edit-2-line fs-16 me-2 align-middle"></i>Agregar línea manual
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -246,8 +291,8 @@ else
                         <div class="py-5 text-center">
                             <i class="ri-inbox-line fs-48 text-muted d-block mb-3 opacity-50"></i>
                             <p class="text-muted mb-2">No hay productos agregados</p>
-                            <button class="btn btn-sm btn-primary" @onclick="AgregarItem">
-                                <i class="ri-add-line me-1"></i>Agregar primer producto
+                            <button class="btn btn-sm btn-primary" @onclick="AbrirModalProductos">
+                                <i class="ri-add-line me-1"></i>Seleccionar productos desde lista
                             </button>
                         </div>
                     }
@@ -450,254 +495,344 @@ else
     </div>
 }
 
-<style>
-    /* ==========================
-       CARDS & GENERAL STYLES
-       ========================== */
-    .card.custom-card {
-        border: none;
-        border-radius: 0.75rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+@* ========================================
+   MODAL DE SELECCIÓN DE PRODUCTOS
+   ======================================== *@
+@if (_mostrarModalProductos)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6);">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content modal-productos">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="ri-shopping-basket-2-line me-2"></i>Seleccionar Productos
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CerrarModalProductos"></button>
+                </div>
 
-    .card.custom-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
-    }
+                <div class="modal-header bg-light border-0 pt-3 pb-3">
+                    <div class="w-100">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white">
+                                        <i class="ri-search-line"></i>
+                                    </span>
+                                    <input type="text"
+                                           class="form-control"
+                                           placeholder="Buscar por código o nombre del producto..."
+                                           @bind="_busquedaModalProductos"
+                                           @bind:event="oninput"
+                                           @bind:after="FiltrarProductosModal"
+                                           autocomplete="off" />
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" @bind="_categoriaFiltroModal" @bind:after="FiltrarProductosModal">
+                                    <option value="">Todas las categorías</option>
+                                    @foreach (var cat in _categoriasDisponibles)
+                                    {
+                                        <option value="@cat">@cat</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="d-flex h-100 gap-2">
+                                    <button class="btn btn-success flex-fill" @onclick="AgregarProductosSeleccionados" disabled="@(!_productosSeleccionados.Any())">
+                                        <i class="ri-check-line me-1"></i>Agregar (@_productosSeleccionados.Count)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    /* ==========================
-       AUTOCOMPLETE DROPDOWN - CRITICAL Z-INDEX
-       ========================== */
-    .autocomplete-dropdown-custom {
-        position: absolute;
-        top: calc(100% + 4px);
-        left: 0;
-        right: 0;
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.5rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-        max-height: 320px;
-        overflow-y: auto;
-        z-index: 99999 !important; /* ⭐ CRÍTICO: Por encima de todo */
-        animation: slideDownFade 0.2s ease-out;
-    }
+                <div class="modal-body p-0" style="max-height: 500px;">
+                    @if (_productosFiltradosModal.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table-hover table-sm modal-productos-table mb-0 table">
+                                <thead class="sticky-top" style="top: 0; z-index: 10;">
+                                    <tr>
+                                        <th width="5%" class="text-center">
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   @onchange="ToggleSeleccionarTodos"
+                                                   checked="@_seleccionarTodos" />
+                                        </th>
+                                        <th width="15%">Código</th>
+                                        <th width="35%">Nombre</th>
+                                        <th width="15%">Categoría</th>
+                                        <th width="12%" class="text-end">Precio</th>
+                                        <th width="10%" class="text-center">Stock</th>
+                                        <th width="8%" class="text-center">IVA</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var producto in _productosFiltradosModal)
+                                    {
+                                        var stock = GetStockProducto(producto.Id);
+                                        var isSelected = _productosSeleccionados.Contains(producto.Id);
+                                        var rowClass = isSelected ? "table-primary" : "";
 
-    @@keyframes slideDownFade {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
+                                        <tr class="@rowClass" style="cursor: pointer;" @onclick="() => ToggleSeleccionProducto(producto.Id)">
+                                            <td class="text-center" @onclick:stopPropagation="true">
+                                                <input type="checkbox"
+                                                       class="form-check-input"
+                                                       checked="@isSelected"
+                                                       @onchange="() => ToggleSeleccionProducto(producto.Id)" />
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary-subtle text-dark">@producto.Codigo</span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-semibold">@producto.Nombre</div>
+                                                <small class="text-muted">@producto.Descripcion</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info-subtle text-info">@producto.NombreCategoria</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="fw-semibold text-success">$@producto.PrecioVenta.ToString("N2")</span>
+                                            </td>
+                                            <td class="text-center">
+                                                @if (stock > 10)
+                                                {
+                                                    <span class="badge bg-success">@stock</span>
+                                                }
+                                                else if (stock > 0)
+                                                {
+                                                    <span class="badge bg-warning">@stock</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">0</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                @if (producto.IdTipoTributario == 2)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning">15%</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary-subtle text-secondary">0%</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="py-5 text-center">
+                            <i class="ri-search-line fs-48 text-muted opacity-50"></i>
+                            <p class="text-muted mt-3">No se encontraron productos con los filtros aplicados</p>
+                            <button class="btn btn-sm btn-primary" @onclick="LimpiarFiltrosModal">
+                                <i class="ri-refresh-line me-1"></i>Limpiar filtros
+                            </button>
+                        </div>
+                    }
+                </div>
 
-    .autocomplete-item-custom {
-        width: 100%;
-        padding: 0.875rem 1rem;
-        border: none;
-        background: white;
-        border-bottom: 1px solid #f3f4f6;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        text-align: left;
-        display: block;
-    }
+                <div class="modal-footer bg-light">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <div class="text-muted small">
+                            <i class="ri-information-line me-1"></i>
+                            @_productosFiltradosModal.Count productos disponibles | @_productosSeleccionados.Count seleccionados
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-light me-2" @onclick="CerrarModalProductos">
+                                <i class="ri-close-line me-1"></i>Cancelar
+                            </button>
+                            <button type="button" class="btn btn-success" @onclick="AgregarProductosSeleccionados" disabled="@(!_productosSeleccionados.Any())">
+                                <i class="ri-check-line me-1"></i>Agregar Seleccionados (@_productosSeleccionados.Count)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
-    .autocomplete-item-custom:last-child {
-        border-bottom: none;
-    }
+@* ========================================
+   MODAL DE CREAR CLIENTE
+   ======================================== *@
+@if (_mostrarModalCrearCliente)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6);">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="ri-user-add-line me-2"></i>Crear Nuevo Cliente
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CerrarModalCrearCliente" disabled="@_isSavingCliente"></button>
+                </div>
 
-    .autocomplete-item-custom:hover {
-        background: linear-gradient(to right, #f0f9ff 0%, #e0f2fe 100%);
-        border-left: 3px solid #3b82f6;
-        padding-left: calc(1rem - 3px);
-    }
+                <div class="modal-body">
+                    <EditForm Model="@_formCliente" OnValidSubmit="@CrearClienteAsync">
+                        <DataAnnotationsValidator />
 
-    .autocomplete-item-custom:active {
-        background: #dbeafe;
-    }
+                        <div class="row g-3">
+                            <div class="col-lg-5">
+                                <div class="rounded-3 h-100 border p-3">
+                                    <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                                        <i class="ri-id-card-line text-primary fs-5"></i>
+                                        <span>Datos de identificación</span>
+                                    </h6>
 
-    .autocomplete-avatar {
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.25rem;
-        margin-right: 0.875rem;
-        flex-shrink: 0;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
-    }
+                                    <div class="mb-3">
+                                        <label class="form-label">Tipo de identificación</label>
+                                        <InputSelect class="form-select" @bind-Value="_formCliente.TipoIdentificacion">
+                                            <option value="">-- Selecciona --</option>
+                                            <option value="Cedula">Cédula</option>
+                                            <option value="RUC">RUC</option>
+                                            <option value="Pasaporte">Pasaporte</option>
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => _formCliente.TipoIdentificacion)" />
+                                    </div>
 
-    /* Scrollbar personalizada */
-    .autocomplete-dropdown-custom::-webkit-scrollbar {
-        width: 8px;
-    }
+                                    @if (_formCliente.TipoIdentificacion == "RUC")
+                                    {
+                                        <div class="mb-3">
+                                            <label class="form-label">Tipo de RUC</label>
+                                            <InputSelect class="form-select" @bind-Value="_formCliente.TipoRucPersona">
+                                                <option value="">-- Selecciona --</option>
+                                                <option value="NATURAL">Persona natural</option>
+                                                <option value="JURIDICA">Persona jurídica (empresa)</option>
+                                            </InputSelect>
+                                            <small class="text-muted d-block mt-1">
+                                                Define si el RUC pertenece a una persona natural o a una empresa.
+                                            </small>
+                                            <ValidationMessage For="@(() => _formCliente.TipoRucPersona)" />
+                                        </div>
+                                    }
 
-    .autocomplete-dropdown-custom::-webkit-scrollbar-track {
-        background: #f3f4f6;
-        border-radius: 10px;
-    }
+                                    <div class="mb-0">
+                                        <label class="form-label">Identificación / RUC</label>
+                                        <InputText class="form-control"
+                                                   @bind-Value="_formCliente.Identificacion"
+                                                   placeholder="@ObtenerPlaceholderIdentificacion()"
+                                                   maxlength="@ObtenerMaxLengthIdentificacion()" />
+                                        <small class="text-muted d-block mt-1">@ObtenerHelpTextIdentificacion()</small>
+                                        <ValidationMessage For="@(() => _formCliente.Identificacion)" />
+                                    </div>
+                                </div>
+                            </div>
 
-    .autocomplete-dropdown-custom::-webkit-scrollbar-thumb {
-        background: #9ca3af;
-        border-radius: 10px;
-    }
+                            <div class="col-lg-7">
+                                <div class="rounded-3 h-100 border p-3">
+                                    <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                                        <i class="ri-user-3-line text-primary fs-5"></i>
+                                        <span>Datos personales y de contacto</span>
+                                    </h6>
 
-    .autocomplete-dropdown-custom::-webkit-scrollbar-thumb:hover {
-        background: #6b7280;
-    }
+                                    <div class="row g-3">
+                                        @if (EsRucJuridicoCliente)
+                                        {
+                                            <div class="col-12">
+                                                <label class="form-label">Nombre / Razón social</label>
+                                                <InputText class="form-control"
+                                                           @bind-Value="_formCliente.Nombre"
+                                                           placeholder="Nombre comercial o razón social"
+                                                           maxlength="100" />
+                                                <ValidationMessage For="@(() => _formCliente.Nombre)" />
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="col-md-6">
+                                                <label class="form-label">Nombre</label>
+                                                <InputText class="form-control"
+                                                           @bind-Value="_formCliente.Nombre"
+                                                           placeholder="Nombres"
+                                                           maxlength="100" />
+                                                <ValidationMessage For="@(() => _formCliente.Nombre)" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Apellido</label>
+                                                <InputText class="form-control"
+                                                           @bind-Value="_formCliente.Apellido"
+                                                           placeholder="Apellidos"
+                                                           maxlength="100" />
+                                                <ValidationMessage For="@(() => _formCliente.Apellido)" />
+                                            </div>
+                                        }
 
-    /* ==========================
-       FORM CONTROLS
-       ========================== */
-    .form-control:focus,
-    .form-select:focus {
-        border-color: #6366f1;
-        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.15);
-    }
+                                        <div class="col-12">
+                                            <label class="form-label">Dirección</label>
+                                            <InputText class="form-control"
+                                                       @bind-Value="_formCliente.Direccion"
+                                                       placeholder="Dirección"
+                                                       maxlength="200" />
+                                            <ValidationMessage For="@(() => _formCliente.Direccion)" />
+                                        </div>
 
-    .form-control.is-valid {
-        border-color: #10b981;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2310b981' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
-    }
+                                        <div class="col-md-6">
+                                            <label class="form-label">Teléfono</label>
+                                            <InputText class="form-control"
+                                                       @bind-Value="_formCliente.Telefono"
+                                                       placeholder="Ej: 0999999999"
+                                                       maxlength="10" />
+                                            <ValidationMessage For="@(() => _formCliente.Telefono)" />
+                                        </div>
 
-    /* ==========================
-       TABLE STYLES
-       ========================== */
-    .table-hover tbody tr {
-        transition: all 0.2s ease;
-    }
+                                        <div class="col-md-6">
+                                            <label class="form-label">Correo electrónico</label>
+                                            <InputText class="form-control"
+                                                       @bind-Value="_formCliente.Correo"
+                                                       type="email"
+                                                       placeholder="usuario@dominio.com" />
+                                            <ValidationMessage For="@(() => _formCliente.Correo)" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-    .table-hover tbody tr:hover {
-        background-color: rgba(99, 102, 241, 0.06);
-        transform: scale(1.005);
-    }
-
-    /* ==========================
-       BUTTONS
-       ========================== */
-    .btn-lg {
-        padding: 0.875rem 1.75rem;
-        font-size: 1.1rem;
-        font-weight: 600;
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-        border: none;
-        transition: all 0.3s ease;
-    }
-
-    .btn-primary:hover {
-        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
-    }
-
-    .btn-success {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        border: none;
-    }
-
-    .btn-success:hover {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
-    }
-
-    /* ==========================
-       MODAL ANIMATIONS
-       ========================== */
-    .modal.show {
-        animation: fadeIn 0.3s ease;
-    }
-
-    @@keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-        to {
-            opacity: 1;
-        }
-    }
-
-    /* ==========================
-       COLOR TRANSPARENCY
-       ========================== */
-    .bg-primary-transparent {
-        background-color: rgba(99, 102, 241, 0.1) !important;
-    }
-
-    .bg-info-transparent {
-        background-color: rgba(13, 202, 240, 0.1) !important;
-    }
-
-    .bg-success-transparent {
-        background-color: rgba(25, 135, 84, 0.1) !important;
-    }
-
-    .bg-secondary-transparent {
-        background-color: rgba(108, 117, 125, 0.1) !important;
-    }
-
-    .bg-light-hover:hover {
-        background-color: #f8f9fa;
-    }
-
-    /* ==========================
-       UTILITIES
-       ========================== */
-    .cursor-pointer {
-        cursor: pointer;
-    }
-
-    /* Cliente seleccionado mejorado */
-    .border-success {
-        border-color: #10b981 !important;
-        border-width: 2px !important;
-    }
-
-    .badge {
-        padding: 0.375rem 0.75rem;
-        font-weight: 500;
-    }
-
-    /* ==========================
-       RESPONSIVE ADJUSTMENTS
-       ========================== */
-    @@media (max-width: 768px) {
-        .autocomplete-dropdown-custom {
-            max-height: 240px;
-        }
-
-        .autocomplete-avatar {
-            width: 36px;
-            height: 36px;
-            font-size: 1.1rem;
-        }
-
-        .autocomplete-item-custom {
-            padding: 0.625rem 0.75rem;
-        }
-    }
-</style>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" @onclick="CerrarModalCrearCliente" disabled="@_isSavingCliente">
+                                <i class="ri-close-line me-1"></i>Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary" disabled="@_isSavingCliente">
+                                <i class="ri-save-line me-1"></i>
+                                @(_isSavingCliente ? "Guardando..." : "Guardar Cliente")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private bool _isLoading = true;
     private bool _isSaving = false;
     private bool _mostrarModal = false;
+    private bool _mostrarModalProductos = false;
+    private bool _mostrarModalCrearCliente = false;
+    private bool _isSavingCliente = false;
 
     // Variables para la búsqueda dinámica con autocompletado
     private bool _mostrarSugerencias = false;
     private List<ClienteDto> _todosLosClientes = new(); // Carga local para filtrado rápido
     private List<ClienteDto> _sugerenciasClientes = new();
+
+    // Variables para el modal de crear cliente
+    private ClienteCreateVM _formCliente = new();
+
+    // Variables para el modal de productos
+    private string _busquedaModalProductos = string.Empty;
+    private string _categoriaFiltroModal = string.Empty;
+    private List<ProductoDto> _productosFiltradosModal = new();
+    private HashSet<int> _productosSeleccionados = new();
+    private List<string> _categoriasDisponibles = new();
+    private bool _seleccionarTodos = false;
 
     private int _idUsu;
     private int _idEmp = 18;
@@ -710,9 +845,16 @@ else
     private ClienteDto? _clienteSeleccionado;
 
     private List<ProductoDto> _productos = new();
+    private List<ProductoDto> _productosConStock = new();
+    private List<LoteDto> _todosLosLotes = new();
+    private Dictionary<int, int> _stockPorProducto = new();
     private readonly List<FacturaItemModel> _items = new();
 
-    // --- LÓGICA DE IMPUESTOS (RESTAURADA DE TU CÓDIGO) ---
+    // Búsqueda dinámica de productos
+    private readonly Dictionary<FacturaItemModel, bool> _mostrarSugerenciasProducto = new();
+    private readonly Dictionary<FacturaItemModel, List<ProductoDto>> _sugerenciasProductos = new();
+
+    // --- LÓGICA DE IMPUESTOS ---
     private decimal _subtotalIva0 => _items
         .Where(i => i.TarifaTributaria == 0)
         .Sum(i => i.Subtotal);
@@ -727,12 +869,18 @@ else
 
     private decimal _subtotal => _subtotalIva0 + _subtotalIva15;
     private decimal _total => _subtotal + _iva;
-    // -----------------------------------------------------
 
     private bool PuedeGuardar =>
         _clienteSeleccionado is not null &&
         _items.Any(i => i.ProductoId.HasValue && i.Cantidad > 0) &&
         _idUsu != 0;
+
+    private IEnumerable<ProductoDto> ObtenerFuenteProductosBusqueda()
+    {
+        return _productosConStock != null && _productosConStock.Any()
+            ? _productosConStock
+            : _productos;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -740,12 +888,23 @@ else
         {
             await CargarUsuarioActualAsync();
 
-            // Carga paralela de productos y clientes (para el filtrado local)
             var tProductos = CargarProductosAsync();
+            var tLotes = CargarLotesAsync();
             var tClientes = CargarTodosLosClientesAsync();
-            await Task.WhenAll(tProductos, tClientes);
+            await Task.WhenAll(tProductos, tLotes, tClientes);
 
-            AgregarItem();
+            CalcularStockPorProducto();
+
+            _productosConStock = _productos
+                .Where(p => GetStockProducto(p.Id) > 0)
+                .OrderBy(p => p.Nombre)
+                .ToList();
+
+            _categoriasDisponibles = _productosConStock
+                .Select(p => p.NombreCategoria ?? "Sin categoría")
+                .Distinct()
+                .OrderBy(c => c)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -754,8 +913,6 @@ else
 
         _isLoading = false;
     }
-
-    // --- IMPLEMENTACIÓN AUTOCOMPLETADO (BASADO EN TU REFERENCIA) ---
 
     private async Task CargarTodosLosClientesAsync()
     {
@@ -780,16 +937,14 @@ else
             return;
         }
 
-        // FILTRADO CON TIPO DE DOCUMENTO - CRÍTICO
-        // Solo muestra clientes del tipo seleccionado (CEDULA, RUC, PASAPORTE)
         _sugerenciasClientes = _todosLosClientes
-            .Where(c => c.TipCli == _tipoDocumentoSeleccionado) // ⭐ FILTRO POR TIPO
+            .Where(c => c.TipCli == _tipoDocumentoSeleccionado)
             .Where(c =>
                 ContainsIgnoreCase(c.IdeCli, _busquedaDocumento) ||
                 ContainsIgnoreCase(c.NomCli, _busquedaDocumento) ||
                 ContainsIgnoreCase(c.ApeCli, _busquedaDocumento)
             )
-            .Take(8) // Limitamos a 8 sugerencias
+            .Take(8)
             .ToList();
 
         _mostrarSugerencias = _sugerenciasClientes.Any();
@@ -797,18 +952,14 @@ else
 
     private void SeleccionarSugerencia(ClienteDto cliente)
     {
-        _busquedaDocumento = cliente.IdeCli; // Rellenar el input con la identificación
-        _tipoDocumentoSeleccionado = cliente.TipCli; // Ajustar el tipo
+        _busquedaDocumento = cliente.IdeCli;
+        _tipoDocumentoSeleccionado = cliente.TipCli;
         _mostrarSugerencias = false;
-        // Opcional: Cargar directamente el cliente aquí si lo deseas,
-        // pero mantengo el flujo de "dar click en Buscar" o enter si prefieres.
-        // Para este caso, cargamos directamente para mejor UX:
         _clienteSeleccionado = cliente;
     }
 
     private async Task OcultarSugerenciasDelay()
     {
-        // Delay para permitir el click en la sugerencia
         await Task.Delay(200);
         _mostrarSugerencias = false;
     }
@@ -819,8 +970,6 @@ else
             return false;
         return source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
     }
-
-    // -------------------------------------------------------------
 
     private async Task CargarUsuarioActualAsync()
     {
@@ -848,9 +997,252 @@ else
         }
     }
 
+    private async Task CargarLotesAsync()
+    {
+        try
+        {
+            _todosLosLotes = await LotesApi.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error cargando lotes: " + ex.Message);
+        }
+    }
+
+    private void CalcularStockPorProducto()
+    {
+        _stockPorProducto = _todosLosLotes
+            .Where(l => l.EstLot) 
+            .GroupBy(l => l.IdPro)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(l => Math.Max(0, l.CanDis)) 
+            );
+    }
+
+    private int GetStockProducto(int idProducto)
+    {
+        if (_todosLosLotes == null || !_todosLosLotes.Any())
+        {
+            return 0;
+        }
+
+        return _todosLosLotes
+            .Where(l => l.IdPro == idProducto && l.EstLot) 
+            .Sum(l => Math.Max(0, l.CanDis));             
+    }
+
+    private string GetProductoNombre(FacturaItemModel item)
+    {
+        return item.NombreProducto ?? string.Empty;
+    }
+
+    private void OnInputBusquedaProducto(FacturaItemModel item, ChangeEventArgs e)
+    {
+        var busqueda = e.Value?.ToString() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(busqueda))
+        {
+            _sugerenciasProductos[item] = new List<ProductoDto>();
+            _mostrarSugerenciasProducto[item] = false;
+            return;
+        }
+
+        var sugerencias = _productosConStock
+            .Where(p =>
+                ContainsIgnoreCase(p.Nombre, busqueda) ||
+                ContainsIgnoreCase(p.Codigo, busqueda)
+            )
+            .Take(8)
+            .ToList();
+
+        _sugerenciasProductos[item] = sugerencias;
+        _mostrarSugerenciasProducto[item] = sugerencias.Any();
+    }
+
+
+    private void SeleccionarProducto(FacturaItemModel item, ProductoDto producto)
+    {
+        // Verificar si el producto ya está en otra fila
+        if (_items.Any(i => i != item && i.ProductoId == producto.Id))
+        {
+            _mostrarSugerenciasProducto[item] = false;
+            _sugerenciasProductos[item] = new List<ProductoDto>();
+            return;
+        }
+
+        // Utilizar el método auxiliar compartido para configurar el producto
+        ConfigurarProductoEnItem(item, producto);
+
+        _mostrarSugerenciasProducto[item] = false;
+        _sugerenciasProductos[item] = new List<ProductoDto>();
+    }
+
+    // Método auxiliar compartido para configurar un producto en un item
+    private void ConfigurarProductoEnItem(FacturaItemModel item, ProductoDto producto)
+    {
+        item.ProductoId = producto.Id;
+        item.NombreProducto = producto.Nombre;
+        item.PrecioUnitario = producto.PrecioVenta;
+        item.Cantidad = 1;
+        item.TarifaTributaria = producto.IdTipoTributario switch
+        {
+            1 => 0,   // IVA 0%
+            2 => 15,  // IVA 15%
+            _ => 0
+        };
+    }
+
+    private void LimpiarProducto(FacturaItemModel item)
+    {
+        item.ProductoId = null;
+        item.NombreProducto = string.Empty;
+        item.PrecioUnitario = 0;
+        item.TarifaTributaria = 0;
+        item.Cantidad = 1;
+    }
+
+    private async Task OcultarSugerenciasProductoDelay(FacturaItemModel item)
+    {
+        await Task.Delay(200);
+        _mostrarSugerenciasProducto[item] = false;
+    }
+
+    private void AbrirModalProductos()
+    {
+        _mostrarModalProductos = true;
+        _busquedaModalProductos = string.Empty;
+        _categoriaFiltroModal = string.Empty;
+        _productosSeleccionados.Clear();
+        _seleccionarTodos = false;
+
+        FiltrarProductosModal();
+    }
+
+
+    private void CerrarModalProductos()
+    {
+        _mostrarModalProductos = false;
+        _productosSeleccionados.Clear();
+        _seleccionarTodos = false;
+    }
+
+    private void FiltrarProductosModal()
+    {
+        var query = _productosConStock.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(_busquedaModalProductos))
+        {
+            query = query.Where(p =>
+                ContainsIgnoreCase(p.Codigo, _busquedaModalProductos) ||
+                ContainsIgnoreCase(p.Nombre, _busquedaModalProductos) ||
+                ContainsIgnoreCase(p.Descripcion, _busquedaModalProductos)
+            );
+        }
+
+        if (!string.IsNullOrWhiteSpace(_categoriaFiltroModal))
+        {
+            query = query.Where(p => (p.NombreCategoria ?? "Sin categoría") == _categoriaFiltroModal);
+        }
+
+        _productosFiltradosModal = query
+            .OrderBy(p => p.Nombre)
+            .ToList();
+
+        if (_productosFiltradosModal.Any())
+        {
+            _seleccionarTodos = _productosFiltradosModal.All(p => _productosSeleccionados.Contains(p.Id));
+        }
+        else
+        {
+            _seleccionarTodos = false;
+        }
+    }
+
+    private void ToggleSeleccionProducto(int productoId)
+    {
+        if (_productosSeleccionados.Contains(productoId))
+        {
+            _productosSeleccionados.Remove(productoId);
+        }
+        else
+        {
+            _productosSeleccionados.Add(productoId);
+        }
+
+        _seleccionarTodos = _productosFiltradosModal.Any() &&
+                            _productosFiltradosModal.All(p => _productosSeleccionados.Contains(p.Id));
+    }
+
+    private void ToggleSeleccionarTodos()
+    {
+        _seleccionarTodos = !_seleccionarTodos;
+
+        if (_seleccionarTodos)
+        {
+            foreach (var producto in _productosFiltradosModal)
+            {
+                _productosSeleccionados.Add(producto.Id);
+            }
+        }
+        else
+        {
+            foreach (var producto in _productosFiltradosModal)
+            {
+                _productosSeleccionados.Remove(producto.Id);
+            }
+        }
+    }
+
+    private void AgregarProductosSeleccionados()
+    {
+        if (!_productosSeleccionados.Any())
+        {
+            return;
+        }
+
+        var productosAgregar = _productosConStock
+            .Where(p => _productosSeleccionados.Contains(p.Id))
+            .Where(p => GetStockProducto(p.Id) > 0) // seguridad adicional
+            .ToList();
+
+        var filasVacias = _items.Where(i => !i.ProductoId.HasValue).ToList();
+
+        foreach (var producto in productosAgregar)
+        {
+            if (_items.Any(i => i.ProductoId == producto.Id))
+            {
+                continue;
+            }
+
+            FacturaItemModel item;
+
+            if (filasVacias.Any())
+            {
+                item = filasVacias.First();
+                filasVacias.Remove(item);
+            }
+            else
+            {
+                item = new FacturaItemModel();
+                _items.Add(item);
+            }
+
+            ConfigurarProductoEnItem(item, producto);
+        }
+
+        CerrarModalProductos();
+    }
+
+    private void LimpiarFiltrosModal()
+    {
+        _busquedaModalProductos = string.Empty;
+        _categoriaFiltroModal = string.Empty;
+        FiltrarProductosModal();
+    }
+
     private async Task BuscarClienteAsync()
     {
-        // Si ya se seleccionó por sugerencia, no hacemos nada extra, o recargamos si se desea.
         if (_clienteSeleccionado != null && _clienteSeleccionado.IdeCli == _busquedaDocumento) return;
 
         if (string.IsNullOrWhiteSpace(_tipoDocumentoSeleccionado))
@@ -867,7 +1259,6 @@ else
 
         try
         {
-            // Intentamos buscar en la lista local primero
             var clienteLocal = _todosLosClientes.FirstOrDefault(c => c.IdeCli == _busquedaDocumento && c.TipCli == _tipoDocumentoSeleccionado);
 
             if (clienteLocal != null)
@@ -876,7 +1267,6 @@ else
             }
             else
             {
-                // Si no está en local, intentamos por API específica (fallback)
                 _clienteSeleccionado = await ClientesApi.GetByDocumentoAsync(
                     _tipoDocumentoSeleccionado,
                     _busquedaDocumento
@@ -915,38 +1305,31 @@ else
         }
     }
 
-    private void OnProductoChanged(FacturaItemModel item, ChangeEventArgs e)
-    {
-        if (!int.TryParse(e.Value?.ToString(), out var id)) return;
-
-        item.ProductoId = id;
-
-        var prod = _productos.FirstOrDefault(p => p.Id == id);
-        if (prod is not null)
-        {
-            item.NombreProducto = prod.Nombre;
-            item.PrecioUnitario = prod.PrecioVenta;
-
-            // LÓGICA DE TARIFA TRIBUTARIA (Restaurada)
-            item.TarifaTributaria = prod.IdTipoTributario switch
-            {
-                1 => 0,   // IVA 0%
-                2 => 15,  // IVA 15%
-                _ => 0
-            };
-        }
-    }
-
     private void OnCantidadChanged(FacturaItemModel item, ChangeEventArgs e)
     {
-        if (int.TryParse(e.Value?.ToString(), out var cant) && cant > 0)
-        {
-            item.Cantidad = cant;
-        }
-        else
+        if (!item.ProductoId.HasValue)
         {
             item.Cantidad = 1;
+            return;
         }
+
+        var stockDisponible = GetStockProducto(item.ProductoId.Value);
+
+        if (stockDisponible <= 0)
+        {
+            item.Cantidad = 0;
+            return;
+        }
+
+        if (!int.TryParse(e.Value?.ToString(), out var cantIngresada) || cantIngresada <= 0)
+        {
+            item.Cantidad = Math.Min(1, stockDisponible);
+            return;
+        }
+
+        item.Cantidad = cantIngresada > stockDisponible
+            ? stockDisponible
+            : cantIngresada;
     }
 
     private void MostrarModalConfirmacion()
@@ -1014,17 +1397,216 @@ else
         NavigationManager.NavigateTo("/dashboards/facturas");
     }
 
-    // Modelo Interno Restaurado
+    // ============================================
+    // MÉTODOS PARA EL MODAL DE CREAR CLIENTE
+    // ============================================
+
+    private void AbrirModalCrearCliente()
+    {
+        _formCliente = new ClienteCreateVM();
+        _mostrarModalCrearCliente = true;
+    }
+
+    private void CerrarModalCrearCliente()
+    {
+        if (_isSavingCliente)
+        {
+            return;
+        }
+
+        CerrarModalCrearClienteInterno();
+    }
+
+    private void CerrarModalCrearClienteInterno()
+    {
+        _mostrarModalCrearCliente = false;
+        _formCliente = new ClienteCreateVM();
+    }
+
+    private async Task CrearClienteAsync()
+    {
+        _isSavingCliente = true;
+        try
+        {
+            var esRucJuridico = EsRucJuridicoCliente;
+
+            var req = new ClienteCreateRequest
+            {
+                Nombre = _formCliente.Nombre?.Trim() ?? "",
+                Apellido = esRucJuridico ? "-" : (_formCliente.Apellido?.Trim() ?? ""),
+                Identificacion = _formCliente.Identificacion?.Trim() ?? "",
+                TipoIdentificacion = (_formCliente.TipoIdentificacion ?? "").ToUpperInvariant(),
+                Direccion = _formCliente.Direccion?.Trim() ?? "",
+                Telefono = _formCliente.Telefono?.Trim() ?? "",
+                CorreoElectronico = _formCliente.Correo?.Trim() ?? ""
+            };
+
+            var creado = await ClientesApi.CreateAsync(req);
+
+            var swalResult = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Success,
+                Title = "Cliente creado",
+                Text = $"Cliente {creado.NomCli} {creado.ApeCli} creado exitosamente.",
+                ShowConfirmButton = true,
+                ConfirmButtonText = "Aceptar"
+            });
+
+            if (swalResult.IsConfirmed)
+            {
+                await CargarTodosLosClientesAsync();
+                _clienteSeleccionado = creado;
+                _busquedaDocumento = creado.IdeCli;
+
+                CerrarModalCrearClienteInterno();
+            }
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Error,
+                Title = "Error al crear cliente",
+                Text = ex.Message
+            });
+        }
+        finally
+        {
+            _isSavingCliente = false;
+            StateHasChanged();
+        }
+    }
+
+
+    private bool EsRucJuridicoCliente =>
+        (_formCliente.TipoIdentificacion ?? "").Trim().Equals("RUC", StringComparison.OrdinalIgnoreCase) &&
+        (_formCliente.TipoRucPersona ?? "").Trim().Equals("JURIDICA", StringComparison.OrdinalIgnoreCase);
+
+    private string ObtenerPlaceholderIdentificacion()
+    {
+        return _formCliente.TipoIdentificacion switch
+        {
+            "Cedula" => "10 dígitos",
+            "RUC" => "13 dígitos",
+            "Pasaporte" => "6-12 caracteres alfanuméricos",
+            _ => "Ingrese identificación"
+        };
+    }
+
+    private string ObtenerMaxLengthIdentificacion()
+    {
+        var maxLen = (_formCliente.TipoIdentificacion ?? "").ToUpperInvariant() switch
+        {
+            "CEDULA" => 10,
+            "RUC" => 13,
+            "PASAPORTE" => 12,
+            _ => 20
+        };
+        return maxLen.ToString();
+    }
+
+    private string ObtenerHelpTextIdentificacion()
+    {
+        var tipo = _formCliente.TipoIdentificacion ?? "";
+        var tipoRuc = _formCliente.TipoRucPersona ?? "";
+
+        if (tipo == "Cedula")
+            return "Se validará provincia, tercer dígito (<6) y dígito verificador.";
+
+        if (tipo == "RUC")
+        {
+            if (string.Equals(tipoRuc, "NATURAL", StringComparison.OrdinalIgnoreCase))
+                return "RUC de persona natural: primeros 10 = cédula válida y termina en 001.";
+            if (string.Equals(tipoRuc, "JURIDICA", StringComparison.OrdinalIgnoreCase))
+                return "RUC de persona jurídica: 13 dígitos numéricos.";
+            return "Seleccione si el RUC es de persona natural o jurídica.";
+        }
+
+        if (tipo == "Pasaporte")
+            return "Se permiten letras y números (6 a 12).";
+
+        return "Seleccione un tipo para ver las reglas.";
+    }
+
+    // ============================================
+    // MODELOS Y CLASES AUXILIARES
+    // ============================================
+
     private sealed class FacturaItemModel
     {
         public int? ProductoId { get; set; }
         public string NombreProducto { get; set; } = string.Empty;
         public int Cantidad { get; set; } = 1;
         public decimal PrecioUnitario { get; set; } = 0m;
-
-        // Propiedad restaurada
         public int TarifaTributaria { get; set; } = 0;
-
         public decimal Subtotal => Cantidad * PrecioUnitario;
+    }
+
+    public class ClienteCreateVM : IValidatableObject
+    {
+        [Required(ErrorMessage = "Seleccione el tipo de identificación.")]
+        public string? TipoIdentificacion { get; set; }
+
+        public string? TipoRucPersona { get; set; }
+
+        [Required(ErrorMessage = "La identificación es obligatoria.")]
+        public string? Identificacion { get; set; }
+
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [RegularExpression(@"^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$", ErrorMessage = "El nombre solo debe contener letras.")]
+        [StringLength(100, ErrorMessage = "Máximo 100 caracteres.")]
+        public string? Nombre { get; set; }
+
+        [StringLength(100, ErrorMessage = "Máximo 100 caracteres.")]
+        public string? Apellido { get; set; }
+
+        [Required(ErrorMessage = "La dirección es obligatoria.")]
+        [RegularExpression(@"^[A-Za-zÁÉÍÓÚáéíóúÑñ\s0-9,.-]+$", ErrorMessage = "La dirección contiene caracteres inválidos.")]
+        [StringLength(200, ErrorMessage = "Máximo 200 caracteres.")]
+        public string? Direccion { get; set; }
+
+        [Required(ErrorMessage = "El teléfono es obligatorio.")]
+        [RegularExpression(@"^\d{10}$", ErrorMessage = "El teléfono debe tener 10 dígitos.")]
+        public string? Telefono { get; set; }
+
+        [Required(ErrorMessage = "El correo es obligatorio.")]
+        [EmailAddress(ErrorMessage = "Correo inválido.")]
+        public string? Correo { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            var tipo = (TipoIdentificacion ?? "").Trim().ToUpperInvariant();
+            var id = (Identificacion ?? "").Trim();
+            var tipoRuc = (TipoRucPersona ?? "").Trim().ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(tipo) || string.IsNullOrWhiteSpace(id))
+                yield break;
+
+            var esRuc = tipo == "RUC";
+            var esRucJuridico = esRuc && tipoRuc == "JURIDICA";
+
+            if (tipo is "CEDULA" or "RUC")
+            {
+                if (!id.All(char.IsDigit))
+                    yield return new ValidationResult("Solo se permiten dígitos.", new[] { nameof(Identificacion) });
+            }
+
+            if (esRuc && string.IsNullOrWhiteSpace(TipoRucPersona))
+            {
+                yield return new ValidationResult(
+                    "Seleccione si el RUC es de persona natural o jurídica.",
+                    new[] { nameof(TipoRucPersona) });
+            }
+
+            if (!esRucJuridico)
+            {
+                if (string.IsNullOrWhiteSpace(Apellido))
+                {
+                    yield return new ValidationResult(
+                        "El apellido es obligatorio para personas naturales.",
+                        new[] { nameof(Apellido) });
+                }
+            }
+        }
     }
 }

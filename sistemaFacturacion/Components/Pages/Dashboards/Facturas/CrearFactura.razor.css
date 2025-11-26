@@ -412,3 +412,383 @@ html[data-theme-mode="dark"] .productos-dashboard .table thead th {
     position: relative;
     z-index: 1;
 }
+
+/* ============================================
+   CREAR FACTURA - CARDS Y ESTILOS GENERALES
+   Se aplican a las cards principales del formulario
+   ============================================ */
+.card.custom-card {
+    border: none;
+    border-radius: 0.75rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+    .card.custom-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+    }
+
+/* ============================================
+   CREAR FACTURA - AUTOCOMPLETE CLIENTES
+   Dropdown de sugerencias para búsqueda de clientes
+   ============================================ */
+.autocomplete-dropdown-custom,
+.autocomplete-dropdown-productos {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 99999 !important;
+    animation: slideDownFade 0.2s ease-out;
+}
+
+.autocomplete-dropdown-productos {
+    max-height: 280px;
+}
+
+@keyframes slideDownFade {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.autocomplete-item-custom,
+.autocomplete-item-producto {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: none;
+    background: white;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+    display: block;
+}
+
+    .autocomplete-item-custom:last-child,
+    .autocomplete-item-producto:last-child {
+        border-bottom: none;
+    }
+
+    .autocomplete-item-custom:hover,
+    .autocomplete-item-producto:hover {
+        background: linear-gradient(to right, #f0f9ff 0%, #e0f2fe 100%);
+        border-left: 3px solid #3b82f6;
+        padding-left: calc(1rem - 3px);
+    }
+
+    .autocomplete-item-custom:active,
+    .autocomplete-item-producto:active {
+        background: #dbeafe;
+    }
+
+.autocomplete-item-producto {
+    padding: 0.625rem 0.875rem;
+}
+
+.autocomplete-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    margin-right: 0.875rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
+/* Scrollbar personalizada para dropdown de autocomplete */
+.autocomplete-dropdown-custom::-webkit-scrollbar,
+.autocomplete-dropdown-productos::-webkit-scrollbar {
+    width: 8px;
+}
+
+.autocomplete-dropdown-custom::-webkit-scrollbar-track,
+.autocomplete-dropdown-productos::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 10px;
+}
+
+.autocomplete-dropdown-custom::-webkit-scrollbar-thumb,
+.autocomplete-dropdown-productos::-webkit-scrollbar-thumb {
+    background: #9ca3af;
+    border-radius: 10px;
+}
+
+    .autocomplete-dropdown-custom::-webkit-scrollbar-thumb:hover,
+    .autocomplete-dropdown-productos::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+    }
+
+/* ============================================
+   CREAR FACTURA - CONTROLES DE FORMULARIO
+   Inputs, selects y estados de foco
+   ============================================ */
+.form-control:focus,
+.form-select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.15);
+}
+
+.form-control.is-valid {
+    border-color: #10b981;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2310b981' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+}
+
+/* ============================================
+   CREAR FACTURA - TABLA DE DETALLE DE PRODUCTOS
+   Estilos de filas y hover de la tabla de productos
+   ============================================ */
+.table-hover tbody tr {
+    transition: all 0.2s ease;
+}
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(99, 102, 241, 0.06);
+        transform: scale(1.005);
+    }
+
+/* ============================================
+   CREAR FACTURA - BOTONES PRINCIPALES
+   Incluye botones primarios y de éxito
+   ============================================ */
+.btn-lg {
+    padding: 0.875rem 1.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+}
+
+    .btn-success:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+    }
+
+/* ============================================
+   CREAR FACTURA - MODALES (CONFIRMACIÓN Y PRODUCTOS)
+   Animaciones y colores base
+   ============================================ */
+.modal.show {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Títulos de modales en bg-primary siempre blancos */
+.modal-header.bg-primary .modal-title,
+.modal-header.bg-primary .modal-title i {
+    color: #ffffff !important;
+}
+
+/* ============================================
+   MODAL DE PRODUCTOS - LEGIBILIDAD EN MODO OSCURO
+   Se aplica a la tabla y cabeceras del modal .modal-productos
+   ============================================ */
+.modal-productos .modal-header.bg-primary {
+    background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%);
+    color: #ffffff;
+}
+
+    .modal-productos .modal-header.bg-primary .modal-title,
+    .modal-productos .modal-header.bg-primary .modal-title i {
+        color: #ffffff;
+    }
+
+/* Cabecera de la tabla de productos dentro del modal */
+.modal-productos-table thead {
+    background-color: #111827;
+}
+
+    .modal-productos-table thead th {
+        color: #f9fafb;
+        border-color: rgba(249, 250, 251, 0.08);
+    }
+
+/* Ajustes de badges y textos dentro de la tabla del modal */
+.modal-productos-table .badge.bg-secondary-subtle.text-dark {
+    background-color: rgba(31, 41, 55, 0.9);
+    color: #e5e7eb;
+}
+
+.modal-productos-table .badge.bg-info-subtle.text-info {
+    background-color: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+}
+
+.modal-productos-table .badge.bg-warning-subtle.text-warning {
+    background-color: rgba(234, 179, 8, 0.12);
+    color: #eab308;
+}
+
+.modal-productos-table .badge.bg-secondary-subtle.text-secondary {
+    background-color: rgba(75, 85, 99, 0.18);
+    color: #e5e7eb;
+}
+
+/* Mejora de contraste para texto secundario dentro del modal de productos */
+.modal-productos-table td small.text-muted {
+    color: #9ca3af;
+}
+
+/* ============================================
+   CREAR FACTURA - COLORES TRANSPARENTES
+   Utilizados en badges y headers de cards
+   ============================================ */
+.bg-primary-transparent {
+    background-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+.bg-info-transparent {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+
+.bg-success-transparent {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+.bg-secondary-transparent {
+    background-color: rgba(108, 117, 125, 0.1) !important;
+}
+
+.bg-light-hover:hover {
+    background-color: #f8f9fa;
+}
+
+/* ============================================
+   CREAR FACTURA - UTILIDADES VARIAS
+   Utilidades de cursor, badges y borde de cliente
+   ============================================ */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.border-success {
+    border-color: #10b981 !important;
+    border-width: 2px !important;
+}
+
+.badge {
+    padding: 0.375rem 0.75rem;
+    font-weight: 500;
+}
+
+/* ============================================
+   CREAR FACTURA - MODO OSCURO PARA AUTOCOMPLETADOS
+   Estilos para modo oscuro de clientes y productos
+   ============================================ */
+[data-theme-mode="dark"] .autocomplete-dropdown-custom,
+[data-theme-mode="dark"] .autocomplete-dropdown-productos {
+    background: var(--form-control-bg, #1f2937);
+    border-color: var(--default-border, #374151);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme-mode="dark"] .autocomplete-item-custom,
+[data-theme-mode="dark"] .autocomplete-item-producto {
+    background: transparent;
+    border-bottom-color: var(--default-border, #374151);
+    color: var(--default-text-color, #e5e7eb);
+}
+
+[data-theme-mode="dark"] .autocomplete-item-custom:hover,
+[data-theme-mode="dark"] .autocomplete-item-producto:hover {
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 100%);
+    border-left-color: #3b82f6;
+}
+
+[data-theme-mode="dark"] .autocomplete-item-custom .text-dark,
+[data-theme-mode="dark"] .autocomplete-item-producto .fw-semibold {
+    color: var(--default-text-color, #f3f4f6) !important;
+}
+
+[data-theme-mode="dark"] .autocomplete-item-custom .text-muted,
+[data-theme-mode="dark"] .autocomplete-item-producto small.text-muted {
+    color: var(--text-muted, #9ca3af) !important;
+}
+
+[data-theme-mode="dark"] .autocomplete-avatar {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+[data-theme-mode="dark"] .badge.bg-primary-transparent {
+    background-color: rgba(99, 102, 241, 0.2) !important;
+    color: #a5b4fc !important;
+}
+
+[data-theme-mode="dark"] .badge.bg-success-subtle {
+    background-color: rgba(34, 197, 94, 0.15) !important;
+    color: #4ade80 !important;
+}
+
+[data-theme-mode="dark"] .autocomplete-dropdown-custom::-webkit-scrollbar-track,
+[data-theme-mode="dark"] .autocomplete-dropdown-produtos::-webkit-scrollbar-track {
+    background: var(--form-control-bg, #1f2937);
+}
+
+[data-theme-mode="dark"] .autocomplete-dropdown-custom::-webkit-scrollbar-thumb,
+[data-theme-mode="dark"] .autocomplete-dropdown-produtos::-webkit-scrollbar-thumb {
+    background: var(--default-border, #4b5563);
+}
+
+/* ============================================
+   CREAR FACTURA - AJUSTES RESPONSIVE
+   Ajustes de autocomplete en dispositivos pequeños
+   ============================================ */
+@media (max-width: 768px) {
+    .autocomplete-dropdown-custom,
+    .autocomplete-dropdown-productos {
+        max-height: 240px;
+    }
+
+    .autocomplete-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 1.1rem;
+    }
+
+    .autocomplete-item-custom {
+        padding: 0.625rem 0.75rem;
+    }
+}
