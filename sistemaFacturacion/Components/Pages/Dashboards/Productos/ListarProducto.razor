@@ -313,6 +313,8 @@ else
     </div>
 }
 
+@implements IDisposable
+
 @code {
     private List<ProductoDto> productos = new();
     private List<LoteDto> lotes = new();
@@ -320,6 +322,9 @@ else
 
     private bool cargando = true;
     private string? error;
+
+    // CancellationTokenSource para cancelar operaciones async cuando el componente se destruye
+    private CancellationTokenSource _cts = new();
 
     // ===== Filtros principales =====
     private string? _filtroTexto;
@@ -436,17 +441,32 @@ else
             cargando = true;
             error = null;
 
-            productos = await ProductosApi.GetAllAsync();
-            lotes = await LotesApi.GetAllAsync();
+            var ct = _cts.Token;
+
+            // Carga paralela de productos y lotes usando Task.WhenAll
+            // Esto mejora significativamente el tiempo de carga al ejecutar ambas llamadas API simultaneamente
+            var productosTask = ProductosApi.GetAllAsync(ct);
+            var lotesTask = LotesApi.GetAllAsync(ct);
+
+            await Task.WhenAll(productosTask, lotesTask);
+
+            // Verificar cancelacion antes de actualizar estado
+            if (ct.IsCancellationRequested) return;
+
+            productos = await productosTask;
+            lotes = await lotesTask;
             ConstruirPreciosPorProducto();
 
-            var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+            var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode", ct);
+
+            if (ct.IsCancellationRequested) return;
+
             await Swal.FireAsync(new SweetAlertOptions
             {
                 Toast = true,
                 Position = SweetAlertPosition.TopEnd,
                 Icon = SweetAlertIcon.Success,
-                Title = $"✓ {productos.Count} productos cargados",
+                Title = $"{productos.Count} productos cargados",
                 ShowConfirmButton = false,
                 Timer = 1800,
                 TimerProgressBar = true,
@@ -454,8 +474,14 @@ else
                 Color = isDark ? "#e6e6e6" : null
             });
         }
+        catch (OperationCanceledException)
+        {
+            // Operacion cancelada por disposal del componente - comportamiento esperado
+        }
         catch (HttpRequestException ex)
         {
+            if (_cts.Token.IsCancellationRequested) return;
+
             error = $"Error al cargar productos: {ex.Message}";
             await Swal.FireAsync(new SweetAlertOptions
             {
@@ -881,4 +907,11 @@ else
         string.IsNullOrEmpty(s)
             ? string.Empty
             : s.Replace("<", "&lt;").Replace(">", "&gt;");
+
+    // Libera recursos y cancela operaciones pendientes cuando el componente se destruye
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
 }

@@ -1,103 +1,154 @@
-﻿/* ===== Ajustes modo oscuro (mejor contraste) ===== */
+﻿/* ==========================
+   AJUSTES VISUALES: TABLAS, CHECKBOX Y BADGES
+   ========================== */
+
+/* 1. TH de la Tabla: Contraste fuerte y moderno */
+.table thead th {
+    color: #000000 !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+html[data-theme-mode="dark"] .table thead th,
+body[data-theme-mode="dark"] .table thead th,
+.dark .table thead th {
+    color: #ffffff !important;
+    background-color: #1e1e2d;
+    border-bottom-color: #2b2b40;
+}
+
+/* 2. Checkboxes Morados con Animación "Pop" */
+.form-check-input {
+    width: 1.3em;
+    height: 1.3em;
+    border: 2px solid #a5b4fc;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+    .form-check-input:checked {
+        background-color: #6366f1;
+        border-color: #6366f1;
+        box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+        transform: scale(1.1);
+    }
+
+[data-theme-mode="dark"] .form-check-input {
+    background-color: rgba(255,255,255,0.05);
+    border-color: #6366f1;
+}
+
+    [data-theme-mode="dark"] .form-check-input:checked {
+        background-color: #6366f1;
+    }
+
+/* 3. Badges con micro-interacción */
+.badge {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .badge:hover {
+        transform: translateY(-1px);
+    }
+
+    .badge.bg-secondary-subtle.text-dark {
+        background-color: #e2e8f0 !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1;
+        font-weight: 600;
+    }
+
+    .badge.bg-info-subtle.text-info {
+        background-color: #e0f2fe !important;
+        color: #0284c7 !important;
+        border: 1px solid #7dd3fc;
+        font-weight: 600;
+    }
+
+[data-theme-mode="dark"] .badge.bg-secondary-subtle.text-dark {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme-mode="dark"] .badge.bg-info-subtle.text-info {
+    background-color: rgba(14, 165, 233, 0.25) !important;
+    color: #38bdf8 !important;
+    border-color: rgba(14, 165, 233, 0.5);
+}
+
+/* ==========================
+   ESTILOS GENERALES (BASE)
+   ========================== */
+
+/* Colores Modo Oscuro */
 html[data-theme-mode="dark"] .productos-dashboard,
 body[data-theme-mode="dark"] .productos-dashboard,
 .dark .productos-dashboard {
-    /* Números y colores vivos para iconos */
     --pd-number: #ffffff;
-    --pd-icon-primary: #60a5ff; /* azul brillante */
-    --pd-icon-warning: #ffd369; /* ámbar brillante */
-    --pd-icon-success: #4ade80; /* verde brillante */
+    --pd-icon-primary: #60a5ff;
+    --pd-icon-warning: #ffd369;
+    --pd-icon-success: #4ade80;
     --pd-success: #22c55e;
     --pd-danger: #f87171;
 }
 
-/* (A) Si puedes: marca el número con .kpi-value */
-.productos-dashboard .kpi-value {
-    color: var(--pd-text); /* claro */
-    font-size: 1.875rem; /* ~ fs-3 */
-    font-weight: 600;
+[data-theme-mode="dark"] .card.custom-card .fs-3.fw-semibold,
+[data-theme-mode="dark"] .text-success,
+[data-theme-mode="dark"] .text-danger {
+    color: inherit !important;
 }
 
-kpi-number {
-    color: inherit;
-}
-
-
-[data-theme-mode="dark"] .kpi-number {
-    color: #ffffff;
-}
-
-html[data-theme-mode="dark"] .productos-dashboard .kpi-value,
-body[data-theme-mode="dark"] .productos-dashboard .kpi-value,
-.dark .productos-dashboard .kpi-value {
-    color: var(--pd-number); /* blanco puro en oscuro */
-}
-
-/* (B) Si NO puedes tocar el HTML: fuerza el color del número grande dentro de la card */
-html[data-theme-mode="dark"] .productos-dashboard .card .fs-3.fw-semibold,
-body[data-theme-mode="dark"] .productos-dashboard .card .fs-3.fw-semibold,
-.dark .productos-dashboard .card .fs-3.fw-semibold {
-    color: var(--pd-number) !important;
-}
-
-/* Éxitos/errores más visibles en oscuro */
-html[data-theme-mode="dark"] .productos-dashboard .text-success,
-body[data-theme-mode="dark"] .productos-dashboard .text-success,
-.dark .productos-dashboard .text-success {
-    color: var(--pd-success) !important;
-}
-
-html[data-theme-mode="dark"] .productos-dashboard .text-danger,
-body[data-theme-mode="dark"] .productos-dashboard .text-danger,
-.dark .productos-dashboard .text-danger {
-    color: var(--pd-danger) !important;
-}
-
-/* Iconos de accesos rápidos más brillantes en oscuro */
-html[data-theme-mode="dark"] .productos-dashboard .bg-primary-subtle i,
-body[data-theme-mode="dark"] .productos-dashboard .bg-primary-subtle i,
-.dark .productos-dashboard .bg-primary-subtle i {
-    color: var(--pd-icon-primary) !important;
-}
-
-html[data-theme-mode="dark"] .productos-dashboard .bg-warning-subtle i,
-body[data-theme-mode="dark"] .productos-dashboard .bg-warning-subtle i,
-.dark .productos-dashboard .bg-warning-subtle i {
-    color: var(--pd-icon-warning) !important;
-}
-
-html[data-theme-mode="dark"] .productos-dashboard .bg-success-subtle i,
-body[data-theme-mode="dark"] .productos-dashboard .bg-success-subtle i,
-.dark .productos-dashboard .bg-success-subtle i {
-    color: var(--pd-icon-success) !important;
-}
-
-html[data-theme-mode="dark"] .productos-dashboard .table thead th {
-    color: #cbd5e1 !important; /* un gris claro legible */
-}
-
-/* ==========================
-       CARDS & GENERAL STYLES
-       ========================== */
+/* CARDS ANIMADAS */
 .card.custom-card {
     border: none;
     border-radius: 0.75rem;
-    transition: all 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    z-index: 1;
+    /* ANIMACIÓN DE ENTRADA (Slide Up) */
+    animation: slideInUpCard 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) backwards;
 }
 
-    .card.custom-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+/* Retrasos escalonados para efecto cascada en los formularios */
+.col-xl-8 .card.custom-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.col-xl-8 .card.custom-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.col-xl-4 .card.custom-card:nth-child(1) {
+    animation-delay: 0.3s;
+}
+
+.col-xl-4 .card.custom-card:nth-child(2) {
+    animation-delay: 0.4s;
+}
+
+.card.custom-card:hover:not(.dropdown-activo) {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.12) !important;
+    z-index: 5;
+}
+
+/* Inputs Animados */
+.form-control, .form-select {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+    .form-control:focus, .form-select:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.15);
+        transform: translateY(-1px);
     }
 
-/* ==========================
-       AUTOCOMPLETE STYLES
-       ========================== */
-.autocomplete-wrapper {
-    position: relative;
-}
-
-.autocomplete-dropdown {
+/* Autocomplete Global */
+.autocomplete-dropdown,
+.autocomplete-dropdown-custom,
+.autocomplete-dropdown-productos {
     position: absolute;
     top: 100%;
     left: 0;
@@ -105,57 +156,52 @@ html[data-theme-mode="dark"] .productos-dashboard .table thead th {
     background: white;
     border: 1px solid #dee2e6;
     border-radius: 0.5rem;
-    box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.15);
-    max-height: 400px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    max-height: 350px;
     overflow-y: auto;
-    z-index: 9999; /* CRITICAL: Must be above everything */
-    margin-top: 0.25rem;
-    animation: slideDown 0.2s ease;
+    z-index: 9999;
+    margin-top: 4px;
+    /* Animación menú */
+    animation: menuSlideIn 0.25s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+    transform-origin: top center;
 }
 
-@@keyframes slideDown {
-    from {
+@keyframes menuSlideIn {
+    0% {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: translateY(-10px) scale(0.98);
     }
 
-    to {
+    100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
-.autocomplete-header {
-    padding: 0.5rem 1rem;
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.autocomplete-item {
+/* Items Autocomplete */
+.autocomplete-item,
+.autocomplete-item-custom,
+.autocomplete-item-producto {
+    width: 100%;
     padding: 0.75rem 1rem;
+    border: none;
+    background: white;
+    border-bottom: 1px solid #f3f4f6;
     cursor: pointer;
-    transition: all 0.2s ease;
-    border-bottom: 1px solid #f1f1f1;
+    text-align: left;
+    display: block;
+    transition: background-color 0.15s ease, padding-left 0.2s ease;
 }
-
-    .autocomplete-item:last-child {
-        border-bottom: none;
-    }
 
     .autocomplete-item:hover,
-    .autocomplete-item.active {
-        background-color: #f8f9fa;
+    .autocomplete-item-custom:hover,
+    .autocomplete-item-producto:hover {
+        background: linear-gradient(to right, #f0f9ff 0%, #e0f2fe 100%);
         border-left: 3px solid #6366f1;
+        padding-left: 1.25rem;
     }
 
-    .autocomplete-item.active {
-        background-color: #e7f1ff;
-    }
-
-.autocomplete-icon {
+.autocomplete-avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -164,426 +210,73 @@ html[data-theme-mode="dark"] .productos-dashboard .table thead th {
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.2rem;
     margin-right: 0.75rem;
     flex-shrink: 0;
+    box-shadow: 0 4px 6px rgba(99, 102, 241, 0.3);
 }
 
-/* ==========================
-       CLIENTE SELECCIONADO
-       ========================== */
-.cliente-seleccionado {
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    border-radius: 0.75rem;
-    border: 2px solid #86efac;
-    padding: 1.25rem;
+/* Modo Oscuro Autocomplete */
+[data-theme-mode="dark"] .autocomplete-dropdown-custom,
+[data-theme-mode="dark"] .autocomplete-dropdown-productos {
+    background: #1f2937;
+    border-color: #374151;
 }
 
-.info-item {
-    padding: 0.5rem;
-    background: white;
-    border-radius: 0.375rem;
-    margin-bottom: 0.25rem;
+[data-theme-mode="dark"] .autocomplete-item-custom,
+[data-theme-mode="dark"] .autocomplete-item-producto {
+    background: #1f2937;
+    border-bottom-color: #374151;
+    color: #e5e7eb;
 }
 
-    .info-item i {
-        margin-right: 0.5rem;
+    [data-theme-mode="dark"] .autocomplete-item-custom:hover,
+    [data-theme-mode="dark"] .autocomplete-item-producto:hover {
+        background: linear-gradient(to right, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%);
     }
 
-/* ==========================
-       ANIMATIONS
-       ========================== */
-.animate-in {
-    animation: fadeInScale 0.3s ease;
-}
-
-@@keyframes fadeInScale {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* ==========================
-       FORM CONTROLS
-       ========================== */
-.form-control:focus,
-.form-select:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.15);
-}
-
-.form-control.is-valid,
-.form-select.is-valid {
-    border-color: #10b981;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2310b981' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
-}
-
-.input-group-text {
-    border-color: #dee2e6;
-}
-
-/* ==========================
-       TABLE STYLES
-       ========================== */
+/* Tabla - Filas */
 .table-hover tbody tr {
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease;
+    transform: none !important;
 }
 
     .table-hover tbody tr:hover {
         background-color: rgba(99, 102, 241, 0.05);
-        transform: scale(1.01);
     }
 
-.table-success-light {
-    background-color: rgba(16, 185, 129, 0.05);
+/* Selección Modo Oscuro Modal */
+[data-theme-mode="dark"] .modal-productos-table .table-primary {
+    --bs-table-bg: rgba(99, 102, 241, 0.25) !important;
+    background-color: var(--bs-table-bg) !important;
+    color: white !important;
 }
 
-/* ==========================
-       TOTALES WRAPPER
-       ========================== */
-.totales-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.total-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.total-final {
-    border-bottom: none;
-    border-top: 2px solid #10b981;
-    padding-top: 1rem;
-    margin-top: 0.5rem;
-}
-
-/* ==========================
-       BUTTONS
-       ========================== */
-.btn-wave {
-    position: relative;
-    overflow: hidden;
-}
-
-    .btn-wave::after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.5);
-        transform: translate(-50%, -50%);
-        transition: width 0.6s, height 0.6s;
+    [data-theme-mode="dark"] .modal-productos-table .table-primary td .text-muted {
+        color: #e0e7ff !important;
     }
 
-    .btn-wave:active::after {
-        width: 300px;
-        height: 300px;
+/* Botones */
+.btn {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
-.btn-lg {
-    padding: 0.75rem 1.5rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.btn-icon {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* ==========================
-       EMPTY STATE
-       ========================== */
-.empty-state {
-    padding: 3rem 1rem;
-}
-
-/* ==========================
-       MODAL ANIMATIONS
-       ========================== */
-.modal.show {
-    animation: fadeIn 0.3s ease;
-}
-
-@@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-/* ==========================
-       TRANSPARENCY COLORS
-       ========================== */
-.bg-primary-transparent {
-    background-color: rgba(99, 102, 241, 0.1) !important;
-}
-
-.bg-info-transparent {
-    background-color: rgba(13, 202, 240, 0.1) !important;
-}
-
-.bg-success-transparent {
-    background-color: rgba(25, 135, 84, 0.1) !important;
-}
-
-.bg-secondary-transparent {
-    background-color: rgba(108, 117, 125, 0.1) !important;
-}
-
-.bg-warning-transparent,
-.alert-warning-transparent {
-    background-color: rgba(255, 193, 7, 0.1) !important;
-}
-
-.bg-info-transparent,
-.alert-info-transparent {
-    background-color: rgba(13, 202, 240, 0.1) !important;
-}
-
-/* ==========================
-       RESPONSIVE ADJUSTMENTS
-       ========================== */
-@@media (max-width: 768px) {
-    .autocomplete-dropdown {
-        max-height: 300px;
-    }
-
-    .autocomplete-item {
-        padding: 0.5rem;
-    }
-
-    .autocomplete-icon {
-        width: 32px;
-        height: 32px;
-        font-size: 1rem;
-    }
-}
-
-/* ==========================
-       SCROLLBAR STYLING
-       ========================== */
-.autocomplete-dropdown::-webkit-scrollbar {
-    width: 8px;
-}
-
-.autocomplete-dropdown::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-}
-
-.autocomplete-dropdown::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 10px;
-}
-
-    .autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-
-.card.custom-card.dropdown-activo {
-    position: relative;
-    z-index: 1050 !important;
-}
-
-/* La tarjeta de productos queda por debajo */
-.card.custom-card:not(.dropdown-activo) {
-    position: relative;
-    z-index: 1;
-}
-
-/* ============================================
-   CREAR FACTURA - CARDS Y ESTILOS GENERALES
-   Se aplican a las cards principales del formulario
-   ============================================ */
-.card.custom-card {
-    border: none;
-    border-radius: 0.75rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-    .card.custom-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
-    }
-
-/* ============================================
-   CREAR FACTURA - AUTOCOMPLETE CLIENTES
-   Dropdown de sugerencias para búsqueda de clientes
-   ============================================ */
-.autocomplete-dropdown-custom,
-.autocomplete-dropdown-productos {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    max-height: 320px;
-    overflow-y: auto;
-    z-index: 99999 !important;
-    animation: slideDownFade 0.2s ease-out;
-}
-
-.autocomplete-dropdown-productos {
-    max-height: 280px;
-}
-
-@keyframes slideDownFade {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
+    .btn:active {
         transform: translateY(0);
     }
-}
-
-.autocomplete-item-custom,
-.autocomplete-item-producto {
-    width: 100%;
-    padding: 0.875rem 1rem;
-    border: none;
-    background: white;
-    border-bottom: 1px solid #f3f4f6;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    text-align: left;
-    display: block;
-}
-
-    .autocomplete-item-custom:last-child,
-    .autocomplete-item-producto:last-child {
-        border-bottom: none;
-    }
-
-    .autocomplete-item-custom:hover,
-    .autocomplete-item-producto:hover {
-        background: linear-gradient(to right, #f0f9ff 0%, #e0f2fe 100%);
-        border-left: 3px solid #3b82f6;
-        padding-left: calc(1rem - 3px);
-    }
-
-    .autocomplete-item-custom:active,
-    .autocomplete-item-producto:active {
-        background: #dbeafe;
-    }
-
-.autocomplete-item-producto {
-    padding: 0.625rem 0.875rem;
-}
-
-.autocomplete-avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.25rem;
-    margin-right: 0.875rem;
-    flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
-}
-
-/* Scrollbar personalizada para dropdown de autocomplete */
-.autocomplete-dropdown-custom::-webkit-scrollbar,
-.autocomplete-dropdown-productos::-webkit-scrollbar {
-    width: 8px;
-}
-
-.autocomplete-dropdown-custom::-webkit-scrollbar-track,
-.autocomplete-dropdown-productos::-webkit-scrollbar-track {
-    background: #f3f4f6;
-    border-radius: 10px;
-}
-
-.autocomplete-dropdown-custom::-webkit-scrollbar-thumb,
-.autocomplete-dropdown-productos::-webkit-scrollbar-thumb {
-    background: #9ca3af;
-    border-radius: 10px;
-}
-
-    .autocomplete-dropdown-custom::-webkit-scrollbar-thumb:hover,
-    .autocomplete-dropdown-productos::-webkit-scrollbar-thumb:hover {
-        background: #6b7280;
-    }
-
-/* ============================================
-   CREAR FACTURA - CONTROLES DE FORMULARIO
-   Inputs, selects y estados de foco
-   ============================================ */
-.form-control:focus,
-.form-select:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.15);
-}
-
-.form-control.is-valid {
-    border-color: #10b981;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2310b981' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
-}
-
-/* ============================================
-   CREAR FACTURA - TABLA DE DETALLE DE PRODUCTOS
-   Estilos de filas y hover de la tabla de productos
-   ============================================ */
-.table-hover tbody tr {
-    transition: all 0.2s ease;
-}
-
-    .table-hover tbody tr:hover {
-        background-color: rgba(99, 102, 241, 0.06);
-        transform: scale(1.005);
-    }
-
-/* ============================================
-   CREAR FACTURA - BOTONES PRINCIPALES
-   Incluye botones primarios y de éxito
-   ============================================ */
-.btn-lg {
-    padding: 0.875rem 1.75rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-}
 
 .btn-primary {
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     border: none;
-    transition: all 0.3s ease;
 }
 
     .btn-primary:hover {
         background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
     }
 
 .btn-success {
@@ -593,202 +286,167 @@ html[data-theme-mode="dark"] .productos-dashboard .table thead th {
 
     .btn-success:hover {
         background: linear-gradient(135deg, #059669 0%, #047857 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
     }
 
-/* ============================================
-   CREAR FACTURA - MODALES (CONFIRMACIÓN Y PRODUCTOS)
-   Animaciones y colores base
-   ============================================ */
-.modal.show {
-    animation: fadeIn 0.3s ease;
+/* =========================================================
+   NUEVAS ANIMACIONES Y ESTILOS DE MODAL
+   ========================================================= */
+
+/* 1. ESTILO PREMIUM DE HEADERS DE MODAL */
+.modal-header.bg-primary {
+    /* Gradiente más rico y profundo */
+    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+    color: #ffffff;
+    /* Espaciado interno generoso */
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    /* Sombra sutil para separar del cuerpo */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-@keyframes fadeIn {
-    from {
+    .modal-header.bg-primary .modal-title {
+        font-weight: 700;
+        font-size: 1.2rem;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #ffffff !important;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Botón cerrar personalizado dentro del header */
+    .modal-header.bg-primary .btn-close-white {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        padding: 0.6rem;
+        background-size: 40%;
+        transition: all 0.3s ease;
+        opacity: 1;
+    }
+
+        .modal-header.bg-primary .btn-close-white:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+            transform: rotate(90deg) scale(1.1); /* Animación de rotación */
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+/* 2. Animación de Entrada para Cards (Formularios) */
+@keyframes slideInUpCard {
+    0% {
         opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 3. Animación de Entrada para el Modal (Pop In Elástico) */
+.modal.show .modal-dialog {
+    animation: modalPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes modalPopIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Clase opcional para salida si se usa JS para alternar clases */
+.modal.closing .modal-dialog {
+    animation: modalSlideOut 0.3s ease-in forwards;
+}
+
+@keyframes modalSlideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
     }
 
     to {
-        opacity: 1;
+        opacity: 0;
+        transform: translateY(-20px);
     }
 }
 
-/* Títulos de modales en bg-primary siempre blancos */
-.modal-header.bg-primary .modal-title,
-.modal-header.bg-primary .modal-title i {
-    color: #ffffff !important;
-}
-
-/* ============================================
-   MODAL DE PRODUCTOS - LEGIBILIDAD EN MODO OSCURO
-   Se aplica a la tabla y cabeceras del modal .modal-productos
-   ============================================ */
-.modal-productos .modal-header.bg-primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%);
-    color: #ffffff;
-}
-
-    .modal-productos .modal-header.bg-primary .modal-title,
-    .modal-productos .modal-header.bg-primary .modal-title i {
-        color: #ffffff;
+/* 4. Animación de Fila Seleccionada (Flash/Pulse) */
+@keyframes rowSelectionPulse {
+    0% {
+        background-color: rgba(99, 102, 241, 0.05);
+        transform: scale(1);
     }
 
-/* Cabecera de la tabla de productos dentro del modal */
-.modal-productos-table thead {
-    background-color: #111827;
-}
-
-    .modal-productos-table thead th {
-        color: #f9fafb;
-        border-color: rgba(249, 250, 251, 0.08);
+    50% {
+        background-color: rgba(99, 102, 241, 0.2);
+        transform: scale(1.01);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        z-index: 10;
+        position: relative;
     }
 
-/* Ajustes de badges y textos dentro de la tabla del modal */
-.modal-productos-table .badge.bg-secondary-subtle.text-dark {
-    background-color: rgba(31, 41, 55, 0.9);
-    color: #e5e7eb;
-}
-
-.modal-productos-table .badge.bg-info-subtle.text-info {
-    background-color: rgba(56, 189, 248, 0.12);
-    color: #38bdf8;
-}
-
-.modal-productos-table .badge.bg-warning-subtle.text-warning {
-    background-color: rgba(234, 179, 8, 0.12);
-    color: #eab308;
-}
-
-.modal-productos-table .badge.bg-secondary-subtle.text-secondary {
-    background-color: rgba(75, 85, 99, 0.18);
-    color: #e5e7eb;
-}
-
-/* Mejora de contraste para texto secundario dentro del modal de productos */
-.modal-productos-table td small.text-muted {
-    color: #9ca3af;
-}
-
-/* ============================================
-   CREAR FACTURA - COLORES TRANSPARENTES
-   Utilizados en badges y headers de cards
-   ============================================ */
-.bg-primary-transparent {
-    background-color: rgba(99, 102, 241, 0.1) !important;
-}
-
-.bg-info-transparent {
-    background-color: rgba(13, 202, 240, 0.1) !important;
-}
-
-.bg-success-transparent {
-    background-color: rgba(25, 135, 84, 0.1) !important;
-}
-
-.bg-secondary-transparent {
-    background-color: rgba(108, 117, 125, 0.1) !important;
-}
-
-.bg-light-hover:hover {
-    background-color: #f8f9fa;
-}
-
-/* ============================================
-   CREAR FACTURA - UTILIDADES VARIAS
-   Utilidades de cursor, badges y borde de cliente
-   ============================================ */
-.cursor-pointer {
-    cursor: pointer;
-}
-
-.border-success {
-    border-color: #10b981 !important;
-    border-width: 2px !important;
-}
-
-.badge {
-    padding: 0.375rem 0.75rem;
-    font-weight: 500;
-}
-
-/* ============================================
-   CREAR FACTURA - MODO OSCURO PARA AUTOCOMPLETADOS
-   Estilos para modo oscuro de clientes y productos
-   ============================================ */
-[data-theme-mode="dark"] .autocomplete-dropdown-custom,
-[data-theme-mode="dark"] .autocomplete-dropdown-productos {
-    background: var(--form-control-bg, #1f2937);
-    border-color: var(--default-border, #374151);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-}
-
-[data-theme-mode="dark"] .autocomplete-item-custom,
-[data-theme-mode="dark"] .autocomplete-item-producto {
-    background: transparent;
-    border-bottom-color: var(--default-border, #374151);
-    color: var(--default-text-color, #e5e7eb);
-}
-
-[data-theme-mode="dark"] .autocomplete-item-custom:hover,
-[data-theme-mode="dark"] .autocomplete-item-producto:hover {
-    background: linear-gradient(to right, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 100%);
-    border-left-color: #3b82f6;
-}
-
-[data-theme-mode="dark"] .autocomplete-item-custom .text-dark,
-[data-theme-mode="dark"] .autocomplete-item-producto .fw-semibold {
-    color: var(--default-text-color, #f3f4f6) !important;
-}
-
-[data-theme-mode="dark"] .autocomplete-item-custom .text-muted,
-[data-theme-mode="dark"] .autocomplete-item-producto small.text-muted {
-    color: var(--text-muted, #9ca3af) !important;
-}
-
-[data-theme-mode="dark"] .autocomplete-avatar {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
-}
-
-[data-theme-mode="dark"] .badge.bg-primary-transparent {
-    background-color: rgba(99, 102, 241, 0.2) !important;
-    color: #a5b4fc !important;
-}
-
-[data-theme-mode="dark"] .badge.bg-success-subtle {
-    background-color: rgba(34, 197, 94, 0.15) !important;
-    color: #4ade80 !important;
-}
-
-[data-theme-mode="dark"] .autocomplete-dropdown-custom::-webkit-scrollbar-track,
-[data-theme-mode="dark"] .autocomplete-dropdown-produtos::-webkit-scrollbar-track {
-    background: var(--form-control-bg, #1f2937);
-}
-
-[data-theme-mode="dark"] .autocomplete-dropdown-custom::-webkit-scrollbar-thumb,
-[data-theme-mode="dark"] .autocomplete-dropdown-produtos::-webkit-scrollbar-thumb {
-    background: var(--default-border, #4b5563);
-}
-
-/* ============================================
-   CREAR FACTURA - AJUSTES RESPONSIVE
-   Ajustes de autocomplete en dispositivos pequeños
-   ============================================ */
-@media (max-width: 768px) {
-    .autocomplete-dropdown-custom,
-    .autocomplete-dropdown-productos {
-        max-height: 240px;
-    }
-
-    .autocomplete-avatar {
-        width: 36px;
-        height: 36px;
-        font-size: 1.1rem;
-    }
-
-    .autocomplete-item-custom {
-        padding: 0.625rem 0.75rem;
+    100% {
+        transform: scale(1);
+        z-index: auto;
     }
 }
+
+.modal-productos-table .table-primary {
+    animation: rowSelectionPulse 0.4s ease-out forwards;
+}
+
+/* =========================================================
+   SOLUCIÓN TÉCNICA: Z-INDEX Y OVERFLOW
+   ========================================================= */
+
+/* 1. LIBERAR LA TABLA */
+.table-responsive:focus-within {
+    overflow: visible !important;
+}
+
+/* 2. JERARQUÍA DE FILAS */
+.table tbody tr {
+    position: relative;
+    z-index: 1;
+}
+
+    .table tbody tr:focus-within {
+        position: relative;
+        z-index: 100 !important;
+        background-color: var(--bs-body-bg, #fff);
+        box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    }
+
+[data-theme-mode="dark"] .table tbody tr:focus-within {
+    background-color: var(--bs-body-bg, #151521);
+}
+
+/* 3. JERARQUÍA DEL INPUT Y DROPDOWN */
+.table .input-group {
+    position: relative;
+}
+
+    .table .input-group:focus-within {
+        z-index: 1050;
+    }
+
+/* 4. CARD DROPDOWN (CLIENTES) - Bloqueo de animación */
+.card.custom-card.dropdown-activo {
+    z-index: 2000 !important;
+    overflow: visible !important;
+    transform: none !important;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
+}
+
+    .card.custom-card.dropdown-activo .card-body {
+        overflow: visible !important;
+    }

@@ -3,6 +3,7 @@
 @using CurrieTechnologies.Razor.SweetAlert2
 @using sistemaFacturacion.Models
 @attribute [Authorize]
+@implements IDisposable
 
 @inject IJSRuntime JSRuntime
 @inject IClientesApiClient ClientesApi
@@ -444,6 +445,9 @@ else
     private bool cargando = true;
     private string? error;
 
+    // CancellationTokenSource para cancelar operaciones async cuando el componente se destruye
+    private CancellationTokenSource _cts = new();
+
     private string? _filtroTexto;
     private string? _filtroTipo;
     private string? _filtroEstado;
@@ -555,16 +559,25 @@ else
             cargando = true;
             error = null;
 
-            clientes = await ClientesApi.GetAllAsync();
+            var ct = _cts.Token;
+
+            clientes = await ClientesApi.GetAllAsync(ct);
+
+            // Verificar cancelacion antes de actualizar estado
+            if (ct.IsCancellationRequested) return;
+
             totalClientes = clientes.Count;
 
-            var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+            var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode", ct);
+
+            if (ct.IsCancellationRequested) return;
+
             await Swal.FireAsync(new SweetAlertOptions
             {
                 Toast = true,
                 Position = SweetAlertPosition.TopEnd,
                 Icon = SweetAlertIcon.Success,
-                Title = $"✓ {totalClientes} clientes cargados",
+                Title = $"{totalClientes} clientes cargados",
                 ShowConfirmButton = false,
                 Timer = 2000,
                 TimerProgressBar = true,
@@ -572,8 +585,14 @@ else
                 Color = isDark ? "#e6e6e6" : null
             });
         }
+        catch (OperationCanceledException)
+        {
+            // Operacion cancelada por disposal del componente - comportamiento esperado
+        }
         catch (HttpRequestException ex)
         {
+            if (_cts.Token.IsCancellationRequested) return;
+
             error = $"Error al cargar clientes: {ex.Message}";
             await Swal.FireAsync(new SweetAlertOptions
             {
@@ -1018,5 +1037,12 @@ else
         if (mostrarNaturales == naturales) return;
         mostrarNaturales = naturales;
         pageIndex = 1;
+    }
+
+    // Libera recursos y cancela operaciones pendientes cuando el componente se destruye
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
     }
 }
