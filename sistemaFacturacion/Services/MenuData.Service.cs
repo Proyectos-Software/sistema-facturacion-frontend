@@ -99,35 +99,76 @@ public class MenuDataService
 
             }
         ),
+ // ───────────────────────────
+// SECCIÓN: REPORTES
+// ───────────────────────────
+new MainMenuItems(menuTitle: "Reportes"),
 
-        // ───────────────────────────
-        // SECCIÓN: REPORTES
-        // ───────────────────────────
-        new MainMenuItems(menuTitle: "Reportes"),
-
+new MainMenuItems(
+    type: "sub",
+    title: "Reportes",
+    svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu__icon' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M40 200h176' stroke='currentColor' stroke-width='16'/><rect x='48' y='48' width='64' height='120' rx='8' fill='none' stroke='currentColor' stroke-width='16'/><rect x='144' y='96' width='64' height='72' rx='8' fill='none' stroke='currentColor' stroke-width='16'/></svg>",
+    selected: false, active: false, dirChange: false,
+    children: new MainMenuItems[]
+    {
         new MainMenuItems(
-            type: "sub",
-            title: "Reportes",
-            svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu__icon' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M40 200h176' stroke='currentColor' stroke-width='16'/><rect x='48' y='48' width='64' height='120' rx='8' fill='none' stroke='currentColor' stroke-width='16'/><rect x='144' y='96' width='64' height='72' rx='8' fill='none' stroke='currentColor' stroke-width='16'/></svg>",
-            selected: false, active: false, dirChange: false,
-            children: new MainMenuItems[]
-            {
-                new MainMenuItems(
-                    path: "",
-                    type: "link",
-                    title: "Reportes Generales",
-                    selected: false, active: false, dirChange: false,
-                    roles: new[] { "Admin","Empleado" }
-                ),
-                new MainMenuItems(
-                    path: "",
-                    type: "link",
-                    title: "KPI & Métricas",
-                    selected: false, active: false, dirChange: false,
-                    roles: new[] { "Admin","Empleado" }
-                ),
-            }
+            path: "",
+            type: "link",
+            title: "Reportes Generales",
+            roles: new[] { "Admin", "Empleado" }
         ),
+        new MainMenuItems(
+            path: "",
+            type: "link",
+            title: "KPI & Métricas",
+            roles: new[] { "Admin", "Empleado" }
+        ),
+
+        // ---- DASHBOARDS DE AUDITORÍA (links normales) ----
+        new MainMenuItems(
+            path: "/dashboards/auditorias",
+            type: "link",
+            title: "Auditorías - General",
+            roles: new[] { "Admin", "Empleado" }
+        ),
+        new MainMenuItems(
+            path: "/dashboards/auditorias/seguridad",
+            type: "link",
+            title: "Auditoría de Seguridad",
+            roles: new[] { "Admin", "Empleado" }
+        ),
+        new MainMenuItems(
+            path: "/dashboards/auditorias/facturacion",
+            type: "link",
+            title: "Auditoría de Facturación",
+            roles: new[] { "Admin", "Empleado" }
+        ),
+        new MainMenuItems(
+            path: "/dashboards/auditorias/inventarios",
+            type: "link",
+            title: "Auditoría de Inventarios",
+            roles: new[] { "Admin", "Empleado" }
+        ),
+        new MainMenuItems(
+            path: "/dashboards/auditorias/productos",
+            type: "link",
+            title: "Auditoría de Productos",
+            roles: new[] { "Admin", "Empleado" }
+        ),
+        new MainMenuItems(
+            path: "/dashboards/auditorias/clientes",
+            type: "link",
+            title: "Auditoría de Clientes",
+            roles: new[] { "Admin", "Empleado" }
+        ),
+        new MainMenuItems(
+            path: "/dashboards/auditorias/configuracion",
+            type: "link",
+            title: "Auditoría de Configuración",
+            roles: new[] { "Admin" }
+        ),
+    }
+),
 
         // ───────────────────────────
 // SECCIÓN: CONFIGURACIÓN

@@ -1,0 +1,552 @@
+﻿@page "/dashboards/auditorias/facturacion"
+@using ApexCharts
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize]
+
+<div class="d-flex align-items-center justify-content-between page-header-breadcrumb mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="page-title fw-medium fs-20 mb-0">Auditoría de Facturación</h1>
+        <div class="text-muted fs-12">
+            Seguimiento de facturas, estados SRI y cambios en montos (datos de ejemplo).
+        </div>
+    </div>
+
+    <!-- Filtros sólo visuales -->
+    <div class="d-flex align-items-center flex-wrap gap-2">
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Desde</label>
+            <input type="date" class="form-control" @bind="FromDate" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Hasta</label>
+            <input type="date" class="form-control" @bind="ToDate" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Estado SRI</label>
+            <select class="form-select" @bind="SelectedSriStatus">
+                <option value="Todos">Todos</option>
+                <option value="RECIBIDA">Recibida</option>
+                <option value="DEVUELTA">Devuelta</option>
+                <option value="ERROR">Error</option>
+                <option value="NO_AUTORIZADA">No autorizada</option>
+                <option value="PENDIENTE">Pendiente</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Canal</label>
+            <select class="form-select" @bind="SelectedChannel">
+                <option value="Todos">Todos</option>
+                <option value="Electronica">Electrónica</option>
+                <option value="Fisica">Física / Punto de venta</option>
+            </select>
+        </div>
+
+        <div class="btn-list ms-2 mt-4">
+            <button class="btn btn-primary btn-wave">
+                <i class="ri-search-line me-1"></i> Aplicar filtros
+            </button>
+            <button class="btn btn-outline-secondary btn-wave">
+                <i class="ri-filter-off-line me-1"></i> Limpiar
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Columna izquierda: KPIs -->
+    <div class="col-xxl-3">
+        <div class="row">
+            <div class="col-12">
+                <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+                    <div class="card-body d-flex align-items-start gap-3">
+                        <div class="flex-fill">
+                            <span class="fs-13 fw-medium">Facturas emitidas</span>
+                            <h4 class="fw-semibold my-2">@TotalInvoices</h4>
+                            <span class="text-muted fs-11">En el período seleccionado</span>
+                        </div>
+                        <span class="avatar avatar-md bg-primary-transparent svg-primary">
+                            <i class="ri-file-list-3-line fs-20"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+                    <div class="card-body d-flex align-items-start gap-3">
+                        <div class="flex-fill">
+                            <span class="fs-13 fw-medium">Total facturado</span>
+                            <h4 class="fw-semibold my-2 text-success">
+                                @TotalAmount.ToString("C2")
+                            </h4>
+                            <span class="text-muted fs-11">
+                                Incluye IVA y notas de venta (mock).
+                            </span>
+                        </div>
+                        <span class="avatar avatar-md bg-success-transparent svg-success">
+                            <i class="ri-money-dollar-circle-line fs-20"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+                    <div class="card-body d-flex align-items-start gap-3">
+                        <div class="flex-fill">
+                            <span class="fs-13 fw-medium">Tasa de error SRI</span>
+                            <h4 class="fw-semibold my-2 text-danger">
+                                @SriErrorRate.ToString("P1")
+                            </h4>
+                            <span class="text-muted fs-11">
+                                Basado en estados ERROR / DEVUELTA (mock).
+                            </span>
+                        </div>
+                        <span class="avatar avatar-md bg-danger-transparent svg-danger">
+                            <i class="ri-alert-line fs-20"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini resumen último envío -->
+            <div class="col-12">
+                <div class="card custom-card">
+                    <div class="card-header justify-content-between">
+                        <div class="card-title mb-0">Último lote SRI</div>
+                        <span class="badge bg-primary-transparent text-primary fs-11">
+                            Simulado
+                        </span>
+                    </div>
+                    <div class="card-body pt-3 pb-2">
+                        <ul class="list-unstyled mb-0 fs-12">
+                            <li class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Facturas enviadas</span>
+                                <span class="fw-semibold">12</span>
+                            </li>
+                            <li class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Recibidas</span>
+                                <span class="text-success fw-semibold">9</span>
+                            </li>
+                            <li class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Devueltas</span>
+                                <span class="text-warning fw-semibold">2</span>
+                            </li>
+                            <li class="d-flex justify-content-between">
+                                <span class="text-muted">Con error</span>
+                                <span class="text-danger fw-semibold">1</span>
+                            </li>
+                        </ul>
+                        <small class="text-muted fs-11 d-block mt-2">
+                            Datos de ejemplo para visualizar el flujo de autorización.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna central: gráficos principales -->
+    <div class="col-xxl-6 mt-3 mt-xxl-0">
+        <div class="card custom-card mb-3">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Evolución diaria de facturación</div>
+                <span class="badge bg-primary-transparent text-primary fs-11">
+                    Últimos 7 días (mock)
+                </span>
+            </div>
+            <div class="card-body pt-3 pb-0">
+                <ApexChart TItem="FacturaDiaPoint" Height="260" Options="FacturacionDiariaOptions">
+                    <ApexPointSeries TItem="FacturaDiaPoint"
+                                     Items="FacturacionDiaria"
+                                     SeriesType="@SeriesType.Line"
+                                     Name="Total facturado"
+                                     XValue="@(p => p.Label)"
+                                     YValue="@(p => p.Total)" />
+                </ApexChart>
+            </div>
+        </div>
+
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Facturas por estado SRI</div>
+                <span class="text-muted fs-11">Distribución de documentos (mock)</span>
+            </div>
+            <div class="card-body pt-3 pb-1">
+                <ApexChart TItem="EstadoSriCount" Height="260" Options="FacturasPorEstadoOptions">
+                    <ApexPointSeries TItem="EstadoSriCount"
+                                     Items="FacturasPorEstado"
+                                     SeriesType="@SeriesType.Bar"
+                                     Name="Cantidad"
+                                     XValue="@(e => e.Estado)"
+                                     YValue="@(e => e.Cantidad)" />
+                </ApexChart>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna derecha: donut + top clientes -->
+    <div class="col-xxl-3 mt-3 mt-xxl-0">
+        <div class="card custom-card mb-3">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Ingreso por categoría de producto</div>
+            </div>
+            <div class="card-body">
+                <ApexChart TItem="CategoriaVentaPoint" Height="260" Options="IngresosPorCategoriaOptions">
+                    <ApexPointSeries TItem="CategoriaVentaPoint"
+                                     Items="IngresosPorCategoria"
+                                     SeriesType="@SeriesType.Donut"
+                                     Name="Ingresos"
+                                     XValue="@(c => c.Categoria)"
+                                     YValue="@(c => c.Total)" />
+                </ApexChart>
+
+                <ul class="list-unstyled mt-3 mb-0 fs-12 text-muted">
+                    @foreach (var c in IngresosPorCategoria)
+                    {
+                        <li class="d-flex justify-content-between">
+                            <span>@c.Categoria</span>
+                            <span class="fw-semibold">@c.Total.ToString("C2")</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Top clientes por facturación</div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    @foreach (var cli in TopClientes)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold">@cli.Nombre</div>
+                                <small class="text-muted">@cli.Identificacion</small>
+                            </div>
+                            <span class="badge bg-primary">
+                                @cli.Total.ToString("C2")
+                            </span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tablas: resumen de facturas y log SRI -->
+<div class="row mt-3">
+    <div class="col-xl-7">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Últimas facturas emitidas</div>
+                <span class="text-muted fs-11">Vista general (mock)</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Empleado</th>
+                            <th class="text-end">Total</th>
+                            <th>Estado SRI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var f in UltimasFacturas)
+                        {
+                            <tr>
+                                <td>@f.Numero</td>
+                                <td>@f.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@f.Cliente</td>
+                                <td>@f.Empleado</td>
+                                <td class="text-end">@f.Total.ToString("C2")</td>
+                                <td>
+                                    <span class="badge bg-@GetSriBadge(f.EstadoSri)">
+                                        @f.EstadoSri
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-5 mt-3 mt-xl-0">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Log SRI y eventos críticos</div>
+                <span class="text-muted fs-11">Basado en tabla SRI_LOG (mock)</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Código</th>
+                            <th>Mensaje</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in SriLogs)
+                        {
+                            <tr>
+                                <td>@log.Fecha.ToString("dd/MM HH:mm")</td>
+                                <td>@log.Codigo</td>
+                                <td>@log.Mensaje</td>
+                                <td>
+                                    <span class="badge bg-@GetSriBadge(log.Estado)">
+                                        @log.Estado
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historial de precios -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div>
+                    <div class="card-title mb-0">Cambios de precios recientes</div>
+                    <small class="text-muted fs-11">
+                        Simula la tabla HISTORIAL_PRECIO unida a PRODUCTOS y USUARIOS.
+                    </small>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Fecha cambio</th>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Usuario</th>
+                            <th class="text-end">Precio anterior</th>
+                            <th class="text-end">Precio nuevo</th>
+                            <th>Observación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var h in HistorialPrecios)
+                        {
+                            <tr>
+                                <td>@h.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@h.Producto</td>
+                                <td>@h.Categoria</td>
+                                <td>@h.Usuario</td>
+                                <td class="text-end">@h.PrecioAnterior.ToString("C2")</td>
+                                <td class="text-end">@h.PrecioNuevo.ToString("C2")</td>
+                                <td>@h.Observacion</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Filtros solo visuales
+    private DateTime FromDate { get; set; } = DateTime.Today.AddDays(-7);
+    private DateTime ToDate { get; set; } = DateTime.Today;
+    private string SelectedSriStatus { get; set; } = "Todos";
+    private string SelectedChannel { get; set; } = "Todos";
+
+    // KPIs (mock)
+    private int TotalInvoices => 28;
+    private decimal TotalAmount => 135.42m;
+    private decimal SriErrorRate => 0.18m;
+
+    // Datos para gráficos
+    private List<FacturaDiaPoint> FacturacionDiaria = new();
+    private List<EstadoSriCount> FacturasPorEstado = new();
+    private List<CategoriaVentaPoint> IngresosPorCategoria = new();
+
+    private ApexChartOptions<FacturaDiaPoint> FacturacionDiariaOptions = new();
+    private ApexChartOptions<EstadoSriCount> FacturasPorEstadoOptions = new();
+    private ApexChartOptions<CategoriaVentaPoint> IngresosPorCategoriaOptions = new();
+
+    // Tablas
+    private List<FacturaResumenRow> UltimasFacturas = new();
+    private List<SriLogRow> SriLogs = new();
+    private List<HistorialPrecioRow> HistorialPrecios = new();
+    private List<TopClienteRow> TopClientes = new();
+
+    protected override void OnInitialized()
+    {
+        // ----- MOCK: facturación diaria -----
+        FacturacionDiaria = new List<FacturaDiaPoint>
+        {
+            new() { Label = "01 dic", Total = 6.90m },
+            new() { Label = "02 dic", Total = 8.28m },
+            new() { Label = "03 dic", Total = 4.14m },
+            new() { Label = "04 dic", Total = 9.45m },
+            new() { Label = "05 dic", Total = 7.20m },
+            new() { Label = "06 dic", Total = 6.21m },
+            new() { Label = "07 dic", Total = 11.24m },
+        };
+
+        // ----- MOCK: facturas por estado -----
+        FacturasPorEstado = new List<EstadoSriCount>
+        {
+            new() { Estado = "RECIBIDA", Cantidad = 14 },
+            new() { Estado = "DEVUELTA", Cantidad = 6 },
+            new() { Estado = "ERROR", Cantidad = 3 },
+            new() { Estado = "NO_AUTORIZADA", Cantidad = 2 },
+            new() { Estado = "PENDIENTE", Cantidad = 3 },
+        };
+
+        // ----- MOCK: ingresos por categoría -----
+        IngresosPorCategoria = new List<CategoriaVentaPoint>
+        {
+            new() { Categoria = "Alimentos y Bebidas", Total = 45.20m },
+            new() { Categoria = "Papelería y Oficina", Total = 32.10m },
+            new() { Categoria = "Tecnología", Total = 28.40m },
+            new() { Categoria = "Servicios", Total = 29.72m },
+        };
+
+        // Opciones de gráficos (simples)
+        FacturacionDiariaOptions = new ApexChartOptions<FacturaDiaPoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Stroke = new Stroke { Curve = Curve.Smooth, Width = new List<double> { 3 } },
+            DataLabels = new DataLabels { Enabled = false }
+        };
+
+        FacturasPorEstadoOptions = new ApexChartOptions<EstadoSriCount>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar { ColumnWidth = "45%" }
+            },
+            DataLabels = new DataLabels { Enabled = false }
+        };
+
+        IngresosPorCategoriaOptions = new ApexChartOptions<CategoriaVentaPoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Legend = new Legend { Show = true }
+        };
+
+        // ----- MOCK: últimas facturas (mezclando FACTURAS, CLIENTES, EMPLEADOS) -----
+        UltimasFacturas = new List<FacturaResumenRow>
+        {
+            new() { Numero = "FAC-000021", Fecha = DateTime.Today.AddDays(-1), Cliente = "Pablo Reyes", Empleado = "Mesero", Total = 2.16m, EstadoSri = "RECIBIDA" },
+            new() { Numero = "FAC-000022", Fecha = DateTime.Today.AddDays(-1), Cliente = "Galleta", Empleado = "Recepcionista", Total = 2.16m, EstadoSri = "DEVUELTA" },
+            new() { Numero = "FAC-000023", Fecha = DateTime.Today.AddDays(-2), Cliente = "Fabricio Montesdeoca", Empleado = "SubDirector", Total = 2.16m, EstadoSri = "ERROR" },
+            new() { Numero = "FAC-000024", Fecha = DateTime.Today.AddDays(-2), Cliente = "Pato", Empleado = "Desarrollador", Total = 2.16m, EstadoSri = "NO_AUTORIZADA" },
+            new() { Numero = "FAC-000025", Fecha = DateTime.Today.AddDays(-3), Cliente = "Pedro Pazcal", Empleado = "Mesero", Total = 2.16m, EstadoSri = "RECIBIDA" },
+        };
+
+        // ----- MOCK: logs SRI -----
+        SriLogs = new List<SriLogRow>
+        {
+            new() { Fecha = DateTime.Today.AddHours(-1), Codigo = "35", Mensaje = "Archivo devuelto por inconsistencias", Estado = "DEVUELTA" },
+            new() { Fecha = DateTime.Today.AddHours(-2), Codigo = "ERROR_XML", Mensaje = "Error en estructura XML", Estado = "ERROR" },
+            new() { Fecha = DateTime.Today.AddHours(-4), Codigo = "EMPTY", Mensaje = "Respuesta vacía de SRI", Estado = "RECIBIDA" },
+            new() { Fecha = DateTime.Today.AddHours(-6), Codigo = "39", Mensaje = "Firma electrónica no válida", Estado = "NO_AUTORIZADA" },
+        };
+
+        // ----- MOCK: historial de precios -----
+        HistorialPrecios = new List<HistorialPrecioRow>
+        {
+            new() { Fecha = DateTime.Today.AddDays(-1), Producto = "Manzana", Categoria = "Alimentos y Bebidas", Usuario = "admin", PrecioAnterior = 0.69m, PrecioNuevo = 0.72m, Observacion = "Actualización por incremento de costos." },
+            new() { Fecha = DateTime.Today.AddDays(-2), Producto = "Tomates", Categoria = "Alimentos y Bebidas", Usuario = "admin", PrecioAnterior = 0.14m, PrecioNuevo = 0.14m, Observacion = "Ajuste por redondeo." },
+            new() { Fecha = DateTime.Today.AddDays(-3), Producto = "Cuaderno", Categoria = "Papelería y Oficina", Usuario = "admin", PrecioAnterior = 1.60m, PrecioNuevo = 1.60m, Observacion = "Confirmación de precio vigente." },
+        };
+
+        // ----- MOCK: top clientes -----
+        TopClientes = new List<TopClienteRow>
+        {
+            new() { Nombre = "Pablo Reyes", Identificacion = "1850858009", Total = 18.20m },
+            new() { Nombre = "Fabricio Montesdeoca", Identificacion = "1723077382001", Total = 15.10m },
+            new() { Nombre = "Gonzalo Perez", Identificacion = "1802543452", Total = 12.45m },
+        };
+    }
+
+    private string GetSriBadge(string estado) => estado switch
+    {
+        "RECIBIDA" => "success",
+        "DEVUELTA" => "warning",
+        "ERROR" => "danger",
+        "NO_AUTORIZADA" => "secondary",
+        "PENDIENTE" => "info",
+        _ => "secondary"
+    };
+
+    // DTOs internos para los mocks
+    public class FacturaDiaPoint
+    {
+        public string Label { get; set; } = "";
+        public decimal Total { get; set; }
+    }
+
+    public class EstadoSriCount
+    {
+        public string Estado { get; set; } = "";
+        public int Cantidad { get; set; }
+    }
+
+    public class CategoriaVentaPoint
+    {
+        public string Categoria { get; set; } = "";
+        public decimal Total { get; set; }
+    }
+
+    public class FacturaResumenRow
+    {
+        public string Numero { get; set; } = "";
+        public DateTime Fecha { get; set; }
+        public string Cliente { get; set; } = "";
+        public string Empleado { get; set; } = "";
+        public decimal Total { get; set; }
+        public string EstadoSri { get; set; } = "";
+    }
+
+    public class SriLogRow
+    {
+        public DateTime Fecha { get; set; }
+        public string Codigo { get; set; } = "";
+        public string Mensaje { get; set; } = "";
+        public string Estado { get; set; } = "";
+    }
+
+    public class HistorialPrecioRow
+    {
+        public DateTime Fecha { get; set; }
+        public string Producto { get; set; } = "";
+        public string Categoria { get; set; } = "";
+        public string Usuario { get; set; } = "";
+        public decimal PrecioAnterior { get; set; }
+        public decimal PrecioNuevo { get; set; }
+        public string Observacion { get; set; } = "";
+    }
+
+    public class TopClienteRow
+    {
+        public string Nombre { get; set; } = "";
+        public string Identificacion { get; set; } = "";
+        public decimal Total { get; set; }
+    }
+}
