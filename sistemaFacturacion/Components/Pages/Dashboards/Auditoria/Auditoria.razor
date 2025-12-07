@@ -1,0 +1,589 @@
+﻿@page "/dashboards/auditorias"
+@using ApexCharts
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize]
+
+<div class="d-flex align-items-center justify-content-between page-header-breadcrumb mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="page-title fw-medium fs-20 mb-0">Dashboard de Auditorías</h1>
+        <div class="text-muted fs-12">
+            Actividad del sistema, cambios críticos y eventos de seguridad (datos de ejemplo).
+        </div>
+    </div>
+
+    <!-- Filtros visuales (mock, sin lógica aún) -->
+    <div class="d-flex align-items-center flex-wrap gap-2">
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Desde</label>
+            <input type="date" class="form-control" @bind="FromDate" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Hasta</label>
+            <input type="date" class="form-control" @bind="ToDate" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Módulo</label>
+            <select class="form-select" @bind="SelectedModule">
+                <option value="Todos">Todos</option>
+                <option value="Facturación">Facturación</option>
+                <option value="Inventario">Inventario</option>
+                <option value="Seguridad">Seguridad</option>
+                <option value="Clientes">Clientes</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Acción</label>
+            <select class="form-select" @bind="SelectedAction">
+                <option value="Todas">Todas</option>
+                <option value="INSERT">Insert</option>
+                <option value="UPDATE">Update</option>
+                <option value="DELETE">Delete</option>
+                <option value="LOGIN">Login</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Usuario</label>
+            <select class="form-select" @bind="SelectedUser">
+                <option value="Todos">Todos</option>
+                <option value="admin">admin</option>
+                <option value="jperez">jperez</option>
+                <option value="mcastro">mcastro</option>
+            </select>
+        </div>
+
+        <div class="btn-list ms-2 mt-4">
+            <button class="btn btn-primary btn-wave">
+                <i class="ri-search-line me-1"></i> Aplicar filtros
+            </button>
+            <button class="btn btn-outline-secondary btn-wave">
+                <i class="ri-filter-off-line me-1"></i> Limpiar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Sin loading ni errores, solo mocks -->
+
+<div class="row">
+    <!-- Columna izquierda: KPIs + mini calendario -->
+    <div class="col-xxl-3">
+        <div class="row">
+            <!-- POCAS KPIs, SOLO INFORMATIVAS -->
+            <div class="col-12">
+                <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+                    <div class="card-body d-flex align-items-start gap-3">
+                        <div class="flex-fill">
+                            <span class="fs-13 fw-medium">Acciones registradas</span>
+                            <h4 class="fw-semibold my-2">1 258</h4>
+                            <span class="text-muted fs-11">En el período seleccionado</span>
+                        </div>
+                        <span class="avatar avatar-md bg-primary-transparent svg-primary">
+                            <i class="ri-list-check-2-line fs-20"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+                    <div class="card-body d-flex align-items-start gap-3">
+                        <div class="flex-fill">
+                            <span class="fs-13 fw-medium">Acciones críticas</span>
+                            <h4 class="fw-semibold my-2 text-danger">32</h4>
+                            <span class="text-muted fs-11">
+                                Cambios de rol, precios, stock y configuración.
+                            </span>
+                        </div>
+                        <span class="avatar avatar-md bg-danger-transparent svg-danger">
+                            <i class="ri-error-warning-line fs-20"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini calendario de actividad -->
+            <div class="col-12">
+                <div class="card custom-card">
+                    <div class="card-header justify-content-between">
+                        <div class="card-title mb-0">Calendario de actividad</div>
+                        <span class="text-muted fs-11">
+                            @DateTime.Today.ToString("MMMM yyyy")
+                        </span>
+                    </div>
+                    <div class="card-body pt-2 pb-1">
+                        <table class="table table-borderless text-center mb-1 small-calendar">
+                            <thead class="text-muted fs-11">
+                                <tr>
+                                    <th>L</th>
+                                    <th>M</th>
+                                    <th>X</th>
+                                    <th>J</th>
+                                    <th>V</th>
+                                    <th>S</th>
+                                    <th>D</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int row = 0; row < 5; row++)
+                                {
+                                    <tr>
+                                        @for (int col = 0; col < 7; col++)
+                                        {
+                                            var index = row * 7 + col;
+                                            if (index < CalendarDays.Count)
+                                            {
+                                                var day = CalendarDays[index];
+                                                <td>
+                                                    <span class="badge rounded-circle @GetCalendarBadgeClass(day.Intensity)"
+                                                          style="width:26px;height:26px;line-height:18px;">
+                                                        @day.Day
+                                                    </span>
+                                                </td>
+                                            }
+                                            else
+                                            {
+                                                <td></td>
+                                            }
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <small class="text-muted fs-11">
+                            Tonos más fuertes indican días con mayor actividad (mock).
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna central: línea + barras -->
+    <div class="col-xxl-6 mt-3 mt-xxl-0">
+        <div class="card custom-card mb-3">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Actividad del sistema en el tiempo</div>
+                <span class="badge bg-primary-transparent text-primary fs-11">
+                    Últimos 7 días (mock)
+                </span>
+            </div>
+            <div class="card-body pt-3 pb-0">
+                <ApexChart TItem="AuditActivityPoint" Height="260" Options="ActivityChartOptions">
+                    <ApexPointSeries TItem="AuditActivityPoint"
+                                     Items="ActivityOverTime"
+                                     SeriesType="@SeriesType.Line"
+                                     Name="Acciones"
+                                     XValue="@(p => p.Label)"
+                                     YValue="@(p => p.Count)" />
+                </ApexChart>
+            </div>
+        </div>
+
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Acciones por módulo</div>
+            </div>
+            <div class="card-body pt-3 pb-1">
+                <ApexChart TItem="AuditModuleCount" Height="260" Options="ModulesChartOptions">
+                    <ApexPointSeries TItem="AuditModuleCount"
+                                     Items="ActionsByModule"
+                                     SeriesType="@SeriesType.Bar"
+                                     Name="Acciones"
+                                     XValue="@(m => m.Module)"
+                                     YValue="@(m => m.Count)" />
+                </ApexChart>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna derecha: donut + alertas -->
+    <div class="col-xxl-3 mt-3 mt-xxl-0">
+        <div class="card custom-card mb-3">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Distribución por tipo de acción</div>
+            </div>
+            <div class="card-body">
+                <ApexChart TItem="AuditActionTypePoint" Height="260" Options="ActionTypeChartOptions">
+                    <ApexPointSeries TItem="AuditActionTypePoint"
+                                     Items="ActionsByType"
+                                     SeriesType="@SeriesType.Donut"
+                                     Name="Tipos de acción"
+                                     XValue="@(a => a.Label)"
+                                     YValue="@(a => (decimal)a.Count)" />
+                </ApexChart>
+
+                <ul class="list-unstyled mt-3 mb-0 fs-12 text-muted">
+                    <li><span class="badge bg-primary me-1">&nbsp;</span> Insert</li>
+                    <li><span class="badge bg-warning me-1">&nbsp;</span> Update</li>
+                    <li><span class="badge bg-danger me-1">&nbsp;</span> Delete</li>
+                    <li><span class="badge bg-success me-1">&nbsp;</span> Login</li>
+                </ul>
+            </div>
+        </div>
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Alertas recientes</div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    @foreach (var alert in RiskAlerts)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold">@alert.Title</div>
+                                <small class="text-muted">@alert.Description</small>
+                            </div>
+                            <span class="badge bg-@alert.BadgeClass">@alert.Severity</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tablas de cambios -->
+<div class="row mt-3">
+    <div class="col-xl-6">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Cambios de Seguridad</div>
+                <span class="text-muted fs-11">Usuarios, roles, configuración, accesos</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Detalle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in SecurityChanges)
+                        {
+                            <tr>
+                                <td>@row.Date.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@row.User</td>
+                                <td>
+                                    <span class="badge bg-@GetActionBadge(row.Action)">
+                                        @row.Action
+                                    </span>
+                                </td>
+                                <td>@row.Description</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-6 mt-3 mt-xl-0">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Cambios en Facturación / Stock</div>
+                <span class="text-muted fs-11">Precios, facturas, lotes, inventario</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Tabla</th>
+                            <th>Acción</th>
+                            <th>Detalle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in BillingChanges)
+                        {
+                            <tr>
+                                <td>@row.Date.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@row.User</td>
+                                <td>@row.Table</td>
+                                <td>
+                                    <span class="badge bg-@GetActionBadge(row.Action)">
+                                        @row.Action
+                                    </span>
+                                </td>
+                                <td>@row.Description</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Registro detallado -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div>
+                    <div class="card-title mb-0">Registro detallado de auditoría</div>
+                    <small class="text-muted fs-11">
+                        Muestra una vista consolidada de las últimas acciones registradas.
+                    </small>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Módulo</th>
+                            <th>Tabla</th>
+                            <th>Acción</th>
+                            <th>Registro</th>
+                            <th>Detalle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in AuditLog)
+                        {
+                            <tr>
+                                <td>@row.Date.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@row.User</td>
+                                <td>@row.Module</td>
+                                <td>@row.Table</td>
+                                <td>
+                                    <span class="badge bg-@GetActionBadge(row.Action)">
+                                        @row.Action
+                                    </span>
+                                </td>
+                                <td>#@row.RecordId</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary-light">
+                                        Ver detalle
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // --- Filtros (solo visuales por ahora) ---
+    private DateTime FromDate { get; set; } = DateTime.Today.AddDays(-7);
+    private DateTime ToDate { get; set; } = DateTime.Today;
+    private string SelectedModule { get; set; } = "Todos";
+    private string SelectedAction { get; set; } = "Todas";
+    private string SelectedUser { get; set; } = "Todos";
+
+    // --- Datos mock para gráficos ---
+    private List<AuditActivityPoint> ActivityOverTime = new()
+    {
+        new() { Label = "01 dic", Count = 18 },
+        new() { Label = "02 dic", Count = 22 },
+        new() { Label = "03 dic", Count = 15 },
+        new() { Label = "04 dic", Count = 27 },
+        new() { Label = "05 dic", Count = 19 },
+        new() { Label = "06 dic", Count = 24 },
+        new() { Label = "07 dic", Count = 29 },
+    };
+
+    private List<AuditModuleCount> ActionsByModule = new()
+    {
+        new() { Module = "Facturación", Count = 420 },
+        new() { Module = "Inventario", Count = 260 },
+        new() { Module = "Seguridad", Count = 95 },
+        new() { Module = "Clientes", Count = 130 },
+    };
+
+    private List<AuditActionTypePoint> ActionsByType = new()
+    {
+        new() { Label = "Insert", Count = 520 },
+        new() { Label = "Update", Count = 430 },
+        new() { Label = "Delete", Count = 110 },
+        new() { Label = "Login", Count = 198 },
+    };
+
+    private ApexChartOptions<AuditActivityPoint> ActivityChartOptions = new();
+    private ApexChartOptions<AuditModuleCount> ModulesChartOptions = new();
+    private ApexChartOptions<AuditActionTypePoint> ActionTypeChartOptions = new();
+
+    // --- Tablas mock ---
+    private List<AuditRow> SecurityChanges = new();
+    private List<AuditRow> BillingChanges = new();
+    private List<AuditDetailRow> AuditLog = new();
+
+    private List<RiskAlertRow> RiskAlerts = new()
+    {
+        new() { Title = "Múltiples intentos de login fallidos",
+                Description = "Usuario jperez – 5 intentos en 3 minutos.",
+                Severity = "Alta", BadgeClass = "danger" },
+        new() { Title = "Cambio de rol a Administrador",
+                Description = "Usuario mcastro asignó rol Admin a lrodriguez.",
+                Severity = "Crítica", BadgeClass = "danger" },
+        new() { Title = "Cambio de precios masivo",
+                Description = "Actualización de lista de precios en Inventario.",
+                Severity = "Media", BadgeClass = "warning" },
+    };
+
+    // Mini calendario
+    private List<AuditCalendarDay> CalendarDays = new();
+
+    protected override void OnInitialized()
+    {
+        // Datos mock de tablas
+        SecurityChanges = new List<AuditRow>
+        {
+            new() { Date = DateTime.Today.AddHours(-2), User = "admin", Table = "USUARIOS",
+                    Action = "UPDATE", Description = "Actualizó correo y teléfono de usuario jperez." },
+            new() { Date = DateTime.Today.AddHours(-5), User = "admin", Table = "ROLES",
+                    Action = "UPDATE", Description = "Asignó rol 'Supervisor' a mcastro." },
+            new() { Date = DateTime.Today.AddDays(-1).AddHours(-1), User = "jperez", Table = "RECUPERACIONES_CONTRASENA",
+                    Action = "INSERT", Description = "Registro de recuperación de contraseña para cliente externo." },
+        };
+
+        BillingChanges = new List<AuditRow>
+        {
+            new() { Date = DateTime.Today.AddHours(-3), User = "mcastro", Table = "HISTORIAL_PRECIO",
+                    Action = "UPDATE", Description = "Precio de PROD-001 pasó de 10.50 a 12.00." },
+            new() { Date = DateTime.Today.AddHours(-6), User = "jperez", Table = "FACTURAS",
+                    Action = "DELETE", Description = "Anulación de factura #001-002-0000123." },
+            new() { Date = DateTime.Today.AddDays(-1).AddHours(-4), User = "jperez", Table = "MOVIMIENTO_STOCK",
+                    Action = "INSERT", Description = "Ingreso de 50 unidades al lote L-2025-01." },
+        };
+
+        AuditLog = new List<AuditDetailRow>
+        {
+            new() { Date = DateTime.Today.AddMinutes(-25), User = "jperez", Module = "Facturación",
+                    Table = "FACTURAS", Action = "INSERT", RecordId = 1203 },
+            new() { Date = DateTime.Today.AddMinutes(-40), User = "admin", Module = "Seguridad",
+                    Table = "USUARIOS", Action = "UPDATE", RecordId = 5 },
+            new() { Date = DateTime.Today.AddHours(-1), User = "mcastro", Module = "Inventario",
+                    Table = "PRODUCTOS", Action = "UPDATE", RecordId = 87 },
+            new() { Date = DateTime.Today.AddHours(-2), User = "admin", Module = "Seguridad",
+                    Table = "ROLES", Action = "UPDATE", RecordId = 3 },
+            new() { Date = DateTime.Today.AddHours(-3), User = "jperez", Module = "Facturación",
+                    Table = "FACTURAS", Action = "DELETE", RecordId = 1190 },
+        };
+
+        // Opciones de gráficos (mock)
+        ActivityChartOptions = new ApexChartOptions<AuditActivityPoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Stroke = new Stroke { Curve = Curve.Smooth, Width = new List<double> { 3 } },
+            DataLabels = new DataLabels { Enabled = false }
+        };
+
+        ModulesChartOptions = new ApexChartOptions<AuditModuleCount>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar { ColumnWidth = "45%" }
+            },
+            DataLabels = new DataLabels { Enabled = false }
+        };
+
+        ActionTypeChartOptions = new ApexChartOptions<AuditActionTypePoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Legend = new Legend { Show = false }
+        };
+
+        // Generar días del mes actual para el mini calendario (mock)
+        var today = DateTime.Today;
+        int year = today.Year;
+        int month = today.Month;
+        int daysInMonth = DateTime.DaysInMonth(year, month);
+
+        var rnd = new Random(1); // fijo para que siempre se vea igual
+        CalendarDays.Clear();
+        for (int d = 1; d <= daysInMonth; d++)
+        {
+            CalendarDays.Add(new AuditCalendarDay
+            {
+                Day = d,
+                // 0 = sin actividad, 1 = baja, 2 = media, 3 = alta
+                Intensity = rnd.Next(0, 4)
+            });
+        }
+    }
+
+    private string GetActionBadge(string action) => action switch
+    {
+        "INSERT" => "primary",
+        "UPDATE" => "warning",
+        "DELETE" => "danger",
+        "LOGIN" => "success",
+        _ => "secondary"
+    };
+
+    private string GetCalendarBadgeClass(int intensity) => intensity switch
+    {
+        3 => "bg-primary text-white",
+        2 => "bg-primary-transparent text-primary",
+        1 => "bg-light text-body",
+        _ => "bg-transparent text-muted"
+    };
+
+    // --- DTOs mock internos ---
+    public class AuditActivityPoint
+    {
+        public string Label { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    public class AuditModuleCount
+    {
+        public string Module { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    public class AuditActionTypePoint
+    {
+        public string Label { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    public class AuditRow
+    {
+        public DateTime Date { get; set; }
+        public string User { get; set; } = "";
+        public string Table { get; set; } = "";
+        public string Action { get; set; } = "";
+        public string Description { get; set; } = "";
+    }
+
+    public class AuditDetailRow
+    {
+        public DateTime Date { get; set; }
+        public string User { get; set; } = "";
+        public string Module { get; set; } = "";
+        public string Table { get; set; } = "";
+        public string Action { get; set; } = "";
+        public int RecordId { get; set; }
+    }
+
+    public class RiskAlertRow
+    {
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Severity { get; set; } = "";
+        public string BadgeClass { get; set; } = "warning";
+    }
+
+    public class AuditCalendarDay
+    {
+        public int Day { get; set; }
+        public int Intensity { get; set; }
+    }
+}

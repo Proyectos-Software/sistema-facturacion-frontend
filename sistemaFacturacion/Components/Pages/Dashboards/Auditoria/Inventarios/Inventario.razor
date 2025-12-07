@@ -1,0 +1,615 @@
+﻿@page "/dashboards/auditorias/inventarios"
+@using ApexCharts
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize]
+
+<div class="d-flex align-items-center justify-content-between page-header-breadcrumb mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="page-title fw-medium fs-20 mb-0">Auditoría de Inventario & Lotes</h1>
+        <div class="text-muted fs-12">
+            Seguimiento de stock disponible, lotes, movimientos y alertas de inventario (datos de ejemplo).
+        </div>
+    </div>
+
+    <!-- Filtros visuales (mock, listos para backend) -->
+    <div class="d-flex align-items-center flex-wrap gap-2">
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Desde</label>
+            <input type="date" class="form-control" @bind="FromDate" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Hasta</label>
+            <input type="date" class="form-control" @bind="ToDate" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Producto</label>
+            <select class="form-select" @bind="SelectedProductCode">
+                <option value="Todos">Todos</option>
+                @foreach (var p in ProductFilters)
+                {
+                    <option value="@p.Code">@p.DisplayName</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Tipo de movimiento</label>
+            <select class="form-select" @bind="SelectedMovementType">
+                <option value="Todos">Todos</option>
+                <option value="Entrada">Entrada</option>
+                <option value="Salida">Salida</option>
+                <option value="Ajuste">Ajuste</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Usuario</label>
+            <select class="form-select" @bind="SelectedUser">
+                <option value="Todos">Todos</option>
+                @foreach (var u in UserFilters)
+                {
+                    <option value="@u">@u</option>
+                }
+            </select>
+        </div>
+
+        <div class="btn-list ms-2 mt-4">
+            <button class="btn btn-primary btn-wave" @onclick="OnApplyFilters">
+                <i class="ri-search-line me-1"></i> Aplicar filtros
+            </button>
+            <button class="btn btn-outline-secondary btn-wave" @onclick="OnClearFilters">
+                <i class="ri-filter-off-line me-1"></i> Limpiar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- FILA SUPERIOR: KPIs + GRÁFICOS + ALERTAS -->
+<div class="row">
+    <!-- Columna izquierda: KPIs -->
+    <div class="col-xxl-3">
+        <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+            <div class="card-body d-flex align-items-start gap-3">
+                <div class="flex-fill">
+                    <span class="fs-13 fw-medium">Stock total disponible</span>
+                    <h4 class="fw-semibold my-2">@KpiTotalStock unidades</h4>
+                    <span class="text-muted fs-11">Suma de CAN_DIS en lotes activos (mock).</span>
+                </div>
+                <span class="avatar avatar-md bg-primary-transparent svg-primary">
+                    <i class="ri-archive-2-line fs-20"></i>
+                </span>
+            </div>
+        </div>
+
+        <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+            <div class="card-body d-flex align-items-start gap-3">
+                <div class="flex-fill">
+                    <span class="fs-13 fw-medium">Productos con stock crítico</span>
+                    <h4 class="fw-semibold my-2 text-warning">@KpiCriticalProducts</h4>
+                    <span class="text-muted fs-11">Por debajo del mínimo sugerido.</span>
+                </div>
+                <span class="avatar avatar-md bg-warning-transparent svg-warning">
+                    <i class="ri-error-warning-line fs-20"></i>
+                </span>
+            </div>
+        </div>
+
+        <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+            <div class="card-body d-flex align-items-start gap-3">
+                <div class="flex-fill">
+                    <span class="fs-13 fw-medium">Lotes activos</span>
+                    <h4 class="fw-semibold my-2">@KpiActiveLots</h4>
+                    <span class="text-muted fs-11">Con estado activo en la tabla LOTES.</span>
+                </div>
+                <span class="avatar avatar-md bg-success-transparent svg-success">
+                    <i class="ri-stack-line fs-20"></i>
+                </span>
+            </div>
+        </div>
+
+        <div class="card custom-card dashboard-main-card overflow-hidden">
+            <div class="card-body d-flex align-items-start gap-3">
+                <div class="flex-fill">
+                    <span class="fs-13 fw-medium">Lotes próximos a vencer</span>
+                    <h4 class="fw-semibold my-2 text-danger">@KpiExpiringLots</h4>
+                    <span class="text-muted fs-11">Dentro de los próximos 30 días.</span>
+                </div>
+                <span class="avatar avatar-md bg-danger-transparent svg-danger">
+                    <i class="ri-timer-2-line fs-20"></i>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna central: gráficos de stock -->
+    <div class="col-xxl-6 mt-3 mt-xxl-0">
+        <div class="card custom-card mb-3">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Evolución del stock total</div>
+                <span class="text-muted fs-11">Basado en movimientos de inventario (mock).</span>
+            </div>
+            <div class="card-body pt-3 pb-0">
+                <ApexChart TItem="InventoryLevelPoint" Height="260" Options="InventoryLineOptions">
+                    <ApexPointSeries TItem="InventoryLevelPoint"
+                                     Items="InventoryLevels"
+                                     SeriesType="@SeriesType.Line"
+                                     Name="Stock total"
+                                     XValue="@(p => p.Label)"
+                                     YValue="@(p => p.TotalStock)" />
+                </ApexChart>
+            </div>
+        </div>
+
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Stock disponible por producto</div>
+                <span class="text-muted fs-11">Suma de CAN_DIS por ID_PRO (mock).</span>
+            </div>
+            <div class="card-body pt-3 pb-1">
+                <ApexChart TItem="InventoryProductStock" Height="260" Options="InventoryBarOptions">
+                    <ApexPointSeries TItem="InventoryProductStock"
+                                     Items="StockByProduct"
+                                     SeriesType="@SeriesType.Bar"
+                                     Name="Unidades disponibles"
+                                     XValue="@(p => p.ProductCode)"
+                                     YValue="@(p => p.AvailableQuantity)" />
+                </ApexChart>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna derecha: distribución de movimientos + alertas -->
+    <div class="col-xxl-3 mt-3 mt-xxl-0">
+        <div class="card custom-card mb-3">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Distribución por tipo de movimiento</div>
+            </div>
+            <div class="card-body">
+                <ApexChart TItem="InventoryMovementTypePoint" Height="260" Options="MovementDonutOptions">
+                    <ApexPointSeries TItem="InventoryMovementTypePoint"
+                                     Items="MovementDistribution"
+                                     SeriesType="@SeriesType.Donut"
+                                     Name="Movimientos"
+                                     XValue="@(m => m.MovementType)"
+                                     YValue="@(m => (decimal)m.Count)" />
+                </ApexChart>
+
+                <ul class="list-unstyled mt-3 mb-0 fs-12 text-muted">
+                    <li><span class="badge bg-success me-1">&nbsp;</span> Entradas</li>
+                    <li><span class="badge bg-primary me-1">&nbsp;</span> Salidas</li>
+                    <li><span class="badge bg-warning me-1">&nbsp;</span> Ajustes</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Alertas de inventario</div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    @foreach (var alert in InventoryAlerts)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold">@alert.Title</div>
+                                <small class="text-muted">@alert.Description</small>
+                            </div>
+                            <span class="badge bg-@alert.BadgeClass">@alert.Severity</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FILA INFERIOR: TABLAS DETALLADAS -->
+<div class="row mt-3">
+    <!-- Lotes activos y próximos a vencer -->
+    <div class="col-xl-7">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Lotes activos y próximos a vencer</div>
+                <span class="text-muted fs-11">Datos simulados a partir de LOTES.</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 fs-12">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Código lote</th>
+                            <th>F. compra</th>
+                            <th>F. expira</th>
+                            <th>Stock disp.</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var lot in LotsTable)
+                        {
+                            <tr>
+                                <td>@lot.ProductName</td>
+                                <td>@lot.LotCode</td>
+                                <td>@lot.PurchaseDate.ToString("dd/MM/yyyy")</td>
+                                <td>@lot.ExpirationDate.ToString("dd/MM/yyyy")</td>
+                                <td>@lot.AvailableQuantity</td>
+                                <td>
+                                    <span class="badge bg-@lot.BadgeClass">@lot.StatusLabel</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movimientos recientes -->
+    <div class="col-xl-5 mt-3 mt-xl-0">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Movimientos de inventario recientes</div>
+                <span class="text-muted fs-11">Basado en MOVIMIENTO_STOCK (mock).</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 fs-12">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Producto</th>
+                            <th>Tipo</th>
+                            <th>Cant.</th>
+                            <th>Lote</th>
+                            <th>Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in MovementTable)
+                        {
+                            <tr>
+                                <td>@row.MovementDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@row.ProductName</td>
+                                <td><span class="badge bg-@row.BadgeClass">@row.MovementType</span></td>
+                                <td>@row.Quantity</td>
+                                <td>@row.LotCode</td>
+                                <td>@row.UserName</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Filtros (visuales)
+    private DateTime FromDate { get; set; } = DateTime.Today.AddDays(-15);
+    private DateTime ToDate { get; set; } = DateTime.Today;
+    private string SelectedProductCode { get; set; } = "Todos";
+    private string SelectedMovementType { get; set; } = "Todos";
+    private string SelectedUser { get; set; } = "Todos";
+
+    private List<ProductFilterItem> ProductFilters = new();
+    private List<string> UserFilters = new();
+
+    // KPIs
+    private int KpiTotalStock;
+    private int KpiCriticalProducts;
+    private int KpiActiveLots;
+    private int KpiExpiringLots;
+
+    // Gráficos
+    private List<InventoryLevelPoint> InventoryLevels = new();
+    private List<InventoryProductStock> StockByProduct = new();
+    private List<InventoryMovementTypePoint> MovementDistribution = new();
+
+    private ApexChartOptions<InventoryLevelPoint> InventoryLineOptions = new();
+    private ApexChartOptions<InventoryProductStock> InventoryBarOptions = new();
+    private ApexChartOptions<InventoryMovementTypePoint> MovementDonutOptions = new();
+
+    // Tablas
+    private List<InventoryLotRow> LotsTable = new();
+    private List<InventoryMovementRow> MovementTable = new();
+    private List<InventoryAlertRow> InventoryAlerts = new();
+
+    protected override Task OnInitializedAsync()
+    {
+        // En producción aquí llamarías a un servicio de auditoría de inventario:
+        // await _auditoriaInventarioService.CargarDashboardAsync(...);
+
+        LoadMockFilters();
+        LoadMockData();
+        ConfigureCharts();
+
+        return Task.CompletedTask;
+    }
+
+    private void OnApplyFilters()
+    {
+        // TODO: conectar con backend usando los filtros.
+        LoadMockData();
+    }
+
+    private void OnClearFilters()
+    {
+        FromDate = DateTime.Today.AddDays(-15);
+        ToDate = DateTime.Today;
+        SelectedProductCode = "Todos";
+        SelectedMovementType = "Todos";
+        SelectedUser = "Todos";
+
+        LoadMockData();
+    }
+
+    private void LoadMockFilters()
+    {
+        ProductFilters = new List<ProductFilterItem>
+        {
+            new() { Code = "PRO-0009", DisplayName = "PRO-0009 • Manzana" },
+            new() { Code = "PRO-0010", DisplayName = "PRO-0010 • Tomates" },
+            new() { Code = "PRO-0011", DisplayName = "PRO-0011 • Cuaderno" },
+        };
+
+        UserFilters = new List<string> { "admin", "jperez", "mcastro" };
+    }
+
+    private void LoadMockData()
+    {
+        // KPIs (simulados en base a tus lotes de ejemplo)
+        KpiTotalStock = 40 + 30 + 50 + 50 + 200 + 10; // CAN_DIS de tus lotes de ejemplo
+        KpiCriticalProducts = 2;
+        KpiActiveLots = 6;
+        KpiExpiringLots = 3;
+
+        // Línea de stock total a lo largo del tiempo
+        InventoryLevels = new List<InventoryLevelPoint>
+        {
+            new() { Label = "01 dic", TotalStock = 250 },
+            new() { Label = "03 dic", TotalStock = 270 },
+            new() { Label = "05 dic", TotalStock = 310 },
+            new() { Label = "07 dic", TotalStock = 295 },
+            new() { Label = "09 dic", TotalStock = 330 },
+            new() { Label = "11 dic", TotalStock = 380 },
+        };
+
+        // Stock disponible por producto (simulando LOTES agrupados por ID_PRO)
+        StockByProduct = new List<InventoryProductStock>
+        {
+            new() { ProductCode = "PRO-0009", ProductName = "Manzana", AvailableQuantity = 100 },
+            new() { ProductCode = "PRO-0010", ProductName = "Tomates", AvailableQuantity = 120 },
+            new() { ProductCode = "PRO-0011", ProductName = "Cuaderno", AvailableQuantity = 80 },
+        };
+
+        // Distribución por tipo de movimiento (MOVIMIENTO_STOCK)
+        MovementDistribution = new List<InventoryMovementTypePoint>
+        {
+            new() { MovementType = "Entradas", Count = 15 },
+            new() { MovementType = "Salidas", Count = 11 },
+            new() { MovementType = "Ajustes", Count = 3 },
+        };
+
+        // Lotes (LOTES)
+        LotsTable = new List<InventoryLotRow>
+        {
+            new()
+            {
+                ProductName = "PRO-0009 • Manzana",
+                LotCode = "LOT-00020",
+                PurchaseDate = DateTime.Parse("2025-11-22"),
+                ExpirationDate = DateTime.Parse("2026-11-22"),
+                AvailableQuantity = 40,
+                StatusLabel = "Activo",
+                BadgeClass = "success"
+            },
+            new()
+            {
+                ProductName = "PRO-0010 • Tomates",
+                LotCode = "LOT-00021",
+                PurchaseDate = DateTime.Parse("2025-11-22"),
+                ExpirationDate = DateTime.Today.AddDays(15),
+                AvailableQuantity = 30,
+                StatusLabel = "Próx. a vencer",
+                BadgeClass = "warning"
+            },
+            new()
+            {
+                ProductName = "PRO-0009 • Manzana",
+                LotCode = "LOT-00022",
+                PurchaseDate = DateTime.Parse("2025-11-22"),
+                ExpirationDate = DateTime.Today.AddDays(20),
+                AvailableQuantity = 50,
+                StatusLabel = "Activo",
+                BadgeClass = "success"
+            },
+            new()
+            {
+                ProductName = "PRO-0011 • Cuaderno",
+                LotCode = "LOT-00023",
+                PurchaseDate = DateTime.Parse("2025-11-23"),
+                ExpirationDate = DateTime.Parse("2026-11-23"),
+                AvailableQuantity = 50,
+                StatusLabel = "Activo",
+                BadgeClass = "success"
+            },
+            new()
+            {
+                ProductName = "PRO-0010 • Tomates",
+                LotCode = "LOT-00024",
+                PurchaseDate = DateTime.Parse("2025-12-01"),
+                ExpirationDate = DateTime.Parse("2026-01-01"),
+                AvailableQuantity = 200,
+                StatusLabel = "Activo",
+                BadgeClass = "success"
+            },
+            new()
+            {
+                ProductName = "PRO-0009 • Manzana",
+                LotCode = "LOT-00025",
+                PurchaseDate = DateTime.Parse("2025-11-23"),
+                ExpirationDate = DateTime.Today.AddDays(28),
+                AvailableQuantity = 10,
+                StatusLabel = "Próx. a vencer",
+                BadgeClass = "danger"
+            },
+        };
+
+        // Movimientos recientes (MOVIMIENTO_STOCK)
+        MovementTable = new List<InventoryMovementRow>
+        {
+            new()
+            {
+                MovementDate = DateTime.Today.AddHours(-2),
+                ProductName = "PRO-0009 • Manzana",
+                MovementType = "Entrada",
+                BadgeClass = "success",
+                Quantity = 50,
+                LotCode = "LOT-00024",
+                UserName = "jperez"
+            },
+            new()
+            {
+                MovementDate = DateTime.Today.AddHours(-4),
+                ProductName = "PRO-0010 • Tomates",
+                MovementType = "Salida",
+                BadgeClass = "primary",
+                Quantity = 30,
+                LotCode = "LOT-00021",
+                UserName = "mcastro"
+            },
+            new()
+            {
+                MovementDate = DateTime.Today.AddHours(-8),
+                ProductName = "PRO-0011 • Cuaderno",
+                MovementType = "Entrada",
+                BadgeClass = "success",
+                Quantity = 200,
+                LotCode = "LOT-00023",
+                UserName = "admin"
+            },
+            new()
+            {
+                MovementDate = DateTime.Today.AddDays(-1),
+                ProductName = "PRO-0009 • Manzana",
+                MovementType = "Ajuste",
+                BadgeClass = "warning",
+                Quantity = -5,
+                LotCode = "LOT-00025",
+                UserName = "admin"
+            },
+        };
+
+        // Alertas de inventario
+        InventoryAlerts = new List<InventoryAlertRow>
+        {
+            new()
+            {
+                Title = "Stock crítico en PRO-0009 • Manzana",
+                Description = "El stock disponible está por debajo del mínimo sugerido.",
+                Severity = "Alta",
+                BadgeClass = "danger"
+            },
+            new()
+            {
+                Title = "Lotes de PRO-0010 • Tomates próximos a vencer",
+                Description = "Revisar plan de rotación para evitar mermas.",
+                Severity = "Media",
+                BadgeClass = "warning"
+            },
+            new()
+            {
+                Title = "Ajustes de inventario frecuentes",
+                Description = "Se detectaron ajustes manuales en los últimos días.",
+                Severity = "Media",
+                BadgeClass = "primary"
+            },
+        };
+    }
+
+    private void ConfigureCharts()
+    {
+        InventoryLineOptions = new ApexChartOptions<InventoryLevelPoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Stroke = new Stroke { Curve = Curve.Smooth, Width = new List<double> { 3 } },
+            DataLabels = new DataLabels { Enabled = false }
+        };
+
+        InventoryBarOptions = new ApexChartOptions<InventoryProductStock>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar { ColumnWidth = "45%" }
+            },
+            DataLabels = new DataLabels { Enabled = false }
+        };
+
+        MovementDonutOptions = new ApexChartOptions<InventoryMovementTypePoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Legend = new Legend { Show = true }
+        };
+    }
+
+    // DTOs internos
+
+    public class ProductFilterItem
+    {
+        public string Code { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+    }
+
+    public class InventoryLevelPoint
+    {
+        public string Label { get; set; } = "";
+        public int TotalStock { get; set; }
+    }
+
+    public class InventoryProductStock
+    {
+        public string ProductCode { get; set; } = "";
+        public string ProductName { get; set; } = "";
+        public int AvailableQuantity { get; set; }
+    }
+
+    public class InventoryMovementTypePoint
+    {
+        public string MovementType { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    public class InventoryLotRow
+    {
+        public string ProductName { get; set; } = "";
+        public string LotCode { get; set; } = "";
+        public DateTime PurchaseDate { get; set; }
+        public DateTime ExpirationDate { get; set; }
+        public int AvailableQuantity { get; set; }
+        public string StatusLabel { get; set; } = "";
+        public string BadgeClass { get; set; } = "secondary";
+    }
+
+    public class InventoryMovementRow
+    {
+        public DateTime MovementDate { get; set; }
+        public string ProductName { get; set; } = "";
+        public string MovementType { get; set; } = "";
+        public string BadgeClass { get; set; } = "secondary";
+        public int Quantity { get; set; }
+        public string LotCode { get; set; } = "";
+        public string UserName { get; set; } = "";
+    }
+
+    public class InventoryAlertRow
+    {
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Severity { get; set; } = "";
+        public string BadgeClass { get; set; } = "warning";
+    }
+}
