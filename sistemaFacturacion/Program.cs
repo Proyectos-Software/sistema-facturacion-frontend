@@ -6,9 +6,12 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using sistemaFacturacion;
 using sistemaFacturacion.Components;
+using sistemaFacturacion.Interfaces;
 using sistemaFacturacion.Services;
 using Soenneker.Blazor.FilePond.Registrars;
 using Soenneker.Blazor.TomSelect.Registrars;
+using sistemaFacturacion.Services;
+
 
 namespace sistemaFacturacion
 {
@@ -59,6 +62,15 @@ namespace sistemaFacturacion
             builder.Services.AddScoped<IEmpleadosApiClient, EmpleadosApiClient>();
             builder.Services.AddScoped<IFacturasApiClient, FacturasApiClient>();
             builder.Services.AddScoped<IEmpresaApiClient, EmpresaApiClient>();
+
+            builder.Services.AddScoped<ReportApiClient>();
+
+            builder.Services.AddScoped<IVentasPorEmpleadoApiClient>(sp => sp.GetRequiredService<ReportApiClient>());
+            builder.Services.AddScoped<IVentasGeneralApiClient>(sp => sp.GetRequiredService<ReportApiClient>());
+            builder.Services.AddScoped<IInventarioApiClient>(sp => sp.GetRequiredService<ReportApiClient>());
+            builder.Services.AddScoped<IDashboardVentasApiClient>(sp => sp.GetRequiredService<ReportApiClient>());
+
+
             await builder.Build().RunAsync();
         }
     }

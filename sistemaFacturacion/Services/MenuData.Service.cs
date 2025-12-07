@@ -112,7 +112,7 @@ new MainMenuItems(
     children: new MainMenuItems[]
     {
         new MainMenuItems(
-            path: "",
+            path: "/dashboards/reporte-general",
             type: "link",
             title: "Reportes Generales",
             roles: new[] { "Admin", "Empleado" }

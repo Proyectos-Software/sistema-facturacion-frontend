@@ -1,0 +1,195 @@
+﻿@page "/reportes/parametros"
+@using Microsoft.AspNetCore.Authorization
+@using System.IO
+@using sistemaFacturacion.Interfaces
+@using System.Web
+@attribute [Authorize]
+
+@inject IVentasPorEmpleadoApiClient VentasPorEmpleadoApi
+@inject IVentasGeneralApiClient VentasGeneralApi
+@inject IInventarioApiClient InventarioApi
+@inject IDashboardVentasApiClient DashboardVentasApi
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject SweetAlertService Swal
+
+<section class="report-parameters-page">
+    <div class="page-header mb-4">
+        <h1 class="page-title fw-semibold fs-20">@ReportTitle</h1>
+        <p class="text-muted fs-13">Configure los parámetros para generar el reporte.</p>
+    </div>
+
+    @if (string.IsNullOrWhiteSpace(reportTypeString) || !Enum.TryParse<ReportType>(reportTypeString, out selectedReportType))
+    {
+        <div class="alert alert-danger">Error: Tipo de reporte no especificado o inválido.</div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+
+                @switch (selectedReportType)
+                {
+                    case ReportType.VentasPorEmpleado:
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio:</label>
+                                <input type="date" class="form-control" @bind="fechaInicio" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin:</label>
+                                <input type="date" class="form-control" @bind="fechaFin" />
+                            </div>
+                        </div>
+                        break;
+
+                    case ReportType.VentasGeneral:
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio:</label>
+                                <input type="date" class="form-control" @bind="fechaInicio" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin:</label>
+                                <input type="date" class="form-control" @bind="fechaFin" />
+                            </div>
+                        </div>
+                        break;
+
+                    case ReportType.Inventario:
+                        <p class="text-muted">Este reporte no requiere parámetros adicionales.</p>
+                        break;
+
+                    case ReportType.DashboardVentas:
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio:</label>
+                                <input type="date" class="form-control" @bind="fechaInicio" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin:</label>
+                                <input type="date" class="form-control" @bind="fechaFin" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Empresa ID:</label>
+                                <input type="number" class="form-control" @bind="idEmpresa" />
+                            </div>
+                        </div>
+                        break;
+                }
+
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-3">
+            <button class="btn btn-secondary" @onclick="GoBackToReports">Cancelar</button>
+            <button class="btn btn-primary" @onclick="GenerarReporte">Generar Reporte</button>
+        </div>
+    }
+</section>
+
+@code {
+    private string? reportTypeString;
+    private ReportType selectedReportType;
+    private string ReportTitle = "Configuración de Reporte";
+
+    private DateTime fechaInicio = DateTime.Now.AddMonths(-1);
+    private DateTime fechaFin = DateTime.Now;
+    private int idEmpresa = 4;
+
+    public enum ReportType
+    {
+        VentasPorEmpleado = 0,
+        VentasGeneral = 1,
+        Inventario = 2,
+        DashboardVentas = 3
+    }
+
+    protected override void OnInitialized()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = HttpUtility.ParseQueryString(uri.Query);
+
+        reportTypeString = query["type"];
+
+        if (!string.IsNullOrWhiteSpace(reportTypeString) &&
+            Enum.TryParse(reportTypeString, out ReportType typeEnum))
+        {
+            selectedReportType = typeEnum;
+            SetReportTitle();
+        }
+        else
+        {
+            reportTypeString = null;
+        }
+    }
+
+    private void SetReportTitle()
+    {
+        ReportTitle = selectedReportType switch
+        {
+            ReportType.VentasPorEmpleado => "Reporte de Ventas por Empleado",
+            ReportType.VentasGeneral => "Reporte General de Ventas",
+            ReportType.Inventario => "Reporte de Inventario",
+            ReportType.DashboardVentas => "Reporte Dashboard de Ventas",
+            _ => "Configuración de Reporte"
+        };
+    }
+
+    private async Task GenerarReporte()
+    {
+        try
+        {
+            Stream? pdfStream = null;
+            string fileName = "report.pdf";
+
+            var inicio = fechaInicio.Date;
+            var fin = fechaFin.Date;
+
+            switch (selectedReportType)
+            {
+                case ReportType.VentasPorEmpleado:
+                    pdfStream = await VentasPorEmpleadoApi.GetVentasPorEmpleadoPdfAsync(inicio, fin);
+                    fileName = $"ventas-por-empleado_{inicio:yyyyMMdd}_{fin:yyyyMMdd}.pdf";
+                    break;
+
+                case ReportType.VentasGeneral:
+                    pdfStream = await VentasGeneralApi.GetVentasGeneralPdfAsync(inicio, fin);
+                    fileName = $"ventas-generales_{inicio:yyyyMMdd}_{fin:yyyyMMdd}.pdf";
+                    break;
+
+                case ReportType.Inventario:
+                    pdfStream = await InventarioApi.GetInventarioPdfAsync();
+                    fileName = $"inventario_{DateTime.Now:yyyyMMdd}.pdf";
+                    break;
+
+                case ReportType.DashboardVentas:
+                    pdfStream = await DashboardVentasApi.GetDashboardVentasPdfAsync(inicio, fin, idEmpresa);
+                    fileName = $"dashboard-ventas_{inicio:yyyyMMdd}_{fin:yyyyMMdd}.pdf";
+                    break;
+            }
+
+            if (pdfStream != null && pdfStream.Length > 0)
+            {
+                var bytes = new byte[pdfStream.Length];
+                await pdfStream.ReadAsync(bytes, 0, (int)pdfStream.Length);
+                var base64 = Convert.ToBase64String(bytes);
+
+                await JS.InvokeVoidAsync("downloadFile", fileName, "application/pdf", base64);
+            }
+            else
+            {
+                await Swal.FireAsync("Reporte Vacío", "El reporte generado no contiene datos.", SweetAlertIcon.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync("Error", $"Ocurrió un error al generar el reporte. Detalle: {ex.Message}", SweetAlertIcon.Error);
+        }
+    }
+
+    private void GoBackToReports()
+    {
+        Nav.NavigateTo("/reportes");
+    }
+}
