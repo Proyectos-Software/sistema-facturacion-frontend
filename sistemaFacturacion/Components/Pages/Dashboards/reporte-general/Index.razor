@@ -2,6 +2,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
+
 @using sistemaFacturacion.Interfaces
 @inject IVentasPorEmpleadoApiClient VentasPorEmpleadoApi
 @inject IVentasGeneralApiClient VentasGeneralApi
@@ -9,71 +10,67 @@
 @inject IDashboardVentasApiClient DashboardVentasApi
 @inject SweetAlertService Swal
 @inject IJSRuntime JS
-@inject NavigationManager Nav
+
 
 <section class="reportes-dashboard">
+
     <div class="page-header mb-4">
         <h1 class="page-title fw-semibold fs-20">Generador de Reportes</h1>
-        <p class="text-muted fs-13">Seleccione un reporte para generar y descargar.</p>
+        <p class="text-muted fs-13">Seleccione un reporte para continuar.</p>
     </div>
 
+    <!-- ========================= -->
+    <!--        TARJETAS          -->
+    <!-- ========================= -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-4">
 
         <div class="col">
-            <div class="card report-card-style h-100 border-0 shadow-sm"
-                 @onclick="() => NavigateToReportParamsPage(ReportType.VentasPorEmpleado)">
+            <div class="card report-card-style shadow-sm h-100"
+                 @onclick="() => SelectReport(ReportType.VentasPorEmpleado)">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="rounded-3 bg-info-subtle p-3">
-                        <i class="ri-file-user-line fs-3"></i>
-                    </div>
+                    <i class="ri-file-user-line fs-3"></i>
                     <div>
-                        <h5 class="mb-1">Ventas por Empleado</h5>
-                        <small class="text-muted">Reporte PDF detallado por empleado.</small>
+                        <h5>Ventas por Empleado</h5>
+                        <small class="text-muted">Reporte detallado PDF</small>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="col">
-            <div class="card report-card-style h-100 border-0 shadow-sm"
-                 @onclick="() => NavigateToReportParamsPage(ReportType.VentasGeneral)">
+            <div class="card report-card-style shadow-sm h-100"
+                 @onclick="() => SelectReport(ReportType.VentasGeneral)">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="rounded-3 bg-secondary-subtle p-3">
-                        <i class="ri-file-chart-line fs-3"></i>
-                    </div>
+                    <i class="ri-file-chart-line fs-3"></i>
                     <div>
-                        <h5 class="mb-1">Ventas Generales</h5>
-                        <small class="text-muted">Resumen PDF de todas las ventas.</small>
+                        <h5>Ventas Generales</h5>
+                        <small class="text-muted">Resumen PDF</small>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="col">
-            <div class="card report-card-style h-100 border-0 shadow-sm"
-                 @onclick="() => NavigateToReportParamsPage(ReportType.Inventario)">
+            <div class="card report-card-style shadow-sm h-100"
+                 @onclick="() => SelectReport(ReportType.Inventario)">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="rounded-3 bg-purple-subtle p-3">
-                        <i class="ri-archive-line fs-3"></i>
-                    </div>
+                    <i class="ri-archive-line fs-3"></i>
                     <div>
-                        <h5 class="mb-1">Inventario</h5>
-                        <small class="text-muted">Detalle PDF del inventario actual.</small>
+                        <h5>Inventario</h5>
+                        <small class="text-muted">Stock PDF</small>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="col">
-            <div class="card report-card-style h-100 border-0 shadow-sm"
-                 @onclick="() => NavigateToReportParamsPage(ReportType.DashboardVentas)">
+            <div class="card report-card-style shadow-sm h-100"
+                 @onclick="() => SelectReport(ReportType.DashboardVentas)">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="rounded-3 bg-success-subtle p-3">
-                        <i class="ri-dashboard-line fs-3"></i>
-                    </div>
+                    <i class="ri-dashboard-line fs-3"></i>
                     <div>
-                        <h5 class="mb-1">Dashboard Ventas</h5>
-                        <small class="text-muted">KPIs y gráficos en PDF.</small>
+                        <h5>Dashboard Ventas</h5>
+                        <small class="text-muted">KPI PDF</small>
                     </div>
                 </div>
             </div>
@@ -81,12 +78,72 @@
 
     </div>
 
+    <!-- ========================= -->
+    <!--   PANEL DE PARÁMETROS    -->
+    <!-- ========================= -->
+    @if (ShowParams)
+    {
+        <div class="card shadow-sm p-4 mb-5">
+            <h4 class="mb-3">Configurar: <strong>@GetReportTitle(selectedReportType)</strong></h4>
+
+            @if (selectedReportType != ReportType.Inventario)
+            {
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label>Fecha inicio:</label>
+                        <input type="date" class="form-control" @bind="fechaInicio" />
+                    </div>
+                    <div class="col-md-6">
+                        <label>Fecha fin:</label>
+                        <input type="date" class="form-control" @bind="fechaFin" />
+                    </div>
+                </div>
+            }
+
+            @if (selectedReportType == ReportType.DashboardVentas)
+            {
+                <div class="mb-3">
+                    <label>ID Empresa:</label>
+                    <input type="number" min="1" class="form-control" @bind="idEmpresa" />
+                </div>
+            }
+
+            <div class="d-flex justify-content-end gap-2">
+                <button class="btn btn-secondary" @onclick="() => ShowParams = false">Cancelar</button>
+                <button class="btn btn-primary" @onclick="GenerateReport">Generar</button>
+            </div>
+        </div>
+    }
+
+    <!-- ========================= -->
+    <!--       MODAL PDF          -->
+    <!-- ========================= -->
+    @if (ShowPdfModal)
+    {
+        <div class="pdf-modal-backdrop" @onclick="BackdropClick">
+            <div class="pdf-modal-container" @onclick:stopPropagation="true">
+                <div class="pdf-modal-header">
+                    <div class="pdf-modal-title">@GetReportTitle(selectedReportType)</div>
+
+                    <div class="pdf-modal-actions">
+                        <button class="btn btn-sm btn-outline-secondary me-2" @onclick="DownloadPdf">
+                            Descargar
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="CloseModal">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pdf-modal-body">
+                    <iframe src="@PdfUrl" width="100%" height="100%" style="border:none;"></iframe>
+                </div>
+            </div>
+        </div>
+    }
 </section>
 
 @code {
-
-    private bool isDarkMode;
-
     public enum ReportType
     {
         VentasPorEmpleado,
@@ -95,17 +152,95 @@
         DashboardVentas
     }
 
-    protected override async Task OnInitializedAsync()
+    private ReportType selectedReportType;
+
+    private bool ShowParams = false;
+    private bool ShowPdfModal = false;
+
+    private DateTime fechaInicio = DateTime.Now.AddMonths(-1).Date;
+    private DateTime fechaFin = DateTime.Now.Date;
+    private int idEmpresa = 1;
+
+    private string PdfUrl = "";
+    private byte[] PdfRaw = Array.Empty<byte>();
+
+    private void SelectReport(ReportType t)
+    {
+        selectedReportType = t;
+        ShowParams = true;
+    }
+
+    private string GetReportTitle(ReportType t) => t switch
+    {
+        ReportType.VentasPorEmpleado => "Ventas por Empleado",
+        ReportType.VentasGeneral => "Ventas Generales",
+        ReportType.Inventario => "Inventario",
+        ReportType.DashboardVentas => "Dashboard de Ventas",
+        _ => "Reporte"
+    };
+
+    private async Task GenerateReport()
     {
         try
         {
-            isDarkMode = await JS.InvokeAsync<bool>("isAppInDarkMode");
+            if (selectedReportType != ReportType.Inventario && fechaInicio > fechaFin)
+            {
+                await Swal.FireAsync("Fechas incorrectas",
+                    "La fecha inicial no puede ser mayor a la final.",
+                    SweetAlertIcon.Warning);
+                return;
+            }
+
+            Stream? pdfStream = selectedReportType switch
+            {
+                ReportType.VentasPorEmpleado => await VentasPorEmpleadoApi.GetVentasPorEmpleadoPdfAsync(fechaInicio, fechaFin),
+                ReportType.VentasGeneral => await VentasGeneralApi.GetVentasGeneralPdfAsync(fechaInicio, fechaFin),
+                ReportType.Inventario => await InventarioApi.GetInventarioPdfAsync(),
+                ReportType.DashboardVentas => await DashboardVentasApi.GetDashboardVentasPdfAsync(fechaInicio, fechaFin, idEmpresa),
+                _ => null
+            };
+
+            if (pdfStream == null)
+            {
+                await Swal.FireAsync("Error", "No se generó el PDF.", SweetAlertIcon.Error);
+                return;
+            }
+
+            using var ms = new MemoryStream();
+            await pdfStream.CopyToAsync(ms);
+            PdfRaw = ms.ToArray();
+
+            PdfUrl = $"data:application/pdf;base64,{Convert.ToBase64String(PdfRaw)}";
+
+            ShowParams = false;
+            ShowPdfModal = true;
         }
-        catch { }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync("Error", ex.Message, SweetAlertIcon.Error);
+        }
     }
 
-    private void NavigateToReportParamsPage(ReportType reportType)
+    private Task CloseModal()
     {
-        Nav.NavigateTo($"/reportes/parametros?type={(int)reportType}");
+        ShowPdfModal = false;
+        PdfUrl = "";
+        return Task.CompletedTask;
+    }
+
+    private void BackdropClick() => CloseModal();
+
+    private void DownloadPdf()
+    {
+        var fileName = $"{GetReportTitle(selectedReportType).Replace(" ", "_")}.pdf";
+        var base64 = Convert.ToBase64String(PdfRaw);
+
+        var url = $"data:application/octet-stream;base64,{base64}";
+
+        _ = JS.InvokeVoidAsync("downloadFileFromUrl", new
+        {
+            url,
+            fileName
+        });
     }
 }
