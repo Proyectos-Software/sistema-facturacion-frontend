@@ -4,6 +4,8 @@
 @using Microsoft.AspNetCore.Authorization
 @using sistemaFacturacion.Models
 @using sistemaFacturacion.Services
+@using System.Globalization
+
 @inject ILotesApiClient LotesApi
 @inject IProductosApiClient ProductosApi
 @inject NavigationManager Nav
@@ -401,6 +403,7 @@ else
 }
 
 @code {
+
     [Parameter] public int id { get; set; }
 
     private bool isLoading = true;
@@ -475,33 +478,108 @@ else
             isLoading = false;
         }
     }
+    private async Task<bool> MostrarModalEditarPrecioProductoAsync(ProductoDto producto)
+    {
+        var valorInicial = Math.Max(producto.PrecioVenta, vm.PreCom);
+
+        var result = await Swal.FireAsync(new SweetAlertOptions
+        {
+            Icon = SweetAlertIcon.Info,
+            Title = "Actualizar precio de venta",
+            Html = "<small>Ingrese el nuevo precio de venta para este producto.</small>",
+            Input = "number",
+            InputValue = valorInicial.ToString("0.00", CultureInfo.InvariantCulture),
+            ShowCancelButton = true,
+            ConfirmButtonText = "Guardar",
+            CancelButtonText = "Cancelar",
+            ConfirmButtonColor = "#0ea5e9",
+            InputAttributes = new Dictionary<string, string>
+            {
+                ["min"] = vm.PreCom.ToString(CultureInfo.InvariantCulture),
+                ["step"] = "0.01"
+            }
+        });
+
+        if (!result.IsConfirmed)
+            return false;
+
+        if (!decimal.TryParse(result.Value?.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var nuevoPrecio))
+        {
+            await Alert("Valor inválido", "No se pudo interpretar el precio ingresado.");
+            return false;
+        }
+
+        if (nuevoPrecio < vm.PreCom)
+        {
+            await Alert("Precio inválido", "El nuevo precio no puede ser menor al costo del lote.");
+            return false;
+        }
+
+        var updateReq = new ProductoUpdateRequest
+        {
+            Nombre = producto.Nombre,
+            Descripcion = producto.Descripcion,
+            IdCategoria = producto.IdCategoria,
+            IdTipoTributario = producto.IdTipoTributario,
+            PrecioVenta = nuevoPrecio
+        };
+
+        await ProductosApi.UpdateAsync(producto.Id, updateReq);
+
+        await Swal.FireAsync(new()
+        {
+            Icon = SweetAlertIcon.Success,
+            Title = "Precio actualizado",
+            Toast = true,
+            Position = SweetAlertPosition.TopEnd,
+            Timer = 1600,
+            ShowConfirmButton = false
+        });
+
+        return true;
+    }
 
     private async Task ActualizarRangoPrecio()
     {
         await ObtenerRangoPrecioAsync();
         StateHasChanged();
     }
-
     private async Task<bool> ValidarCamposAsync()
     {
+        // ===== VALIDACIONES NORMALES =====
         if (vm.IdPro <= 0)
         {
-            await Alert(
-                "Producto no asociado",
-                "El lote no tiene un producto asociado. Contacte al administrador del sistema."
-            );
+            await Alert("Producto no asociado", "Este lote no tiene un producto válido asociado.");
             return false;
         }
 
-        if (vm.FecCom > vm.FecExp)
+        if (vm.CanLot <= 0)
         {
-            await Alert("Fechas inconsistentes", "La fecha de compra no puede ser mayor que la de expiración.");
+            await Alert("Cantidad total inválida", "La cantidad total del lote debe ser mayor que 0.");
+            return false;
+        }
+
+        if (vm.CanDis < 0)
+        {
+            await Alert("Cantidad disponible inválida", "La cantidad disponible no puede ser negativa.");
             return false;
         }
 
         if (vm.CanDis > vm.CanLot)
         {
-            await Alert("Cantidad inválida", "Disponible no puede superar la cantidad del lote.");
+            await Alert("Cantidad inválida", "La cantidad disponible no puede ser mayor a la cantidad total del lote.");
+            return false;
+        }
+
+        if (vm.FecCom > vm.FecExp)
+        {
+            await Alert("Fechas incorrectas", "La fecha de compra no puede ser mayor a la fecha de expiración.");
+            return false;
+        }
+
+        if (vm.FecExp.Date <= DateTime.Today)
+        {
+            await Alert("Fecha inválida", "La fecha de expiración debe ser posterior al día actual.");
             return false;
         }
 
@@ -511,7 +589,66 @@ else
             return false;
         }
 
-        // Ya no se valida precio de venta porque no se envía al backend.
+        // ================================
+        // VALIDACIÓN CRÍTICA:
+        // SI EL COSTO ES MAYOR AL PRECIO DE VENTA
+        // ================================
+        try
+        {
+            var producto = await ProductosApi.GetByIdAsync(vm.IdPro);
+
+            if (producto != null && vm.PreCom > producto.PrecioVenta)
+            {
+                // SweetAlert SIN opción de "continuar"
+                var decision = await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Icon = SweetAlertIcon.Warning,
+                    Title = "Costo mayor al precio de venta",
+                    Html =
+                        $"<small>El costo del lote (<strong>$ {vm.PreCom}</strong>) " +
+                        $"es mayor que el precio de venta actual (<strong>$ {producto.PrecioVenta}</strong>).<br/><br/>" +
+                        $"Debes corregir el precio del producto antes de guardar.</small>",
+                    ShowCancelButton = true,
+                    ConfirmButtonText = "Actualizar precio del producto",
+                    CancelButtonText = "Volver al formulario",
+                    ConfirmButtonColor = "#0ea5e9"
+                });
+
+                // SI EL USUARIO QUIERE ACTUALIZAR PRECIO
+                if (decision.IsConfirmed)
+                {
+                    bool actualizado = await MostrarModalEditarPrecioProductoAsync(producto);
+
+                    if (!actualizado)
+                    {
+                        // Si no actualiza nada, no se permite continuar
+                        return false;
+                    }
+
+                    // Revalidar el producto después de actualización
+                    producto = await ProductosApi.GetByIdAsync(vm.IdPro);
+
+                    if (vm.PreCom > producto.PrecioVenta)
+                    {
+                        // Aún sigue siendo inválido
+                        await Alert("Precio incorrecto",
+                            "El nuevo precio de venta sigue siendo menor al costo del lote. Ajuste nuevamente.");
+                        return false;
+                    }
+                }
+                else
+                {
+                    // Canceló -> vuelve al formulario y NO GUARDA
+                    return false;
+                }
+            }
+        }
+        catch
+        {
+            // Si falla la API, por seguridad NO permitimos guardar si hay inconsistencias
+            return false;
+        }
+
         return true;
     }
 
@@ -596,6 +733,7 @@ else
 
         try
         {
+            Console.WriteLine("=== DEBUG FRONT: Construyendo LoteUpdateRequest ===");
             var req = new LoteUpdateRequest
             {
                 IdPro = vm.IdPro,
@@ -605,6 +743,15 @@ else
                 CanDis = vm.CanDis,
                 PreCom = vm.PreCom
             };
+            Console.WriteLine("=== DEBUG FRONT: ENVIANDO UPDATE A LOTE ===");
+            Console.WriteLine($"ID Lote: {vm.Id}");
+            Console.WriteLine($"ID Producto (IdPro): {vm.IdPro}");
+            Console.WriteLine($"Fecha Compra: {vm.FecCom}");
+            Console.WriteLine($"Fecha Expiración: {vm.FecExp}");
+            Console.WriteLine($"Cantidad Total (CanLot): {vm.CanLot}");
+            Console.WriteLine($"Disponible (CanDis): {vm.CanDis}");
+            Console.WriteLine($"Precio Compra (PreCom): {vm.PreCom}");
+            Console.WriteLine("============================================");
 
 
             await LotesApi.UpdateAsync(vm.Id, req);
