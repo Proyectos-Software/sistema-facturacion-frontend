@@ -1,0 +1,27 @@
+﻿.heatmap-zero {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: #e5e7eb;
+}
+
+.heatmap-light {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: #93c5fd;
+}
+
+.heatmap-mid {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: #3b82f6;
+}
+
+.heatmap-strong {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: #1d4ed8;
+}

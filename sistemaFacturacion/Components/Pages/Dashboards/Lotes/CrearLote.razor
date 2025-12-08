@@ -428,7 +428,7 @@ else
     private async Task<bool> ValidarCamposVisual()
     {
         // =======================
-        // VALIDACIONES NUEVAS
+        // VALIDACIONES BÁSICAS
         // =======================
 
         // 1. Cantidad total > 0
@@ -470,43 +470,7 @@ else
             return false;
         }
 
-        // =======================
-        // VALIDACIÓN: Costo > Precio de venta del producto
-        // =======================
-        // =======================
-        // VALIDACIÓN: Costo > Precio de venta del producto
-        // =======================
-        if (productoInfo != null && lote.PreCom > productoInfo.PrecioVenta)
-        {
-            // Preguntamos qué quiere hacer sin perder el formulario
-            var decision = await Swal.FireAsync(new SweetAlertOptions
-            {
-                Icon = SweetAlertIcon.Warning,
-                Title = "Costo mayor al precio de venta",
-                Html = $"<small>El costo de compra (<strong>$ {lote.PreCom}</strong>) " +
-                       $"es mayor que el precio de venta actual del producto (<strong>$ {productoInfo.PrecioVenta}</strong>).<br/><br/>" +
-                       $"¿Deseas actualizar el precio del producto ahora?</small>",
-                ShowCancelButton = true,
-                ConfirmButtonText = "Sí, editar precio",
-                CancelButtonText = "No, continuar",
-                FocusConfirm = true,
-                ConfirmButtonColor = "#0ea5e9"
-            });
-
-            // Cancel = seguir sin cambiar el precio (dejamos continuar el guardado)
-            if (decision.IsConfirmed)
-            {
-                var continuar = await MostrarModalEditarPrecioProductoAsync();
-                if (!continuar)
-                {
-                    // El usuario canceló o hubo problema; NO seguimos con el guardado
-                    return false;
-                }
-            }
-        }
-
-
-
+        // 4. Producto válido
         if (lote.IdPro <= 0)
         {
             await Swal.FireAsync(new()
@@ -519,6 +483,7 @@ else
             return false;
         }
 
+        // 5. Fecha compra <= fecha expiración
         if (lote.FecCom > lote.FecExp)
         {
             await Swal.FireAsync(new()
@@ -531,18 +496,20 @@ else
             return false;
         }
 
+        // 6. Disponible <= total
         if (lote.CanDis > lote.CanLot)
         {
             await Swal.FireAsync(new()
             {
                 Icon = SweetAlertIcon.Warning,
                 Title = "Cantidad inválida",
-                Html = "<small>La cantidad disponible no puede ser mayor a la cantidad del lote.</small>",
+                Html = "<small>La cantidad disponible no puede ser mayor a la cantidad total del lote.</small>",
                 ConfirmButtonColor = "#0ea5e9"
             });
             return false;
         }
 
+        // 7. Precio de compra > 0
         if (lote.PreCom <= 0)
         {
             await Swal.FireAsync(new()
@@ -553,9 +520,56 @@ else
                 ConfirmButtonColor = "#0ea5e9"
             });
             return false;
-        } 
+        }
+
+        // =======================
+        // VALIDACIÓN ESPECIAL: COSTO > PRECIO DE VENTA
+        // =======================
+        if (productoInfo != null && lote.PreCom > productoInfo.PrecioVenta)
+        {
+            var decision = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Warning,
+                Title = "Costo mayor al precio de venta",
+                Html =
+                    $"<small>El costo del lote (<strong>$ {lote.PreCom}</strong>) " +
+                    $"es mayor que el precio de venta actual del producto (<strong>$ {productoInfo.PrecioVenta}</strong>).<br/><br/>" +
+                    $"Debes corregir el precio del producto antes de continuar.</small>",
+
+                ShowCancelButton = true,
+                ConfirmButtonText = "Editar precio del producto",
+                CancelButtonText = "Volver al formulario",
+                ConfirmButtonColor = "#0ea5e9"
+            });
+
+            // Cancelar = volver al formulario sin guardar
+            if (decision.IsDismissed)
+                return false;
+
+            // Confirmar = editar precio
+            bool actualizado = await MostrarModalEditarPrecioProductoAsync();
+
+            if (!actualizado)
+                return false;
+
+            // Revalidación después del cambio de precio
+            if (lote.PreCom > productoInfo.PrecioVenta)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Icon = SweetAlertIcon.Warning,
+                    Title = "Precio todavía incorrecto",
+                    Html = "<small>El precio de venta sigue siendo menor al costo. Debes ajustarlo nuevamente.</small>",
+                    ConfirmButtonColor = "#0ea5e9"
+                });
+
+                return false;
+            }
+        }
+
         return true;
     }
+
     private async Task<bool> MostrarModalEditarPrecioProductoAsync()
     {
         if (productoInfo == null)

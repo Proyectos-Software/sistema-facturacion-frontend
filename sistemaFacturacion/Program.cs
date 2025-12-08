@@ -37,6 +37,7 @@ namespace sistemaFacturacion
             builder.Services.AddScoped<CustomAuthStateProvider>();
             builder.Services.AddScoped<SessionService>();
 
+
             builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
                 provider.GetRequiredService<CustomAuthStateProvider>());
 
@@ -55,10 +56,14 @@ namespace sistemaFacturacion
             builder.Services.AddScoped<ICategoriasApiClient, CategoriasApiClient>();
             builder.Services.AddScoped<ITipoTributarioApiClient, TipoTributarioApiClient>();
             builder.Services.AddScoped<ILotesApiClient, LotesApiClient>();
+
             builder.Services.AddScoped<IUsuariosApiClient, UsuariosApiClient>();
             builder.Services.AddScoped<IEmpleadosApiClient, EmpleadosApiClient>();
             builder.Services.AddScoped<IFacturasApiClient, FacturasApiClient>();
             builder.Services.AddScoped<IEmpresaApiClient, EmpresaApiClient>();
+            builder.Services.AddScoped<IAuditoriaApiClient, AuditoriaApiClient>();
+
+
             await builder.Build().RunAsync();
         }
     }

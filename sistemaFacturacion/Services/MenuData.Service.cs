@@ -35,71 +35,66 @@ public class MenuDataService
             }
         ),
 
-        // ───────────────────────────
-        // SECCIÓN: GESTIONES
-        // ───────────────────────────
-        new MainMenuItems(menuTitle: "Gestiones"),
+// ───────────────────────────
+// SECCIÓN: GESTIONES
+// ───────────────────────────
+new MainMenuItems(menuTitle: "Gestiones"),
 
+new MainMenuItems(
+    type: "sub",
+    title: "Gestiones",
+    svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu__icon' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M40 64h176v128H40z' fill='none' stroke='currentColor' stroke-width='16'/> <path d='M40 104h176' stroke='currentColor' stroke-width='16'/></svg>",
+    selected: false, active: false, dirChange: false,
+    children: new MainMenuItems[]
+    {
+        // Gestión de Clientes
         new MainMenuItems(
-            type: "sub",
-            title: "Gestiones",
-            svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu__icon' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M40 64h176v128H40z' fill='none' stroke='currentColor' stroke-width='16'/> <path d='M40 104h176' stroke='currentColor' stroke-width='16'/></svg>",
-            selected: false, active: false, dirChange: false,
-            children: new MainMenuItems[]
-            {
-                // Gestión de Clientes
-                new MainMenuItems(
-                    path: "/dashboards/clientes",
-                    type: "link",
-                    title: "Gestión de Clientes",
-                    svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu-doublemenu__icon' viewBox='0 0 256 256'><circle cx='96' cy='96' r='32' fill='none' stroke='currentColor' stroke-width='16'/><path d='M24 208a64 64 0 0 1 128 0' fill='none' stroke='currentColor' stroke-width='16'/></svg>",
-                    selected: false, active: false, dirChange: false,
-                    roles: new[] { "Admin","Empleado" }
-                ),
-
-                // Gestión de Productos (Seguros/Planes)
-                new MainMenuItems(
-                    path: "/dashboards/productos",
-                    type: "link",
-                    title: "Gestión de Productos",
-                    svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu-doublemenu__icon' viewBox='0 0 256 256'><rect x='40' y='64' width='176' height='128' rx='8' fill='none' stroke='currentColor' stroke-width='16'/><path d='M40 104h176' stroke='currentColor' stroke-width='16'/></svg>",
-                    selected: false, active: false, dirChange: false,
-                    roles: new[] { "Admin","Empleado" }
-                ),
-
-                // Gestión de Empleados
-                new MainMenuItems(
-                    path: "/dashboards/empleados",
-                    type: "link",
-                    title: "Gestión de Empleados",
-                    svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu-doublemenu__icon' viewBox='0 0 256 256'><circle cx='128' cy='88' r='28' fill='none' stroke='currentColor' stroke-width='16'/><path d='M64 208a64 64 0 0 1 128 0' fill='none' stroke='currentColor' stroke-width='16'/></svg>",
-                    selected: false, active: false, dirChange: false,
-                    roles: new[] { "Admin" }
-                ),
-
-                //Gestion de Lotes
-                // Gestión de Lotes
-            new MainMenuItems(
-                 path: "/dashboards/lotes",
-                 type: "link",
-                 title: "Gestión de Lotes",
-                 svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu-doublemenu__icon' viewBox='0 0 256 256'><rect x='36' y='56' width='184' height='144' rx='8' fill='none' stroke='currentColor' stroke-width='16'/><path d='M36 100h184M84 56v144M172 56v144' fill='none' stroke='currentColor' stroke-width='16' stroke-linecap='round'/></svg>",
-                 selected: false, active: false, dirChange: false,
-                 roles: new[] { "Admin","Empleado" }
-            ),
-
-            new MainMenuItems(
-                 path: "/dashboards/facturas",
-                 type: "link",
-                 title: "Gestión de Facturas",
-                 svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu-doublemenu__icon' viewBox='0 0 256 256'><rect x='36' y='56' width='184' height='144' rx='8' fill='none' stroke='currentColor' stroke-width='16'/><path d='M36 100h184M84 56v144M172 56v144' fill='none' stroke='currentColor' stroke-width='16' stroke-linecap='round'/></svg>",
-                 selected: false, active: false, dirChange: false,
-                 roles: new[] { "Admin","Empleado" }
-            ),
-
-            }
+            path: "/dashboards/clientes",
+            type: "link",
+            title: "Gestión de Clientes",
+            svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu-doublemenu__icon' viewBox='0 0 256 256'><circle cx='96' cy='96' r='32' fill='none' stroke='currentColor' stroke-width='16'/><path d='M24 208a64 64 0 0 1 128 0' fill='none' stroke='currentColor' stroke-width='16'/></svg>",
+            roles: new[] { "Admin","Empleado" }
         ),
- // ───────────────────────────
+
+        // Gestión de Productos
+        new MainMenuItems(
+            path: "/dashboards/productos",
+            type: "link",
+            title: "Gestión de Productos",
+            svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu-doublemenu__icon' viewBox='0 0 256 256'><rect x='40' y='64' width='176' height='128' rx='8' fill='none' stroke='currentColor' stroke-width='16'/><path d='M40 104h176' stroke='currentColor' stroke-width='16'/></svg>",
+            roles: new[] { "Admin","Empleado" }
+        ),
+
+        // Gestión de Empleados
+        new MainMenuItems(
+            path: "/dashboards/empleados",
+            type: "link",
+            title: "Gestión de Empleados",
+            svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu-doublemenu__icon' viewBox='0 0 256 256'><circle cx='128' cy='88' r='28' fill='none' stroke='currentColor' stroke-width='16'/><path d='M64 208a64 64 0 0 1 128 0' fill='none' stroke='currentColor' stroke-width='16'/></svg>",
+            roles: new[] { "Admin" }
+        ),
+
+        // Gestión de Lotes
+        new MainMenuItems(
+            path: "/dashboards/lotes",
+            type: "link",
+            title: "Gestión de Lotes",
+            svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu-doublemenu__icon' viewBox='0 0 256 256'><rect x='36' y='56' width='184' height='144' rx='8' fill='none' stroke='currentColor' stroke-width='16'/><path d='M36 100h184M84 56v144M172 56v144' fill='none' stroke='currentColor' stroke-width='16' stroke-linecap='round'/></svg>",
+            roles: new[] { "Admin","Empleado" }
+        ),
+
+        // Gestión de Facturas
+        new MainMenuItems(
+            path: "/dashboards/facturas",
+            type: "link",
+            title: "Gestión de Facturas",
+            svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu-doublemenu__icon' viewBox='0 0 256 256'><rect x='36' y='56' width='184' height='144' rx='8' fill='none' stroke='currentColor' stroke-width='16'/><path d='M36 100h184M84 56v144M172 56v144' fill='none' stroke='currentColor' stroke-width='16' stroke-linecap='round'/></svg>",
+            roles: new[] { "Admin","Empleado" }
+        ),
+    }
+), // ← ESTE PARÉNTESIS ERA EL QUE FALTABA
+
+// ───────────────────────────
 // SECCIÓN: REPORTES
 // ───────────────────────────
 new MainMenuItems(menuTitle: "Reportes"),
@@ -108,7 +103,6 @@ new MainMenuItems(
     type: "sub",
     title: "Reportes",
     svg: "<svg xmlns='http://www.w3.org/2000/svg' class='side-menu__icon' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M40 200h176' stroke='currentColor' stroke-width='16'/><rect x='48' y='48' width='64' height='120' rx='8' fill='none' stroke='currentColor' stroke-width='16'/><rect x='144' y='96' width='64' height='72' rx='8' fill='none' stroke='currentColor' stroke-width='16'/></svg>",
-    selected: false, active: false, dirChange: false,
     children: new MainMenuItems[]
     {
         new MainMenuItems(
@@ -124,7 +118,7 @@ new MainMenuItems(
             roles: new[] { "Admin", "Empleado" }
         ),
 
-        // ---- DASHBOARDS DE AUDITORÍA (links normales) ----
+        // ✨ NUEVOS 3 DASHBOARDS DE AUDITORÍA
         new MainMenuItems(
             path: "/dashboards/auditorias",
             type: "link",
@@ -132,43 +126,21 @@ new MainMenuItems(
             roles: new[] { "Admin", "Empleado" }
         ),
         new MainMenuItems(
-            path: "/dashboards/auditorias/seguridad",
+            path: "/dashboards/auditorias/cambios-criticos",
             type: "link",
-            title: "Auditoría de Seguridad",
+           title: "Auditoría - Cambios Críticos",
             roles: new[] { "Admin", "Empleado" }
         ),
         new MainMenuItems(
-            path: "/dashboards/auditorias/facturacion",
+            path: "/dashboards/auditorias/historial-tablas",
             type: "link",
-            title: "Auditoría de Facturación",
+            title: "Auditoría - Historial por Tabla",
             roles: new[] { "Admin", "Empleado" }
-        ),
-        new MainMenuItems(
-            path: "/dashboards/auditorias/inventarios",
-            type: "link",
-            title: "Auditoría de Inventarios",
-            roles: new[] { "Admin", "Empleado" }
-        ),
-        new MainMenuItems(
-            path: "/dashboards/auditorias/productos",
-            type: "link",
-            title: "Auditoría de Productos",
-            roles: new[] { "Admin", "Empleado" }
-        ),
-        new MainMenuItems(
-            path: "/dashboards/auditorias/clientes",
-            type: "link",
-            title: "Auditoría de Clientes",
-            roles: new[] { "Admin", "Empleado" }
-        ),
-        new MainMenuItems(
-            path: "/dashboards/auditorias/configuracion",
-            type: "link",
-            title: "Auditoría de Configuración",
-            roles: new[] { "Admin" }
         ),
     }
 ),
+
+
 
         // ───────────────────────────
 // SECCIÓN: CONFIGURACIÓN
