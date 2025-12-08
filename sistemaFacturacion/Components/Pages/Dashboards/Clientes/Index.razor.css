@@ -1,0 +1,69 @@
+﻿/* ===== Ajustes modo oscuro (mejor contraste) ===== */
+html[data-theme-mode="dark"] .clientes-dashboard,
+body[data-theme-mode="dark"] .clientes-dashboard,
+.dark .clientes-dashboard {
+    /* Números y colores vivos para iconos */
+    --cd-number: #ffffff;
+    --cd-icon-primary: #60a5ff; /* azul brillante */
+    --cd-icon-warning: #ffd369; /* ámbar brillante */
+    --cd-icon-success: #4ade80; /* verde brillante */
+    --cd-success: #22c55e;
+    --cd-danger: #f87171;
+}
+
+/* (A) Si puedes: marca el número con .kpi-value */
+.clientes-dashboard .kpi-value {
+    color: var(--cd-text); /* claro */
+    font-size: 1.875rem; /* ~ fs-3 */
+    font-weight: 600;
+}
+
+html[data-theme-mode="dark"] .clientes-dashboard .kpi-value,
+body[data-theme-mode="dark"] .clientes-dashboard .kpi-value,
+.dark .clientes-dashboard .kpi-value {
+    color: var(--cd-number); /* blanco puro en oscuro */
+}
+
+/* (B) Si NO puedes tocar el HTML: fuerza el color del número grande dentro de la card */
+html[data-theme-mode="dark"] .clientes-dashboard .card .fs-3.fw-semibold,
+body[data-theme-mode="dark"] .clientes-dashboard .card .fs-3.fw-semibold,
+.dark .clientes-dashboard .card .fs-3.fw-semibold {
+    color: var(--cd-number) !important;
+}
+
+/* Éxitos/errores más visibles en oscuro */
+html[data-theme-mode="dark"] .clientes-dashboard .text-success,
+body[data-theme-mode="dark"] .clientes-dashboard .text-success,
+.dark .clientes-dashboard .text-success {
+    color: var(--cd-success) !important;
+}
+
+html[data-theme-mode="dark"] .clientes-dashboard .text-danger,
+body[data-theme-mode="dark"] .clientes-dashboard .text-danger,
+.dark .clientes-dashboard .text-danger {
+    color: var(--cd-danger) !important;
+}
+
+/* Iconos de accesos rápidos más brillantes en oscuro */
+html[data-theme-mode="dark"] .clientes-dashboard .bg-primary-subtle i,
+body[data-theme-mode="dark"] .clientes-dashboard .bg-primary-subtle i,
+.dark .clientes-dashboard .bg-primary-subtle i {
+    color: var(--cd-icon-primary) !important;
+}
+
+html[data-theme-mode="dark"] .clientes-dashboard .bg-warning-subtle i,
+body[data-theme-mode="dark"] .clientes-dashboard .bg-warning-subtle i,
+.dark .clientes-dashboard .bg-warning-subtle i {
+    color: var(--cd-icon-warning) !important;
+}
+
+html[data-theme-mode="dark"] .clientes-dashboard .bg-success-subtle i,
+body[data-theme-mode="dark"] .clientes-dashboard .bg-success-subtle i,
+.dark .clientes-dashboard .bg-success-subtle i {
+    color: var(--cd-icon-success) !important;
+}
+
+/* Extra: mejora el contraste de encabezados de tablas en oscuro */
+html[data-theme-mode="dark"] .clientes-dashboard .table thead th {
+    color: #cbd5e1 !important; /* un gris claro legible */
+}

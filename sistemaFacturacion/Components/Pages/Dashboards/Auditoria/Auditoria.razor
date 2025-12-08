@@ -1,0 +1,1255 @@
+﻿@page "/dashboards/auditorias"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@using ApexCharts
+@using System.Linq
+@using System.Timers
+@using sistemaFacturacion.Services
+@using sistemaFacturacion.Models.Auditoria
+@using Microsoft.JSInterop
+@inject IAuditoriaApiClient AuditoriaApi
+@inject IJSRuntime JSRuntime
+
+@implements IDisposable
+
+<h1 class="page-title fw-medium fs-20 mb-2">Dashboard de Auditorías</h1>
+<p class="text-muted fs-12 mb-4">
+    Monitoreo general de la actividad, operaciones críticas y registros detallados.
+</p>
+
+<!-- TABS DE NAVEGACIÓN -->
+<div class="card custom-card mb-3">
+    <div class="card-body p-0">
+        <div class="d-flex border-bottom">
+            <button class="btn btn-link text-decoration-none px-4 py-3 @(TabActiva == "overview" ? "border-bottom border-primary border-3 text-primary fw-semibold" : "text-muted")"
+                    @onclick='() => TabActiva = "overview"'>
+                <i class="bi bi-graph-up me-2"></i> Overview
+            </button>
+            <button class="btn btn-link text-decoration-none px-4 py-3 @(TabActiva == "alertas" ? "border-bottom border-primary border-3 text-primary fw-semibold" : "text-muted")"
+                    @onclick='() => TabActiva = "alertas"'>
+                <i class="bi bi-exclamation-triangle me-2"></i> Alertas
+                @if (CambiosManuales.Any())
+                {
+                    <span class="badge bg-warning text-dark ms-1">@CambiosManuales.Count</span>
+                }
+            </button>
+            <button class="btn btn-link text-decoration-none px-4 py-3 @(TabActiva == "deletes" ? "border-bottom border-primary border-3 text-primary fw-semibold" : "text-muted")"
+                    @onclick='() => TabActiva = "deletes"'>
+                <i class="bi bi-trash me-2"></i> Eliminaciones
+            </button>
+            <button class="btn btn-link text-decoration-none px-4 py-3 @(TabActiva == "usuarios" ? "border-bottom border-primary border-3 text-primary fw-semibold" : "text-muted")"
+                    @onclick='() => TabActiva = "usuarios"'>
+                <i class="bi bi-people me-2"></i> Usuarios
+            </button>
+
+            <div class="ms-auto p-2">
+                <button class="btn @(AutoRefresh ? "btn-success" : "btn-outline-secondary") btn-sm"
+                        @onclick="ToggleAutoRefresh">
+                    <i class="bi bi-arrow-repeat me-1"></i>
+                    @(AutoRefresh ? "Auto-Refresh: ON" : "Auto-Refresh: OFF")
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Cargando datos de auditoría...</p>
+    </div>
+}
+else
+{
+    <!-- ============================================
+         TAB: OVERVIEW
+    ============================================= -->
+    @if (TabActiva == "overview")
+    {
+        <!-- FILTROS GLOBALES -->
+        <div class="card custom-card mb-3">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fs-13 fw-semibold">Desde</label>
+                        <input type="date" class="form-control" @bind="FiltroDesde" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fs-13 fw-semibold">Hasta</label>
+                        <input type="date" class="form-control" @bind="FiltroHasta" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fs-13 fw-semibold">Tabla</label>
+                        <select class="form-select" @bind="FiltroTabla">
+                            <option value="">Todas</option>
+                            @foreach (var t in TablasResumen.Select(x => x.Tabla).Distinct())
+                            {
+                                <option value="@t">@t</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 d-flex align-items-end gap-2">
+                        <button class="btn btn-primary flex-fill" @onclick="AplicarFiltros">
+                            <i class="bi bi-funnel me-1"></i> Aplicar
+                        </button>
+                        <button class="btn btn-outline-secondary flex-fill" @onclick="ResetFiltros">
+                            <i class="bi bi-x-circle me-1"></i> Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="row">
+            <div class="col-xxl-3 col-md-6 mb-3">
+                <div class="card custom-card border-start border-primary border-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="fs-12 text-muted d-block mb-1">Total Acciones</span>
+                                <h3 class="mb-0 fw-bold">@Stats.TotalRegistros.ToString("N0")</h3>
+                            </div>
+                            <div class="avatar avatar-md bg-primary-transparent">
+                                <i class="bi bi-activity fs-20"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xxl-3 col-md-6 mb-3">
+                <div class="card custom-card border-start border-success border-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="fs-12 text-muted d-block mb-1">INSERT</span>
+                                <h3 class="mb-0 fw-bold text-success">@Stats.TotalInserts.ToString("N0")</h3>
+                            </div>
+                            <div class="avatar avatar-md bg-success-transparent">
+                                <i class="bi bi-plus-circle fs-20"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xxl-3 col-md-6 mb-3">
+                <div class="card custom-card border-start border-warning border-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="fs-12 text-muted d-block mb-1">UPDATE</span>
+                                <h3 class="mb-0 fw-bold text-warning">@Stats.TotalUpdates.ToString("N0")</h3>
+                            </div>
+                            <div class="avatar avatar-md bg-warning-transparent">
+                                <i class="bi bi-pencil-square fs-20"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xxl-3 col-md-6 mb-3">
+                <div class="card custom-card border-start border-danger border-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="fs-12 text-muted d-block mb-1">DELETE</span>
+                                <h3 class="mb-0 fw-bold text-danger">@Stats.TotalDeletes.ToString("N0")</h3>
+                            </div>
+                            <div class="avatar avatar-md bg-danger-transparent">
+                                <i class="bi bi-trash fs-20"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICOS -->
+        <div class="row">
+            <!-- Actividad diaria -->
+            <div class="col-xxl-6 col-md-12 mb-3">
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Actividad por hora</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (ActividadHora.Any())
+                        {
+                            <ApexChart TItem="ActividadHoraDto"
+                                       Height="260"
+                                       Options="ActividadHoraOptions">
+                                <ApexPointSeries TItem="ActividadHoraDto"
+                                                 Items="ActividadHora"
+                                                 SeriesType="@SeriesType.Line"
+                                                 Name="Acciones"
+                                                 XValue="@(x => $"{x.Hora}:00")"
+                                                 YValue="@(x => x.Total)" />
+                            </ApexChart>
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-5">
+                                <i class="bi bi-clock-history fs-40 d-block mb-2 opacity-25"></i>
+                                No hay actividad registrada.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Donut por tipo -->
+            <div class="col-xxl-3 col-md-6 mb-3">
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Por tipo de acción</h5>
+                    </div>
+                    <div class="card-body">
+                        <ApexChart TItem="AuditPiePoint" Height="260" Options="PieOptions">
+                            <ApexPointSeries TItem="AuditPiePoint"
+                                             Items="PieData"
+                                             SeriesType="@SeriesType.Donut"
+                                             Name="Tipo"
+                                             XValue="p => p.Label"
+                                             YValue="p => p.Value" />
+                        </ApexChart>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barras por tabla -->
+            <div class="col-xxl-3 col-md-6 mb-3">
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Acciones por tabla</h5>
+                    </div>
+                    <div class="card-body">
+                        <ApexChart TItem="ResumenTablaDto" Height="260" Options="TablasOptions">
+                            <ApexPointSeries TItem="ResumenTablaDto"
+                                             Items="TablasResumen"
+                                             SeriesType="@SeriesType.Bar"
+                                             Name="Acciones"
+                                             XValue="x => x.Tabla"
+                                             YValue="x => x.Total" />
+                        </ApexChart>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HEATMAP -->
+        <div class="card custom-card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-calendar-heat me-2"></i>Heatmap de actividad
+                </h5>
+                <div>
+                    <button class="btn btn-sm btn-icon btn-outline-secondary" @onclick="HeatmapMesAnterior">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <span class="mx-3 fw-semibold">@HeatmapMesActual.ToString("MMMM yyyy")</span>
+                    <button class="btn btn-sm btn-icon btn-outline-secondary" @onclick="HeatmapMesSiguiente"
+                            disabled="@(HeatmapMesActual.Month == DateTime.Today.Month && HeatmapMesActual.Year == DateTime.Today.Year)">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-1">
+                    @foreach (var d in Heatmap)
+                    {
+                        <div class="@GetHeatmapClass(d.Intensity)"
+                             style="width: 32px; height: 32px; border-radius: 4px; cursor: pointer;"
+                             title="@($"{d.Day:dd/MM/yyyy}: {d.Count} acciones")">
+                        </div>
+                    }
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <small class="text-muted fs-11">
+                        Cuadros más intensos indican mayor actividad de auditoría.
+                    </small>
+                    <div class="d-flex gap-2 align-items-center">
+                        <small class="text-muted fs-11">Menos</small>
+                        <div style="width: 12px; height: 12px; background: #ebedf0; border-radius: 2px;"></div>
+                        <div style="width: 12px; height: 12px; background: #9be9a8; border-radius: 2px;"></div>
+                        <div style="width: 12px; height: 12px; background: #40c463; border-radius: 2px;"></div>
+                        <div style="width: 12px; height: 12px; background: #30a14e; border-radius: 2px;"></div>
+                        <div style="width: 12px; height: 12px; background: #216e39; border-radius: 2px;"></div>
+                        <small class="text-muted fs-11">Más</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- ============================================
+         TAB: ALERTAS CRÍTICAS
+    ============================================= -->
+    @if (TabActiva == "alertas")
+    {
+        <div class="card custom-card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                        Cambios Manuales Detectados
+                    </h5>
+                    <small class="text-muted">Operaciones realizadas directamente en base de datos</small>
+                </div>
+                @if (CambiosManuales.Any())
+                {
+                    <span class="badge bg-warning-transparent text-warning fs-14 px-3 py-2">
+                        @CambiosManuales.Count alertas
+                    </span>
+                }
+            </div>
+
+            <div class="card-body">
+                @if (!CambiosManuales.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-check-circle-fill text-success fs-40 d-block mb-3"></i>
+                        <h6 class="text-muted">No se detectaron cambios manuales recientes</h6>
+                        <small class="text-muted">El sistema está operando normalmente</small>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var m in CambiosManuales.Take(MostrarTodasAlertas ? CambiosManuales.Count : 5))
+                        {
+                            <div class="border-start border-warning border-3 bg-warning-subtle p-3 rounded-end">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center gap-3 mb-2">
+                                            <span class="badge bg-warning text-dark fs-11">
+                                                <i class="bi bi-clock me-1"></i>
+                                                @GetTiempoRelativo(m.Fecha)
+                                            </span>
+                                            <span class="fw-semibold text-dark">@m.Fecha.ToString("dd/MM/yyyy HH:mm")</span>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <span class="badge bg-dark me-2">@m.Tabla</span>
+                                            <span class="text-muted">Registro:</span>
+                                            <span class="fw-semibold">#@m.RegistroId</span>
+                                        </div>
+
+                                        <div class="text-muted small mb-2">
+                                            @(m.Detalle?.Length > 100 ? m.Detalle.Substring(0, 100) + "..." : m.Detalle)
+                                        </div>
+
+                                        <div class="d-flex gap-3 small text-muted">
+                                            <span><i class="bi bi-person me-1"></i><strong>SQL:</strong> @m.LoginSql</span>
+                                            <span><i class="bi bi-hdd me-1"></i><strong>Host:</strong> @m.Host</span>
+                                            <span><i class="bi bi-app me-1"></i><strong>App:</strong> @m.AppSql</span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => VerDetalle(m.Detalle)">
+                                            <i class="bi bi-eye me-1"></i> Ver detalle
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (CambiosManuales.Count > 5)
+                    {
+                        <div class="text-center mt-3">
+                            <button class="btn btn-outline-secondary" @onclick="() => MostrarTodasAlertas = !MostrarTodasAlertas">
+                                @if (MostrarTodasAlertas)
+                                {
+                                    <i class="bi bi-chevron-up me-1"></i>
+                                    <span>Mostrar menos</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-chevron-down me-1"></i>
+                                    <span>Ver todas las alertas (@CambiosManuales.Count)</span>
+                                }
+                            </button>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+
+    <!-- ============================================
+         TAB: ELIMINACIONES
+    ============================================= -->
+    @if (TabActiva == "deletes")
+    {
+        <!-- Filtros específicos de deletes -->
+        <div class="card custom-card mb-3">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fs-13 fw-semibold">
+                            <i class="bi bi-search me-1"></i>Buscar
+                        </label>
+                        <input type="text" class="form-control" placeholder="Buscar en registros..."
+                               @bind="BusquedaDelete" @bind:event="oninput" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fs-13 fw-semibold">Usuario</label>
+                        <select class="form-select" @bind="FiltroUsuario" @bind:event="onchange">
+                            <option value="">Todos</option>
+                            @foreach (var u in Usuarios)
+                            {
+                                <option value="@u">@u</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fs-13 fw-semibold">Nivel de Riesgo</label>
+                        <select class="form-select" @bind="FiltroRiesgo" @bind:event="onchange">
+                            <option value="">Todos</option>
+                            <option value="Alto">Alto</option>
+                            <option value="Medio">Medio</option>
+                            <option value="Bajo">Bajo</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card custom-card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-trash me-2"></i>Registros de Eliminación
+                    </h5>
+                    <small class="text-muted">@DeletesFiltrados.Count registros encontrados</small>
+                </div>
+                <span class="badge @GetRiesgoBadgeClass(NivelRiesgo) fs-13 px-3 py-2">
+                    <i class="bi bi-shield-exclamation me-1"></i>
+                    Nivel de riesgo: @NivelRiesgo
+                </span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover text-nowrap mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="fw-semibold" style="cursor: pointer;" @onclick='() => OrdenarPor("Fecha")'>
+                                Fecha
+                                @if (OrdenColumna == "Fecha")
+                                {
+                                    <i class="bi bi-@(OrdenAscendente ? "sort-up" : "sort-down")"></i>
+                                }
+                            </th>
+                            <th class="fw-semibold" style="cursor: pointer;" @onclick='() => OrdenarPor("Tabla")'>
+                                Tabla
+                                @if (OrdenColumna == "Tabla")
+                                {
+                                    <i class="bi bi-@(OrdenAscendente ? "sort-up" : "sort-down")"></i>
+                                }
+                            </th>
+                            <th class="fw-semibold">Usuario</th>
+                            <th class="fw-semibold">Registro</th>
+                            <th class="fw-semibold">Riesgo</th>
+                            <th class="fw-semibold">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!DeletesPaginados.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    <i class="bi bi-inbox fs-40 d-block mb-2 opacity-25"></i>
+                                    No se encontraron registros con los filtros aplicados.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var d in DeletesPaginados)
+                            {
+                                var riesgo = CalcularRiesgoDelete(d);
+                                <tr>
+                                    <td>
+                                        <div>@d.Fecha.ToString("dd/MM/yyyy")</div>
+                                        <small class="text-muted">@d.Fecha.ToString("HH:mm")</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary-transparent">@d.Tabla</span>
+                                    </td>
+                                    <td>
+                                        <i class="bi bi-person-circle me-1"></i>@d.Usuario
+                                    </td>
+                                    <td><code>#@d.RegistroId</code></td>
+                                    <td>
+                                        <span class="badge @GetRiesgoBadgeClass(riesgo)">
+                                            @riesgo
+                                        </span>
+                                    </td>
+                                    <td class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-primary-light" @onclick="() => VerDetalle(d.Detalle)">
+                                            <i class="bi bi-eye me-1"></i> Detalle
+                                        </button>
+                                        <button class="btn btn-sm btn-info-light"
+                                                @onclick="() => VerHistorial(d.Tabla, d.RegistroId ?? -1)">
+                                            <i class="bi bi-clock-history me-1"></i> Historial
+                                        </button>
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (TotalPaginasDeletes > 1)
+            {
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted small">
+                            Mostrando @((PaginaActualDeletes - 1) * RegistrosPorPagina + 1)
+                            a @Math.Min(PaginaActualDeletes * RegistrosPorPagina, DeletesFiltrados.Count)
+                            de @DeletesFiltrados.Count registros
+                        </div>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item @(PaginaActualDeletes == 1 ? "disabled" : "")">
+                                    <button class="page-link" @onclick="() => CambiarPagina(1)">
+                                        <i class="bi bi-chevron-bar-left"></i>
+                                    </button>
+                                </li>
+                                <li class="page-item @(PaginaActualDeletes == 1 ? "disabled" : "")">
+                                    <button class="page-link" @onclick="() => CambiarPagina(PaginaActualDeletes - 1)">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                </li>
+
+                                @for (int i = Math.Max(1, PaginaActualDeletes - 2); i <= Math.Min(TotalPaginasDeletes, PaginaActualDeletes + 2); i++)
+                                {
+                                    var pagina = i;
+                                    <li class="page-item @(PaginaActualDeletes == pagina ? "active" : "")">
+                                        <button class="page-link" @onclick="() => CambiarPagina(pagina)">
+                                            @pagina
+                                        </button>
+                                    </li>
+                                }
+
+                                <li class="page-item @(PaginaActualDeletes == TotalPaginasDeletes ? "disabled" : "")">
+                                    <button class="page-link" @onclick="() => CambiarPagina(PaginaActualDeletes + 1)">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </li>
+                                <li class="page-item @(PaginaActualDeletes == TotalPaginasDeletes ? "disabled" : "")">
+                                    <button class="page-link" @onclick="() => CambiarPagina(TotalPaginasDeletes)">
+                                        <i class="bi bi-chevron-bar-right"></i>
+                                    </button>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- ============================================
+         TAB: USUARIOS
+    ============================================= -->
+    @if (TabActiva == "usuarios")
+    {
+        <div class="row">
+            <!-- Top 5 Usuarios Activos -->
+            <div class="col-md-8 mb-3">
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-trophy me-2 text-warning"></i>
+                            Usuarios Más Activos
+                        </h5>
+                        <small class="text-muted">Basado en el total de operaciones registradas</small>
+                    </div>
+                    <div class="card-body">
+                        @if (!ResumenUsuarios.Any())
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-people fs-40 d-block mb-2 opacity-25"></i>
+                                <p class="text-muted">No hay datos de usuarios disponibles</p>
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var (usuario, index) in ResumenUsuarios.Take(10).Select((u, i) => (u, i)))
+                            {
+                                var maxAcciones = ResumenUsuarios.Max(u => u.Total);
+                                var porcentaje = maxAcciones > 0 ? (usuario.Total * 100.0 / maxAcciones) : 0;
+
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge @(index < 3 ? "bg-warning" : "bg-secondary") rounded-circle"
+                                                  style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                                                @(index + 1)
+                                            </span>
+                                            <span class="fw-semibold">@usuario.Usuario</span>
+                                        </div>
+                                        <span class="text-muted fw-semibold">@usuario.Total.ToString("N0") acciones</span>
+                                    </div>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-primary" role="progressbar"
+                                             style="width: @porcentaje.ToString("F1")%"
+                                             aria-valuenow="@usuario.Total" aria-valuemin="0" aria-valuemax="@maxAcciones">
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen General de Usuarios -->
+            <div class="col-md-4 mb-3">
+                <div class="card custom-card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar avatar-lg bg-primary-transparent rounded">
+                                <i class="bi bi-people-fill fs-24"></i>
+                            </div>
+                            <div>
+                                <h3 class="mb-1 fw-bold">@ResumenUsuarios.Count</h3>
+                                <p class="text-muted mb-0 fs-13">Usuarios Activos</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card custom-card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar avatar-lg bg-success-transparent rounded">
+                                <i class="bi bi-graph-up-arrow fs-24"></i>
+                            </div>
+                            <div>
+                                <h3 class="mb-1 fw-bold">
+                                    @(ResumenUsuarios.Any() ? ResumenUsuarios.Average(u => u.Total).ToString("N0") : "0")
+                                </h3>
+                                <p class="text-muted mb-0 fs-13">Promedio por Usuario</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card custom-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar avatar-lg bg-warning-transparent rounded">
+                                <i class="bi bi-trophy-fill fs-24"></i>
+                            </div>
+                            <div>
+                                <h3 class="mb-1 fw-bold">
+                                    @(ResumenUsuarios.Any() ? ResumenUsuarios.First().Usuario : "N/A")
+                                </h3>
+                                <p class="text-muted mb-0 fs-13">Usuario Más Activo</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla detallada de usuarios -->
+        <div class="card custom-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Detalle Completo de Usuarios</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="fw-semibold">#</th>
+                            <th class="fw-semibold">Usuario</th>
+                            <th class="fw-semibold">Total</th>
+                            <th class="fw-semibold">
+                                <span class="text-success">INSERT</span>
+                            </th>
+                            <th class="fw-semibold">
+                                <span class="text-warning">UPDATE</span>
+                            </th>
+                            <th class="fw-semibold">
+                                <span class="text-danger">DELETE</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!ResumenUsuarios.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    No hay datos de usuarios disponibles
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var (usuario, index) in ResumenUsuarios.Select((u, i) => (u, i + 1)))
+                            {
+                                <tr>
+                                    <td>@index</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar avatar-sm bg-primary-transparent rounded-circle">
+                                                @usuario.Usuario.Substring(0, 1).ToUpper()
+                                            </div>
+                                            <span class="fw-semibold">@usuario.Usuario</span>
+                                        </div>
+                                    </td>
+                                    <td class="fw-bold">@usuario.Total.ToString("N0")</td>
+                                    <td>
+                                        <span class="badge bg-success-transparent text-success">
+                                            @usuario.Inserts.ToString("N0")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning-transparent text-warning">
+                                            @usuario.Updates.ToString("N0")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger-transparent text-danger">
+                                            @usuario.Deletes.ToString("N0")
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+<!-- MODAL DETALLE -->
+@if (ShowModal)
+{
+    <div class="modal fade show d-block" style="background:rgba(0,0,0,.6);" @onclick="CerrarModal">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" @onclick:stopPropagation="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-text me-2"></i>Detalle Completo del Registro
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body">
+                    <pre class="bg-light p-3 rounded small border" style="max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">@DetalleSeleccionado</pre>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="() => CopiarDetalle(DetalleSeleccionado)">
+                        <i class="bi bi-clipboard me-1"></i> Copiar
+                    </button>
+                    <button class="btn btn-primary" @onclick="CerrarModal">
+                        <i class="bi bi-x-circle me-1"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@if (ShowHistorialModal)
+{
+    <div class="modal fade show d-block" style="background:rgba(0,0,0,.6);" @onclick="CerrarHistorialModal">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
+             @onclick:stopPropagation="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-clock-history me-2"></i> Historial del Registro
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CerrarHistorialModal"></button>
+                </div>
+
+                <div class="modal-body">
+                    @if (!HistorialRegistro.Any())
+                    {
+                        <p class="text-muted text-center my-3">No hay historial disponible.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group">
+                            @foreach (var h in HistorialRegistro)
+                            {
+                                <li class="list-group-item">
+                                    <strong>@h.Fecha.ToString("dd/MM/yyyy HH:mm")</strong> —
+                                    <span class="badge bg-primary">@h.Accion</span>
+
+                                    <p class="mt-2 small">
+                                        @h.Detalle
+                                    </p>
+
+                                    <div class="small text-muted d-flex gap-3">
+                                        <span><strong>Usuario APP:</strong> @h.UsuarioApp</span>
+                                        <span><strong>SQL:</strong> @h.LoginSql</span>
+                                        <span><strong>Host:</strong> @h.Host</span>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CerrarHistorialModal">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@code {
+    // ============================
+    // ESTADO GENERAL
+    // ============================
+    private bool IsLoading = true;
+    private bool AutoRefresh = false;
+    private Timer? RefreshTimer;
+    private string TabActiva = "overview";
+
+    // ============================
+    // DTOs DEL BACKEND
+    // ============================
+    private EstadisticasGeneralesDto Stats = new();
+    private List<ActividadDiaDto> ActividadDia = new();
+    private List<ActividadHoraDto> ActividadHora = new();   // 🆕 NUEVO
+    private List<ResumenTablaDto> TablasResumen = new();
+    private List<CambioManualDto> CambiosManuales = new();
+    private List<DeleteDto> Deletes = new();
+    private List<ResumenUsuarioDto> ResumenUsuarios = new();
+    private List<HistorialRegistroDto> HistorialRegistro = new(); // 🆕 NUEVO
+
+    // ============================
+    // DERIVADOS
+    // ============================
+    private List<DeleteDto> DeletesFiltrados = new();
+    private List<AuditPiePoint> PieData = new();
+    private List<HeatmapPoint> Heatmap = new();
+    private List<string> Usuarios = new();
+    private string NivelRiesgo = "Bajo";
+
+    // ============================
+    // FILTROS
+    // ============================
+    private DateTime? FiltroDesde { get; set; } = DateTime.Today.AddDays(-7);
+    private DateTime? FiltroHasta { get; set; } = DateTime.Today;
+    private string FiltroTabla { get; set; } = "";
+    private string FiltroUsuario { get; set; } = "";
+    private string FiltroRiesgo { get; set; } = "";
+    private string BusquedaDelete { get; set; } = "";
+
+    // ============================
+    // PAGINACIÓN
+    // ============================
+    private int PaginaActualDeletes = 1;
+    private int RegistrosPorPagina = 20;
+    private int TotalPaginasDeletes => (int)Math.Ceiling(DeletesFiltrados.Count / (double)RegistrosPorPagina);
+    private List<DeleteDto> DeletesPaginados =>
+        DeletesFiltrados.Skip((PaginaActualDeletes - 1) * RegistrosPorPagina)
+                        .Take(RegistrosPorPagina)
+                        .ToList();
+
+    // ============================
+    // ORDENAMIENTO
+    // ============================
+    private string OrdenColumna = "Fecha";
+    private bool OrdenAscendente = false;
+
+    // ============================
+    // MODALES
+    // ============================
+    private bool ShowModal = false;
+    private bool ShowHistorialModal = false; // 🆕 NUEVO
+    private string DetalleSeleccionado = string.Empty;
+
+    // ============================
+    // ALERTAS
+    // ============================
+    private bool MostrarTodasAlertas = false;
+
+    // ============================
+    // HEATMAP
+    // ============================
+    private DateTime HeatmapMesActual = DateTime.Today;
+
+    // ============================
+    // OPCIONES DE GRÁFICOS
+    // ============================
+    private ApexChartOptions<ActividadDiaDto> ActividadOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        DataLabels = new DataLabels { Enabled = false },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = 3 },
+        Colors = new List<string> { "#0d6efd" }
+    };
+
+    private ApexChartOptions<AuditPiePoint> PieOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        Legend = new Legend { Show = true, Position = LegendPosition.Bottom },
+        Colors = new List<string> { "#198754", "#ffc107", "#dc3545" }
+    };
+
+    private ApexChartOptions<ResumenTablaDto> TablasOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { ColumnWidth = "60%", Distributed = true } },
+        DataLabels = new DataLabels { Enabled = false }
+    };
+
+    // 🆕 OPCIONES PARA ACTIVIDAD POR HORA
+    private ApexChartOptions<ActividadHoraDto> ActividadHoraOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 },
+        DataLabels = new DataLabels { Enabled = false },
+        Colors = new List<string> { "#6f42c1" } // morado
+    };
+
+
+    private void HeatmapMesAnterior()
+    {
+        HeatmapMesActual = HeatmapMesActual.AddMonths(-1);
+        GenerarHeatmap();
+    }
+
+    private void HeatmapMesSiguiente()
+    {
+        HeatmapMesActual = HeatmapMesActual.AddMonths(1);
+        GenerarHeatmap();
+    }
+
+    private string GetHeatmapClass(int intensity)
+    {
+        return intensity switch
+        {
+            0 => "heatmap-0",
+            1 => "heatmap-1",
+            2 => "heatmap-2",
+            3 => "heatmap-3",
+            4 => "heatmap-4",
+            _ => "heatmap-0"
+        };
+    }
+    private void GenerarHeatmap()
+    {
+        Heatmap.Clear();
+
+        // obtén el primer y último día del mes
+        DateTime inicio = new DateTime(HeatmapMesActual.Year, HeatmapMesActual.Month, 1);
+        DateTime fin = inicio.AddMonths(1).AddDays(-1);
+
+        // agrupa ActividadDia para este mes
+        var actividadMes = ActividadDia
+            .Where(a => a.Fecha.Date >= inicio && a.Fecha.Date <= fin)
+            .ToList();
+
+        foreach (var fecha in Enumerable.Range(1, fin.Day))
+        {
+            var dia = new DateTime(HeatmapMesActual.Year, HeatmapMesActual.Month, fecha);
+
+            int total = actividadMes
+                .Where(a => a.Fecha.Date == dia)
+                .Sum(a => a.Total);
+
+            int intensity =
+                total == 0 ? 0 :
+                total < 5 ? 1 :
+                total < 15 ? 2 :
+                total < 30 ? 3 : 4;
+
+            Heatmap.Add(new HeatmapPoint
+            {
+                Day = dia,
+                Count = total,
+                Intensity = intensity
+            });
+        }
+    }
+    private string GetRiesgoBadgeClass(string riesgo)
+    {
+        return riesgo switch
+        {
+            "Alto" => "bg-danger text-white",
+            "Medio" => "bg-warning text-dark",
+            "Bajo" => "bg-success text-white",
+            "Crítico" => "bg-danger text-white fw-bold",
+            _ => "bg-secondary text-white"
+        };
+    }
+    private void CambiarPagina(int pagina)
+    {
+        if (pagina < 1 || pagina > TotalPaginasDeletes)
+            return;
+
+        PaginaActualDeletes = pagina;
+    }
+
+
+    // ============================
+    // INICIALIZACIÓN
+    // ============================
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+
+        RefreshTimer = new Timer(60000);
+        RefreshTimer.Elapsed += async (_, __) =>
+        {
+            if (AutoRefresh)
+            {
+                await InvokeAsync(async () =>
+                {
+                    await CargarDatos();
+                    StateHasChanged();
+                });
+            }
+        };
+        RefreshTimer.AutoReset = true;
+        RefreshTimer.Enabled = true;
+    }
+
+    public void Dispose()
+    {
+        RefreshTimer?.Stop();
+        RefreshTimer?.Dispose();
+    }
+
+
+    // ============================
+    // CARGA DE DATOS PRINCIPAL
+    // ============================
+    private async Task CargarDatos()
+    {
+        try
+        {
+            IsLoading = true;
+
+            Stats = await AuditoriaApi.GetEstadisticas();
+            ActividadDia = await AuditoriaApi.GetActividadDia();
+            ActividadHora = await AuditoriaApi.GetActividadHora();  
+            TablasResumen = await AuditoriaApi.GetResumenTablas();
+            CambiosManuales = await AuditoriaApi.GetCambiosManuales(null, null);
+            ResumenUsuarios = await AuditoriaApi.GetResumenPorUsuariosAsync();
+
+            ResumenUsuarios = ResumenUsuarios.OrderByDescending(u => u.Total).ToList();
+
+            PieData = new()
+            {
+                new AuditPiePoint("Insert", Stats.TotalInserts),
+                new AuditPiePoint("Update", Stats.TotalUpdates),
+                new AuditPiePoint("Delete", Stats.TotalDeletes)
+            };
+
+            GenerarHeatmap();
+            AplicarFiltrosLocal();
+            CalcularNivelRiesgo();
+
+            IsLoading = false;
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"ERROR EN CargarDatos: {ex.Message}");
+            IsLoading = false;
+        }
+    }
+
+    // ============================
+    // FILTROS, ORDEN, PÁGINAS
+    // ============================
+    private async Task AplicarFiltros()
+    {
+        string? tablaFiltro = string.IsNullOrWhiteSpace(FiltroTabla) ? null : FiltroTabla;
+        Deletes = await AuditoriaApi.GetDeletes(tablaFiltro, FiltroDesde, FiltroHasta);
+        AplicarFiltrosLocal();
+        PaginaActualDeletes = 1;
+    }
+
+    private void AplicarFiltrosLocal()
+    {
+        var query = Deletes.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(FiltroUsuario))
+            query = query.Where(d => d.Usuario == FiltroUsuario);
+
+        if (!string.IsNullOrWhiteSpace(BusquedaDelete))
+        {
+            query = query.Where(d =>
+                d.Tabla.Contains(BusquedaDelete, StringComparison.OrdinalIgnoreCase) ||
+                d.Usuario.Contains(BusquedaDelete, StringComparison.OrdinalIgnoreCase) ||
+                d.RegistroId.ToString().Contains(BusquedaDelete) ||
+                (d.Detalle?.Contains(BusquedaDelete, StringComparison.OrdinalIgnoreCase) ?? false)
+            );
+        }
+
+        if (!string.IsNullOrWhiteSpace(FiltroRiesgo))
+            query = query.Where(d => CalcularRiesgoDelete(d) == FiltroRiesgo);
+
+        query = OrdenColumna switch
+        {
+            "Fecha" => OrdenAscendente ? query.OrderBy(d => d.Fecha) : query.OrderByDescending(d => d.Fecha),
+            "Tabla" => OrdenAscendente ? query.OrderBy(d => d.Tabla) : query.OrderByDescending(d => d.Tabla),
+            _ => query.OrderByDescending(d => d.Fecha)
+        };
+
+        DeletesFiltrados = query.ToList();
+    }
+
+    private void OrdenarPor(string columna)
+    {
+        if (OrdenColumna == columna)
+            OrdenAscendente = !OrdenAscendente;
+        else
+        {
+            OrdenColumna = columna;
+            OrdenAscendente = false;
+        }
+
+        AplicarFiltrosLocal();
+    }
+
+    private void ResetFiltros()
+    {
+        FiltroDesde = DateTime.Today.AddDays(-7);
+        FiltroHasta = DateTime.Today;
+        FiltroTabla = "";
+        FiltroUsuario = "";
+        FiltroRiesgo = "";
+        BusquedaDelete = "";
+        AplicarFiltrosLocal();
+        PaginaActualDeletes = 1;
+    }
+
+    // ============================
+    // HISTORIAL DE REGISTRO (NUEVO)
+    // ============================
+    private async Task VerHistorial(string tabla, int id)
+    {
+        try
+        {
+            HistorialRegistro = await AuditoriaApi.GetHistorialRegistroAsync(tabla, id);
+            ShowHistorialModal = true;
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"ERROR VerHistorial: {ex.Message}");
+        }
+    }
+
+    private void CerrarHistorialModal() => ShowHistorialModal = false;
+
+
+    // ============================
+    // CALCULOS VARIOS
+    // ============================
+    private void CalcularNivelRiesgo()
+    {
+        int deletesUltimaSemana = Deletes
+            .Where(d => d.Fecha >= DateTime.Today.AddDays(-7))
+            .Count();
+
+        NivelRiesgo = deletesUltimaSemana switch
+        {
+            > 50 => "Crítico",
+            > 20 => "Alto",
+            > 5 => "Medio",
+            _ => "Bajo"
+        };
+    }
+
+    private string CalcularRiesgoDelete(DeleteDto delete)
+    {
+        var hora = delete.Fecha.Hour;
+
+        var deletesUsuarioUltimaHora = Deletes
+            .Where(d => d.Usuario == delete.Usuario &&
+                        d.Fecha >= delete.Fecha.AddHours(-1) &&
+                        d.Fecha <= delete.Fecha)
+            .Count();
+
+        if (deletesUsuarioUltimaHora > 10 || hora < 6 || hora > 22)
+            return "Alto";
+        else if (deletesUsuarioUltimaHora > 5 || hora < 8 || hora > 20)
+            return "Medio";
+        else
+            return "Bajo";
+    }
+
+    private string GetTiempoRelativo(DateTime fecha)
+    {
+        var diff = DateTime.Now - fecha;
+
+        if (diff.TotalMinutes < 1) return "Hace unos segundos";
+        if (diff.TotalMinutes < 60) return $"Hace {(int)diff.TotalMinutes} min";
+        if (diff.TotalHours < 24) return $"Hace {(int)diff.TotalHours}h";
+        if (diff.TotalDays < 7) return $"Hace {(int)diff.TotalDays}d";
+
+        return fecha.ToString("dd/MM/yyyy");
+    }
+
+    // ============================
+    // MODAL DETALLE
+    // ============================
+    private void VerDetalle(string detalle)
+    {
+        DetalleSeleccionado = detalle ?? "(Sin detalle)";
+        ShowModal = true;
+    }
+
+    private void CerrarModal()
+    {
+        ShowModal = false;
+        DetalleSeleccionado = string.Empty;
+    }
+
+    private async Task CopiarDetalle(string texto)
+    {
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", texto);
+    }
+
+    private void ToggleAutoRefresh()
+    {
+        AutoRefresh = !AutoRefresh;
+    }
+
+    // ============================
+    // MODELOS LOCALES
+    // ============================
+    public class AuditPiePoint
+    {
+        public string Label { get; set; }
+        public decimal Value { get; set; }
+
+        public AuditPiePoint(string label, decimal value)
+        {
+            Label = label;
+            Value = value;
+        }
+    }
+
+    public class HeatmapPoint
+    {
+        public DateTime Day { get; set; }
+        public int Count { get; set; }
+        public int Intensity { get; set; }
+    }
+}

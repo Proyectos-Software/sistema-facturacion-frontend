@@ -1,0 +1,466 @@
+﻿@page "/ecommerce/orders"
+@using Microsoft.AspNetCore.Authorization
+@using Soenneker.Blazor.TomSelect
+@using Soenneker.Blazor.TomSelect.Configuration
+@using Soenneker.Blazor.TomSelect.Enums
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject SweetAlertService Swal
+@attribute [Authorize]
+
+
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap">
+        <h1 class="page-title fw-medium fs-18 mb-0">Orders</h1>
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Dashboards</a></li>
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Ecommerce</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Orders</li>
+        </ol>
+    </div>
+</div>
+<div class="row row-cols-xxl-5">
+    @foreach (var card in dashboardCards)
+    {
+        <div class="col">
+            <div class="card custom-card dashboard-main-card overflow-hidden @card.CardClass">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="flex-fill">
+                            <span class="fs-13 fw-medium">@card.Title</span>
+                            <h4 class="fw-semibold lh-1 my-2">@card.Count</h4>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="fs-12 d-block text-muted">
+                                    <span class="@card.PercentageClass d-inline-flex align-items-center fw-semibold me-1">
+                                        <i class="ti @(card.IsTrendingUp ? "ti-trending-up" : "ti-trending-down") fw-semibold me-1 align-middle"></i>
+                                        @card.Percentage
+                                    </span>@card.MonthLabel
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="avatar avatar-md @card.SvgBgClass @card.SvgIconClass">
+                                @((MarkupString)(card.SvgIcon?? string.Empty))
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<div class="row">
+    <div class="col-xl-12">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between border-bottom-0 gap-2">
+                <div class="w-sm-25">
+                    <input class="form-control order-input" type="search" id="search-input" placeholder="Search Order"
+                           aria-label="search-order" @bind-value="SearchTerm" @oninput="OnSearchInput">
+                </div>
+
+                <div class="d-flex w-sm-50 justify-content-end align-items-center custom-orders flex-wrap gap-4">
+                    <div>
+                        <div class="dropdown d-grid">
+                            <button class="btn btn-primary-light dropdown-toggle" type="button" id="dropdownMenuButton1"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="ri-upload-2-line me-1"></i>Export
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                <li><a class="dropdown-item" href="javascript:void(0);"><i
+                                                class="bi bi-file-earmark-excel me-2"></i>Excel</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);"><i
+                                                class="bi bi-file-earmark-excel me-2"></i>Csv</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);"><i
+                                                class="bi bi-filetype-pdf me-2"></i>PDF</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);"><i
+                                                class="bi bi-file-zip me-2"></i>Zip</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div>
+                        @if (isRendered)
+                        {
+                            <TomSelect TItem="SelectItem"
+                                       Items="_selectedPaymentStatusItems"
+                                       TType="string"
+                                       Multiple="false"
+                                       @bind-Value="_selectedPaymentStatusValue"
+                                       OnChange="OnPaymentStatusSelectionChanged"
+                                       Data="_paymentStatusOptions"
+                                       TextField="@(item => item.Name)"
+                                       ValueField="@(item => item.Id)"
+                                       Placeholder="Search"
+                                       Configuration="_configuration" />
+                        }
+                    </div>
+
+                    <div>
+                        @if (isRendered)
+                        {
+                            <TomSelect TItem="SelectItem"
+                                       Items="_selectedDeliveryStatusItems"
+                                       TType="string"
+                                       Multiple="false"
+                                       @bind-Value="_selectedDeliveryStatusValue"
+                                       OnChange="OnDeliveryStatusSelectionChanged"
+                                       Data="_deliveryStatusOptions"
+                                       TextField="@(item => item.Name)"
+                                       ValueField="@(item => item.Id)"
+                                       Placeholder="Search"
+                                       Configuration="_configuration" />
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive" id="product-table">
+                    <QuickGrid TItem="OrderDetails" Items="@FilteredItems.AsQueryable()" Pagination="pagination">
+                        <TemplateColumn Title="#" SortBy="@sortByName">
+                            <span><input class="form-check-input" type="checkbox" value="" aria-label="..."></span>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Order ID" SortBy="@sortByOrderId">
+                            <ChildContent Context="p">
+                                <span><a href="javascript:void(0);" class="text-primary text-decoration-underline">@p.OrderId</a></span>
+                            </ChildContent>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Customer" SortBy="@sortByName" class="product-name2">
+                            <ChildContent Context="p">
+                                <span>
+                                    <a href="/ecommerce/orderdetails">
+                                        <div class="d-flex align-items-center position-relative gap-3">
+                                            <div class="lh-1">
+                                                <span class="avatar avatar-md avatar-rounded bg-light">
+                                                    <img src="@p.CustomerImg" alt="Customer Image">
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span class="d-block fw-semibold">@p.CustomerName</span>
+                                                <span class="text-muted fs-13">@p.CustomerEmail</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </span>
+                            </ChildContent>
+                        </TemplateColumn>
+                        <PropertyColumn Property="@(p => p.Price)" Sortable="true" Title="Price" />
+                        <TemplateColumn Title="Delivery Status" SortBy="@sortVyDeliveryStatus">
+                            <ChildContent Context="p">
+                                <span class="badge bg-@(
+                                         p.DeliveryStatus == "Pending" ? "warning" :
+                                         p.DeliveryStatus == "Shipped" ? "info" :
+                                         p.DeliveryStatus == "Cancelled" ? "danger" :
+                                         "success")-transparent">
+                                    @p.DeliveryStatus
+                                </span>
+                            </ChildContent>
+                        </TemplateColumn>
+                        <PropertyColumn Property="@(p => p.PaymentMethod)" Sortable="true" Title="Payment Method" />
+
+                        <TemplateColumn Title="Payment Status" SortBy="@sortByStatus">
+                            <ChildContent Context="p">
+                                <span class="text-@(
+                                         p.Status == "Pending" ? "info" :
+                                         p.Status == "Completed" ? "success" :
+                                         p.Status == "Failed" ? "orange" :
+                                         p.Status == "Refunded" ? "warning" :
+                                         "danger")">
+                                    <i class="ri-circle-fill fs-10 me-1"></i>
+                                    @p.Status
+                                </span>
+                            </ChildContent>
+                        </TemplateColumn>
+                        <PropertyColumn Property="@(p => p.OrderedDate)" Sortable="true" Title="Ordered Date" />
+                        <TemplateColumn Title="Actions" class="col-justify-center">
+                            <ChildContent Context="p">
+                                <div class="dropdown">
+                                    <a href="javascript:void(0);" class="btn btn-icon btn-sm btn-primary-light border" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fe fe-more-vertical"></i>
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="/ecommerce/orderdetails"><i class="ri-eye-line me-2"></i>View</a></li>
+                                        <li><a class="dropdown-item btn-delete" href="javascript:void(0);" @onclick="() => ConfirmAndDelete(p)"><i class="ri-delete-bin-line me-2"></i>Delete</a></li>
+                                    </ul>
+                                </div>
+                            </ChildContent>
+                        </TemplateColumn>
+                    </QuickGrid>
+                    @if (FilteredItems == null || !FilteredItems.Any())
+                    {
+                        <div class="pt-4 text-center">No matching records found</div>
+                    }
+                </div>
+                <Paginator State="pagination" />
+            </div>
+        </div>
+    </div>
+</div>
+@code {
+    PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+    record OrderDetails(string OrderId, string CustomerImg, string CustomerName, string CustomerEmail, string Price, string DeliveryStatus, string PaymentMethod, string Status, string OrderedDate);
+
+    GridSort<OrderDetails> sortByName = GridSort<OrderDetails>.ByAscending(p => p.CustomerName);
+    GridSort<OrderDetails> sortByOrderId = GridSort<OrderDetails>.ByAscending(p => p.OrderId);
+    GridSort<OrderDetails> sortVyDeliveryStatus = GridSort<OrderDetails>.ByAscending(p => p.DeliveryStatus);
+    GridSort<OrderDetails> sortByStatus = GridSort<OrderDetails>.ByAscending(p => p.Status);
+
+    // Master list of all orders
+    List<OrderDetails> Items = new();
+
+    // List to hold the filtered data for the grid
+    private List<OrderDetails> FilteredItems = new();
+
+    private string SearchTerm { get; set; } = string.Empty;
+
+    void Delete(OrderDetails p)
+    {
+        Items.Remove(p);
+        FilteredItems.Remove(p); // Also remove from FilteredItems to update the display immediately
+        pagination.ItemsPerPage = Math.Max(1, Math.Min(10, FilteredItems.Count));
+
+        StateHasChanged(); // Triggers UI refresh
+    }
+}
+
+@code{
+    private bool isRendered = false;
+
+    private string _selectedPaymentStatusValue = "0"; // Default to "Payment Status" (All Status)
+    private string _selectedDeliveryStatusValue = "0"; // Default to "Delivery Status" (All Status)
+
+    private List<SelectItem>? _paymentStatusOptions;
+    private List<SelectItem>? _deliveryStatusOptions;
+    private List<SelectItem> _selectedPaymentStatusItems = new List<SelectItem>();
+    private List<SelectItem> _selectedDeliveryStatusItems = new List<SelectItem>();
+
+    public class SelectItem
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+    }
+
+    private readonly TomSelectConfiguration _configuration = new()
+    {
+        Plugins = new List<TomSelectPluginType> { TomSelectPluginType.DropdownInput, TomSelectPluginType.NoBackspaceDelete }
+    };
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isRendered = true;
+            StateHasChanged(); 
+        }
+
+        return Task.CompletedTask;
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        Items = new List<OrderDetails>
+        {
+            new OrderDetails("#SPK001", "../assets/images/faces/9.jpg","John Doe","john.doe@example.com", "$699.99", "Pending", "Visa Card", "Pending", "Jan 15, 2025, 09:45 AM"),
+            new OrderDetails("#SPK002", "../assets/images/faces/1.jpg", "Jane Smith","jane.smith@example.com", "$89.99", "Shipped", "MasterCard", "Completed", "Feb 3, 2025, 02:30 PM"),
+            new OrderDetails("#SPK003", "../assets/images/faces/10.jpg","Michael Brown", "michael.brown@example.com","$399.99", "Delivered", "PayPal", "Failed", "Mar 10, 2025, 11:15 AM"),
+            new OrderDetails("#SPK004", "../assets/images/faces/2.jpg","Emily White", "emily.white@example.com","$129.99", "Cancelled" ,"Apple Pay", "Refunded", "Apr 5, 2025, 04:00 PM"),
+            new OrderDetails("#SPK005", "../assets/images/faces/11.jpg","Chris Johnson","chris.johnson@example.com","$199.99", "Shipped", "COD", "Cancelled", "May 1, 2025, 10:30 AM"),
+            new OrderDetails("#SPK006", "../assets/images/faces/3.jpg","Sarah Lee", "sarah.lee@example.com","$149.99", "Delivered", "MasterCard", "Refunded", "Jun 10, 2025, 03:45 PM"),
+            new OrderDetails("#SPK007", "../assets/images/faces/13.jpg","David Green", "david.green@example.com","$79.99", "Delivered", "PayPal", "Completed", "Jul 18, 2025, 01:00 PM"),
+            new OrderDetails("#SPK008", "../assets/images/faces/4.jpg","Olivia Davis","olivia.davis@example.com", "$59.99", "Pending", "American Express", "Pending", "Aug 25, 2025, 12:30 PM"),
+            new OrderDetails("#SPK009", "../assets/images/faces/14.jpg","James Wilson", "james.wilson@example.com","$59.99", "Cancelled", "Visa Card", "Completed", "Sep 5, 2025, 06:00 PM"),
+            new OrderDetails("#SPK010", "../assets/images/faces/5.jpg","Sophia Martinez", "sophia.martinez@example.com","$39.99", "Shipped", "COD", "Failed", "Oct 12, 2025, 08:15 AM"),
+        };
+
+        _deliveryStatusOptions = new List<SelectItem>
+        {
+            new SelectItem { Id = "0", Name = "Delivery Status" }, // Acts as "All Status"
+            new SelectItem { Id = "1", Name = "Pending" },
+            new SelectItem { Id = "2", Name = "Shipped" },
+            new SelectItem { Id = "3", Name = "Delivered" },
+            new SelectItem { Id = "4", Name = "Cancelled" },
+        };
+        _selectedDeliveryStatusItems = _deliveryStatusOptions.Take(1).ToList();
+        _selectedDeliveryStatusValue = _selectedDeliveryStatusItems.FirstOrDefault()?.Id ?? "0";
+
+
+        _paymentStatusOptions = new List<SelectItem>
+        {
+            new SelectItem { Id = "0", Name = "Payment Status" }, // Acts as "All Status"
+            new SelectItem { Id = "1", Name = "Pending" },
+            new SelectItem { Id = "2", Name = "Completed" },
+            new SelectItem { Id = "3", Name = "Failed" },
+            new SelectItem { Id = "4", Name = "Refunded" },
+            new SelectItem { Id = "5", Name = "Cancelled" },
+        };
+        _selectedPaymentStatusItems = _paymentStatusOptions.Take(1).ToList();
+        _selectedPaymentStatusValue = _selectedPaymentStatusItems.FirstOrDefault()?.Id ?? "0";
+
+        // Apply the initial filter on load
+        await ApplyFilter();
+    }
+
+    // Explicit event handler for search input changes
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        SearchTerm = e.Value?.ToString() ?? string.Empty;
+        await ApplyFilter();
+    }
+
+    // Explicit event handler for Delivery Status selection changes
+    private async Task OnDeliveryStatusSelectionChanged(List<string> selectedValues)
+    {
+        _selectedDeliveryStatusValue = selectedValues.FirstOrDefault() ?? "0";
+        await ApplyFilter();
+    }
+
+    // Explicit event handler for Payment Status selection changes
+    private async Task OnPaymentStatusSelectionChanged(List<string> selectedValues)
+    {
+        _selectedPaymentStatusValue = selectedValues.FirstOrDefault() ?? "0";
+        await ApplyFilter();
+    }
+
+    private async Task ApplyFilter()
+    {
+        // Start with the full list of items
+        IEnumerable<OrderDetails> query = Items;
+
+        // Apply Delivery Status filter
+        var selectedDeliveryStatusName = _deliveryStatusOptions?.FirstOrDefault(o => o.Id == _selectedDeliveryStatusValue)?.Name;
+        if (!string.IsNullOrEmpty(selectedDeliveryStatusName) && selectedDeliveryStatusName != "Delivery Status")
+        {
+            query = query.Where(o => o.DeliveryStatus.Equals(selectedDeliveryStatusName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply Payment Status filter
+        var selectedPaymentStatusName = _paymentStatusOptions?.FirstOrDefault(o => o.Id == _selectedPaymentStatusValue)?.Name;
+        if (!string.IsNullOrEmpty(selectedPaymentStatusName) && selectedPaymentStatusName != "Payment Status")
+        {
+            query = query.Where(o => o.Status.Equals(selectedPaymentStatusName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply search term filter
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            query = query.Where(o => o.OrderId.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                     o.CustomerName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                     o.CustomerEmail.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                     o.PaymentMethod.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+
+        FilteredItems = query.ToList();
+        pagination.ItemsPerPage = Math.Max(1, Math.Min(10, FilteredItems.Count));
+
+        // Reset the paginator to the first page.
+        await pagination.SetCurrentPageIndexAsync(0);
+
+        StateHasChanged();
+    }
+}
+
+<script src="_content/CurrieTechnologies.Razor.SweetAlert2/sweetAlert2.min.js"></script>
+@code{
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; } = default!;
+
+    private async System.Threading.Tasks.Task ConfirmAndDelete(OrderDetails p)
+    {
+        var confirmResult = await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "Are you sure?",
+            Text = "You won't be able to revert this!",
+            Icon = SweetAlertIcon.Warning,
+            ShowCancelButton = true,
+            ConfirmButtonColor = "#3085d6",
+            CancelButtonColor = "#d33",
+            ConfirmButtonText = "Yes, delete it!"
+        });
+
+        if (confirmResult.IsConfirmed)
+        {
+            Delete(p); // Call delete logic
+
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Deleted!",
+                Text = "Your order has been deleted.",
+                Icon = SweetAlertIcon.Success
+            });
+        }
+    }
+}
+
+@code{
+    public class DashboardCard
+    {
+        public string? Title { get; set; }
+        public string? Count { get; set; }
+        public string? Percentage { get; set; }
+        public string? PercentageClass { get; set; }
+        public bool IsTrendingUp { get; set; }
+        public string? MonthLabel { get; set; } = "this month";
+        public string? CardClass { get; set; }
+        public string? SvgBgClass { get; set; }
+        public string? SvgIconClass { get; set; }
+        public string? SvgIcon { get; set; }
+    }
+    List<DashboardCard> dashboardCards = new()
+    {
+        new DashboardCard {
+            Title = "Total Orders",
+            Count = "2,450",
+            Percentage = "16.67%",
+            PercentageClass = "text-success",
+            IsTrendingUp = true,
+            CardClass = "primary",
+            SvgBgClass = "bg-primary-transparent",
+            SvgIconClass = "svg-primary",
+            SvgIcon = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M230.14,58.87A8,8,0,0,0,224,56H62.68L56.6,22.57A8,8,0,0,0,48.73,16H24a8,8,0,0,0,0,16h18L67.56,172.29a24,24,0,0,0,5.33,11.27,28,28,0,1,0,44.4,8.44h45.42A27.75,27.75,0,0,0,160,204a28,28,0,1,0,28-28H91.17a8,8,0,0,1-7.87-6.57L80.13,152h116a24,24,0,0,0,23.61-19.71l12.16-66.86A8,8,0,0,0,230.14,58.87ZM104,204a12,12,0,1,1-12-12A12,12,0,0,1,104,204Zm96,0a12,12,0,1,1-12-12A12,12,0,0,1,200,204Z'/></svg>"
+        },
+        new DashboardCard {
+            Title = "Pending Orders",
+            Count = "300",
+            Percentage = "20%",
+            PercentageClass = "text-success",
+            IsTrendingUp = true,
+            CardClass = "secondary",
+            SvgBgClass = "bg-secondary-transparent",
+            SvgIconClass = "svg-secondary",
+            SvgIcon = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm56,112H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48a8,8,0,0,1,0,16Z'/></svg>"
+        },
+        new DashboardCard {
+            Title = "Delivered",
+            Count = "1,800",
+            Percentage = "5.88%",
+            PercentageClass = "text-success",
+            IsTrendingUp = true,
+            CardClass = "warning",
+            SvgBgClass = "bg-warning-transparent",
+            SvgIconClass = "svg-warning",
+            SvgIcon = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M223.68,66.15,135.68,18a15.88,15.88,0,0,0-15.36,0l-88,48.17a16,16,0,0,0-8.32,14v95.64a16,16,0,0,0,8.32,14l88,48.17a15.88,15.88,0,0,0,15.36,0l88-48.17a16,16,0,0,0,8.32-14V80.18A16,16,0,0,0,223.68,66.15ZM128,32l80.35,44L178.57,92.29l-80.35-44Zm0,88L47.65,76,81.56,57.43l80.35,44Zm88,55.85h0l-80,43.79V133.83l32-17.51V152a8,8,0,0,0,16,0V107.56l32-17.51v85.76Z'/></svg>"
+        },
+        new DashboardCard {
+            Title = "Cancelled",
+            Count = "100",
+            Percentage = "16.67%",
+            PercentageClass = "text-danger",
+            IsTrendingUp = false,
+            CardClass = "success",
+            SvgBgClass = "bg-success-transparent",
+            SvgIconClass = "svg-success",
+            SvgIcon = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm37.66,130.34a8,8,0,0,1-11.32,11.32L128,139.31l-26.34,26.35a8,8,0,0,1-11.32-11.32L116.69,128,90.34,101.66a8,8,0,0,1,11.32-11.32L128,116.69l26.34-26.35a8,8,0,0,1,11.32,11.32L139.31,128Z'/></svg>"
+        },
+        new DashboardCard {
+            Title = "Returned",
+            Count = "50",
+            Percentage = "28.57%",
+            PercentageClass = "text-danger",
+            IsTrendingUp = false,
+            CardClass = "info",
+            SvgBgClass = "bg-info-transparent",
+            SvgIconClass = "svg-info",
+            SvgIcon = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,109.66-32,32a8,8,0,0,1-11.32-11.32L148.69,136H88a8,8,0,0,1,0-16h60.69l-18.35-18.34a8,8,0,0,1,11.32-11.32l32,32A8,8,0,0,1,173.66,133.66Z'/></svg>"
+        }
+    };
+}

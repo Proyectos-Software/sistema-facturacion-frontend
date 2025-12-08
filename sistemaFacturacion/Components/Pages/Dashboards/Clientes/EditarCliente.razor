@@ -1,0 +1,516 @@
+﻿@page "/dashboards/clientes/editar"
+@page "/dashboards/clientes/editar/{IdFromRoute:int}"
+@using System.ComponentModel.DataAnnotations
+@using System.Linq
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IClientesApiClient ClientesApi
+@inject SweetAlertService Swal
+@inject IJSRuntime JSRuntime
+
+<div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary shadow-sm"
+                 style="width:3rem;height:3rem;">
+                <i class="ri-user-settings-line fs-4"></i>
+            </div>
+            <div>
+                <h1 class="page-title fw-semibold fs-20 mb-0">Editar cliente</h1>
+                <p class="text-muted fs-13 mb-0">
+                    Busca por identificación/RUC y actualiza los datos del cliente.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="card mb-3 border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h6 class="fw-semibold d-flex align-items-center mb-0 gap-2">
+                    <i class="ri-search-line text-primary fs-5"></i>
+                    <span>Búsqueda de cliente</span>
+                </h6>
+                <small class="text-muted">
+                    Selecciona el tipo e ingresa la identificación o RUC para localizar al cliente.
+                </small>
+            </div>
+        </div>
+
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4 col-12">
+                <label class="form-label">Tipo de identificación</label>
+                <InputSelect class="form-select" @bind-Value="TipoSeleccionado" @onchange="OnTipoChanged">
+                    <option value="">-- Selecciona --</option>
+                    <option value="CEDULA">Cédula</option>
+                    <option value="RUC">RUC</option>
+                    <option value="PASAPORTE">Pasaporte</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-6 col-12">
+                <label class="form-label">Identificación / RUC</label>
+                <InputText id="ident-edit-input"
+                           class="form-control"
+                           @bind-Value="search.Identificacion"
+                           placeholder="@IdentPlaceholder"
+                           inputmode="@(TipoSeleccionado == "PASAPORTE" ? "text" : "numeric")"
+                           maxlength="@MaxDocLenStr"
+                           autocomplete="off"
+                           @oninput="e => search.Identificacion = CleanIdentByTipo(e.Value?.ToString())" />
+            </div>
+            <div class="col-md-2 d-grid col-12">
+                <button class="btn btn-primary btn-wave"
+                        @onclick="BuscarCliente"
+                        disabled="@cargando">
+                    @if (cargando)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2 align-middle"
+                              role="status" aria-hidden="true"></span>
+                        <span>Buscando...</span>
+                    }
+                    else
+                    {
+                        <i class="ri-search-line me-1 align-middle"></i>
+                        <span>Buscar</span>
+                    }
+                </button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(searchError))
+        {
+            <div class="alert alert-danger mt-3 mb-0">@searchError</div>
+        }
+    </div>
+</div>
+
+@if (cargando)
+{
+    <div class="alert alert-info d-flex align-items-center gap-2">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span>Buscando cliente...</span>
+    </div>
+}
+else if (form is not null)
+{
+    <div class="card mb-3 border-0 shadow-sm">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary shadow-sm"
+                     style="width:3rem;height:3rem;">
+                    <i class="ri-id-card-line fs-4"></i>
+                </div>
+                <div>
+                    <h5 class="mb-0">
+                        @if (EsEmpresa)
+                        {
+                            @form.Nombre
+                        }
+                        else
+                        {
+                            @($"{form.Nombre} {form.Apellido}")
+                        }
+                    </h5>
+                    <small class="text-muted">
+                        @form.TipoIdentificacion: <strong>@form.Identificacion</strong>
+                        @if (EsEmpresa)
+                        {
+                            <span class="ms-2">· Persona jurídica</span>
+                        }
+                    </small>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge text-bg-success rounded-pill">Activo</span>
+                <span class="badge badge-id-pill rounded-pill">Clientes</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <EditForm Model="@form" OnValidSubmit="@HandleValidSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <ValidationSummary />
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-5">
+                        <div class="rounded-3 h-100 border p-3">
+                            <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                                <i class="ri-user-line text-primary fs-5"></i>
+                                <span>Datos del cliente</span>
+                            </h6>
+
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de identificación</label>
+                                <InputText class="form-control" @bind-Value="form.TipoIdentificacion" readonly />
+                                <small class="text-muted">Campo no editable.</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Identificación / RUC</label>
+                                <InputText class="form-control" @bind-Value="form.Identificacion" readonly />
+                                <small class="text-muted">Campo no editable.</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">@((EsEmpresa ? "Nombre / Razón social" : "Nombre"))</label>
+                                <InputText class="form-control" @bind-Value="form.Nombre" readonly />
+                                <small class="text-muted">Campo no editable.</small>
+                            </div>
+
+                            @if (!EsEmpresa)
+                            {
+                                <div>
+                                    <label class="form-label">Apellido</label>
+                                    <InputText class="form-control" @bind-Value="form.Apellido" readonly />
+                                    <small class="text-muted">Campo no editable.</small>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-lg-7">
+                        <div class="rounded-3 h-100 border p-3">
+                            <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                                <i class="ri-phone-line text-primary fs-5"></i>
+                                <span>Datos de contacto</span>
+                            </h6>
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">Dirección</label>
+                                    <InputText class="form-control" @bind-Value="form.Direccion" />
+                                    <ValidationMessage For="@(() => form.Direccion)" />
+                                </div>
+                                <div class="col-md-6 col-12">
+                                    <label class="form-label">Teléfono</label>
+                                    <InputText class="form-control" @bind-Value="form.Telefono" inputmode="tel" />
+                                    <ValidationMessage For="@(() => form.Telefono)" />
+                                </div>
+                                <div class="col-md-6 col-12">
+                                    <label class="form-label">Correo electrónico</label>
+                                    <InputText class="form-control" @bind-Value="form.Correo" type="email" />
+                                    <ValidationMessage For="@(() => form.Correo)" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4 flex-wrap gap-2">
+                    <a class="btn btn-light btn-wave" href="/dashboards/clientes">
+                        <i class="ri-arrow-go-back-line me-1 align-middle"></i>
+                        Volver
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-wave" disabled="@guardando">
+                        @if (guardando)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2 align-middle"
+                                  role="status" aria-hidden="true"></span>
+                            <span>Guardando...</span>
+                        }
+                        else
+                        {
+                            <i class="ri-save-3-line me-1 align-middle"></i>
+                            <span>Guardar cambios</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+else if (yaBusco)
+{
+    <div class="alert alert-warning">No se encontró un cliente con esos datos.</div>
+}
+
+<script>
+    (function () {
+      const g = {};
+      function attachDigitsOnly(el, max) {
+        if (!el || el.dataset.guardDigits === "1") return;
+        el.dataset.guardDigits = "1";
+        function filter() {
+          let v = el.value.replace(/\D+/g, "");
+          if (max && max > 0) v = v.slice(0, max);
+          if (v !== el.value) { el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); }
+        }
+        el.addEventListener("input", filter);
+        el.addEventListener("paste", () => setTimeout(filter, 0));
+        el.addEventListener("keypress", (e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); });
+      }
+      function attachAlnum(el, max) {
+        if (!el || el.dataset.guardAlnum === "1") return;
+        el.dataset.guardAlnum = "1";
+        function filter() {
+          let v = el.value.replace(/[^A-Za-z0-9]/g, "");
+          if (max && max > 0) v = v.slice(0, max);
+          if (v !== el.value) { el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); }
+        }
+        el.addEventListener("input", filter);
+        el.addEventListener("paste", () => setTimeout(filter, 0));
+        el.addEventListener("keypress", (e) => { if (!/[A-Za-z0-9]/.test(e.key)) e.preventDefault(); });
+      }
+      window.initIdentEditGuard = function (mode, max) {
+        const el = document.getElementById("ident-edit-input");
+        if (!el) return;
+        if (mode === "digits") attachDigitsOnly(el, max || 0);
+        else attachAlnum(el, max || 0);
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      };
+      window.setIdentEditMode = function (mode, max) {
+        const el = document.getElementById("ident-edit-input");
+        if (!el) return;
+        if (mode === "digits") {
+          el.dataset.guardAlnum = "";
+          attachDigitsOnly(el, max || 0);
+        } else {
+          el.dataset.guardDigits = "";
+          attachAlnum(el, max || 0);
+        }
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      };
+    })();
+</script>
+
+@code {
+    [Parameter] public int? IdFromRoute { get; set; }
+    private int? _loadedFromId;
+
+    public class ClienteEditVM
+    {
+        public string? TipoIdentificacion { get; set; }
+        public string? Identificacion { get; set; }
+        public string? Nombre { get; set; }
+        public string? Apellido { get; set; }
+        [Required, StringLength(150)] public string? Direccion { get; set; }
+        [Required, RegularExpression(@"^\d{7,15}$")] public string? Telefono { get; set; }
+        [Required, EmailAddress] public string? Correo { get; set; }
+    }
+
+    private class SearchVM { public string? Tipo { get; set; } public string? Identificacion { get; set; } }
+
+    private SearchVM search = new();
+    private ClienteEditVM? form;
+    private string? searchError;
+    private bool cargando = false;
+    private bool guardando = false;
+    private bool yaBusco = false;
+    private int? clienteId;
+    private bool _initDone = false;
+
+    private bool EsEmpresa =>
+        (form?.TipoIdentificacion ?? "").Trim().ToUpperInvariant() == "RUC" &&
+        string.Equals((form?.Apellido ?? "").Trim(), "-", StringComparison.Ordinal);
+
+    private string? TipoSeleccionado
+    {
+        get => search.Tipo;
+        set
+        {
+            search.Tipo = (value ?? "").Trim().ToUpperInvariant();
+            search.Identificacion = CleanIdentByTipo(search.Identificacion);
+        }
+    }
+
+    private int? MaxDocLen => (search.Tipo ?? "").ToUpperInvariant() switch
+    {
+        "CEDULA" => 10,
+        "RUC" => 13,
+        "PASAPORTE" => 12,
+        _ => null
+    };
+    private string? MaxDocLenStr => MaxDocLen?.ToString();
+
+    private static string DigitsOnly(string? s) => new string((s ?? "").Where(char.IsDigit).ToArray());
+    private static string AlnumOnly(string? s) => new string((s ?? "").Where(char.IsLetterOrDigit).ToArray());
+
+    private string CleanIdentByTipo(string? s)
+    {
+        var tipo = (search.Tipo ?? "").ToUpperInvariant();
+        string v = s ?? "";
+        if (tipo == "CEDULA" || tipo == "RUC") v = DigitsOnly(v);
+        else if (tipo == "PASAPORTE") v = AlnumOnly(v);
+        if (MaxDocLen is int m && v.Length > m) v = v[..m];
+        return v;
+    }
+
+    private string IdentPlaceholder =>
+        (search.Tipo ?? "") switch
+        {
+            "CEDULA" => "10 dígitos",
+            "RUC" => "13 dígitos",
+            "PASAPORTE" => "6-12 alfanuméricos",
+            _ => "Ej: 0102030405 / 17900...001"
+        };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_initDone)
+        {
+            var mode = ((search.Tipo ?? "").ToUpperInvariant() is "CEDULA" or "RUC") ? "digits" : "alnum";
+            var max = MaxDocLen ?? 0;
+            await JSRuntime.InvokeVoidAsync("initIdentEditGuard", mode, max);
+            _initDone = true;
+        }
+    }
+
+    private async Task OnTipoChanged(ChangeEventArgs _)
+    {
+        var mode = ((search.Tipo ?? "").ToUpperInvariant() is "CEDULA" or "RUC") ? "digits" : "alnum";
+        var max = MaxDocLen ?? 0;
+        await JSRuntime.InvokeVoidAsync("setIdentEditMode", mode, max);
+        search.Identificacion = CleanIdentByTipo(search.Identificacion);
+        StateHasChanged();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IdFromRoute is int rid && rid > 0 && _loadedFromId != rid)
+        {
+            _loadedFromId = rid;
+            await CargarPorId(rid);
+        }
+    }
+
+    private async Task BuscarCliente()
+    {
+        searchError = null; cargando = true; yaBusco = true; form = null; clienteId = null; StateHasChanged();
+
+        if (string.IsNullOrWhiteSpace(search.Tipo))
+        { searchError = "Selecciona el tipo y escribe la identificación."; cargando = false; return; }
+
+        search.Tipo = (search.Tipo ?? "").Trim().ToUpperInvariant();
+        search.Identificacion = CleanIdentByTipo(search.Identificacion);
+
+        if (string.IsNullOrWhiteSpace(search.Identificacion) || search.Identificacion.Length < 3)
+        {
+            cargando = false;
+            await Swal.FireAsync(new SweetAlertOptions { Title = "Muy corto", Text = "Escribe al menos 3 caracteres para buscar.", Icon = SweetAlertIcon.Info });
+            return;
+        }
+
+        try
+        {
+            var cliente = await ClientesApi.GetByDocumentoAsync(search.Tipo!, search.Identificacion!);
+            if (cliente is null)
+            {
+                var nTipo = (search.Tipo ?? "").Trim().ToUpperInvariant();
+                var nDoc = CleanIdentByTipo(search.Identificacion);
+                var all = await ClientesApi.GetAllAsync();
+                var sugerencias = all.Where(c => string.Equals((c.TipCli ?? "").Trim(), nTipo, StringComparison.OrdinalIgnoreCase)
+                                                && ((nTipo is "CEDULA" or "RUC") ? DigitsOnly(c.IdeCli) : AlnumOnly(c.IdeCli)).StartsWith(nDoc))
+                                     .ToList();
+                if (sugerencias.Count == 0)
+                {
+                    await Swal.FireAsync(new SweetAlertOptions { Title = "Sin resultados", Text = "No se encontró un cliente con esos datos.", Icon = SweetAlertIcon.Warning });
+                    return;
+                }
+
+                var total = sugerencias.Count;
+                var top = sugerencias.Take(15).ToDictionary(
+                    s => ((nTipo is "CEDULA" or "RUC") ? DigitsOnly(s.IdeCli) : AlnumOnly(s.IdeCli)),
+                    s => $"{s.NomCli} {s.ApeCli}\n{((nTipo is "CEDULA" or "RUC") ? DigitsOnly(s.IdeCli) : AlnumOnly(s.IdeCli))}"
+                );
+
+                var pick = await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "¿Quisiste decir?",
+                    Icon = SweetAlertIcon.Question,
+                    Input = SweetAlertInputType.Radio,
+                    InputOptions = top,
+                    ShowCancelButton = true,
+                    ConfirmButtonText = "Usar selección",
+                    CancelButtonText = "Cancelar",
+                    Width = "600px",
+                    CustomClass = new SweetAlertCustomClass { Popup = "swal2-suggest" },
+                    Html = (total > top.Count ? $"<div class='text-muted small mt-2'>Mostrando {top.Count} de {total}. Refina la búsqueda para ver más.</div>" : null)
+                });
+
+
+                if (pick.IsConfirmed && !string.IsNullOrWhiteSpace(pick.Value))
+                {
+                    search.Identificacion = CleanIdentByTipo(pick.Value);
+                    await BuscarCliente();
+                }
+                return;
+            }
+
+            MapearForm(cliente);
+            await Swal.FireAsync(new SweetAlertOptions { Position = SweetAlertPosition.TopEnd, Icon = SweetAlertIcon.Success, Title = "Cliente cargado", ShowConfirmButton = false, Timer = 1200 });
+        }
+        catch (HttpRequestException ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions { Title = "Error al buscar", Html = $"<small>{ex.Message}</small>", Icon = SweetAlertIcon.Error });
+        }
+        finally { cargando = false; StateHasChanged(); }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (clienteId is null) return;
+        var confirm = await Swal.FireAsync(new SweetAlertOptions { Title = "¿Guardar cambios?", Text = "Se actualizarán los datos de contacto del cliente.", Icon = SweetAlertIcon.Question, ShowCancelButton = true, ConfirmButtonText = "Sí, guardar", CancelButtonText = "Cancelar" });
+        if (!confirm.IsConfirmed) return;
+
+        guardando = true;
+        try
+        {
+            var payload = new ClienteContactoUpdate { Direccion = form!.Direccion!, Telefono = form!.Telefono!, CorreoElectronico = form!.Correo! };
+            await ClientesApi.UpdateContactoAsync(clienteId.Value, payload);
+            await Swal.FireAsync(new SweetAlertOptions { Position = SweetAlertPosition.TopEnd, Icon = SweetAlertIcon.Success, Title = "Cambios guardados", ShowConfirmButton = false, Timer = 1500 });
+        }
+        catch (HttpRequestException ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions { Title = "No se pudo guardar", Html = $"<small>{ex.Message}</small>", Icon = SweetAlertIcon.Error });
+        }
+        finally { guardando = false; }
+    }
+
+    private async Task CargarPorId(int id)
+    {
+        cargando = true; searchError = null; form = null; clienteId = null; yaBusco = true;
+        try
+        {
+            var cliente = await ClientesApi.GetByIdAsync(id);
+            if (cliente is null || string.IsNullOrWhiteSpace(cliente.NomCli))
+            {
+                var all = await ClientesApi.GetAllAsync();
+                cliente = all.FirstOrDefault(x => x.IdCli == id);
+            }
+            if (cliente is null) { await Swal.FireAsync(new() { Title = "No encontrado", Icon = SweetAlertIcon.Warning }); return; }
+
+            MapearForm(cliente);
+            await Swal.FireAsync(new() { Position = SweetAlertPosition.TopEnd, Icon = SweetAlertIcon.Success, Title = "Cliente cargado", ShowConfirmButton = false, Timer = 1200 });
+        }
+        catch (HttpRequestException ex)
+        {
+            await Swal.FireAsync(new() { Title = "Error al buscar", Html = $"<small>{ex.Message}</small>", Icon = SweetAlertIcon.Error });
+        }
+        finally { cargando = false; StateHasChanged(); }
+    }
+
+    private void MapearForm(ClienteDto cliente)
+    {
+        clienteId = cliente.IdCli;
+        form = new ClienteEditVM
+        {
+            TipoIdentificacion = (cliente.TipCli ?? "").Trim().ToUpperInvariant(),
+            Identificacion = cliente.IdeCli,
+            Nombre = cliente.NomCli,
+            Apellido = cliente.ApeCli,
+            Direccion = cliente.DirCli,
+            Telefono = cliente.TelCli,
+            Correo = cliente.CorCli
+        };
+
+        search.Tipo = (cliente.TipCli ?? "").Trim().ToUpperInvariant();
+        search.Identificacion = CleanIdentByTipo(cliente.IdeCli);
+    }
+}

@@ -1,0 +1,52 @@
+
+/* --- LOGO SIDEBAR --- */
+.main-sidebar-header .header-logo {
+    overflow: visible;
+    display: inline-block;
+}
+
+    .main-sidebar-header .header-logo .desktop-logo,
+    .main-sidebar-header .header-logo .desktop-dark {
+        width: auto;
+        height: 155px; /* Tamaño sidebar */
+        object-fit: contain;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+
+    .main-sidebar-header .header-logo .toggle-logo,
+    .main-sidebar-header .header-logo .toggle-dark {
+        width: auto;
+        height: 45px; /* Versión colapsada */
+        object-fit: contain;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+
+/* ============================================
+   RESPONSIVE: AJUSTE PARA TABLETS Y MÓVILES
+   ============================================ */
+
+/* Tablets (768px - 1024px) */
+@media screen and (max-width: 1024px) {
+
+    .main-sidebar-header .header-logo .desktop-logo,
+    .main-sidebar-header .header-logo .desktop-dark {
+        height: 70px;
+    }
+}
+
+/* Móviles (hasta 767px) */
+@media screen and (max-width: 767px) {
+
+    .main-sidebar-header .header-logo .desktop-logo,
+    .main-sidebar-header .header-logo .desktop-dark {
+        height: 60px;
+    }
+
+    .main-sidebar-header .header-logo .toggle-logo,
+    .main-sidebar-header .header-logo .toggle-dark {
+        height: 50px;
+    }
+}
+

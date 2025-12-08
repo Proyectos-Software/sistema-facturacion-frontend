@@ -1,0 +1,200 @@
+@inject LandingMenuDataService LandingMenuData
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject StateService stateService
+@inject IActionService ActionService
+@using Microsoft.JSInterop
+@using System.Text.Json
+@using System.Linq
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Routing
+@using WMBlazorOverlayScrollbars.WMBOS
+@inject Microsoft.AspNetCore.Components.NavigationManager NavigationManager
+
+<div id="responsive-overlay" @onclick="() => responsivecloseFn()"></div>
+<aside class="app-sidebar sticky @sidebarClass" id="sidebar">
+    <div class="container px-0">
+        <div class="main-sidebar">
+            <nav class="main-menu-container nav nav-pills sub-open">
+                <div class="landing-logo-container">
+                    <div class="horizontal-logo">
+                        <a href="" class="header-logo">
+                            <img src="../assets/images/brand-logos/desktop-logo.png" alt="logo" class="desktop-logo">
+                            <img src="../assets/images/brand-logos/desktop-dark.png" alt="logo" class="desktop-dark">
+                        </a>
+                    </div>
+                </div>
+                <div class="slide-left" id="slide-left"><svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191" width="24" height="24" viewBox="0 0 24 24"> <path d="M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z"></path> </svg></div>
+                <ul class="main-menu flex-fill justify-content-center">
+                    @foreach (var item in menuData)
+                    {
+                        <LandingSubNavMenu Item="@item" Siblings="menuData" OnToggleSubmenu="@ToggleSubMenu" Level="1" />
+                    }
+                </ul>
+                <div class="slide-right" id="slide-right"><svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191" width="24" height="24" viewBox="0 0 24 24"> <path d="M10.707 17.707 16.414 12l-5.707-5.707-1.414 1.414L13.586 12l-4.293 4.293z"></path> </svg></div>
+                <div class="d-lg-flex d-none align-items-center">
+                    <div class="btn-list d-xl-flex d-none">
+                        <a href="/signin/basic" class="btn btn-wave btn-primary border">
+                            Login / Register
+                        </a>
+                    </div>
+                    <a href="javascript:void(0);" class="btn btn-icon btn-primary-light switcher-icon" data-bs-toggle="offcanvas" data-bs-target="#switcher-canvas">
+                        <i class="ti ti-settings"></i>
+                    </a>
+                </div>
+            </nav>
+            </div>
+        </div>
+</aside>
+@code {
+    private string sidebarClass = ""; 
+
+    [JSInvokable]
+    public void SetScrollPosition(string position)
+    {
+        SetSubmenu(menuData, position);
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("interop.registerScrollListener", DotNetObjectReference.Create(this));
+            await JSRuntime.InvokeVoidAsync("scrollFunctions.addScrollListener", DotNetObjectReference.Create(this));
+            await JSRuntime.InvokeVoidAsync("resizeFunctions.addresizeListener", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public void SetStickyClass(int scrollY)
+    {
+        if (scrollY >= 75)
+        {
+            sidebarClass = "sticky-pin";
+        }
+        else
+        {
+            sidebarClass = "";
+        }
+        StateHasChanged();
+    }
+
+     [JSInvokable]
+    public async Task OnWindowResize(int width)
+    {
+        if (width < 992)
+        {
+            await JSRuntime.InvokeVoidAsync("interop.addAttributeToHtml", "data-toggled", "close");
+        }
+    }
+
+    private async Task responsivecloseFn()
+    {
+        var toggled = await JSRuntime.InvokeAsync<string>("interop.getAttributeToHtml", "data-toggled");
+        if (toggled == "close")
+        {
+            await JSRuntime.InvokeAsync<string>("interop.addAttributeToHtml", "data-toggled", "open");
+        }
+        else
+        {
+            await JSRuntime.InvokeAsync<string>("interop.addAttributeToHtml", "data-toggled", "close");
+        }
+    }
+
+    public void Dispose()
+    {
+        JSRuntime.InvokeVoidAsync("scrollFunctions.detachScrollListener");
+        JSRuntime.InvokeVoidAsync("resizeFunctions.detachScrollListener");
+    }
+}
+
+@code {
+    private MainMenuItems[] menuData = Array.Empty<MainMenuItems>();
+
+    protected override void OnInitialized()
+    {
+        menuData = LandingMenuData.GetMenuData().ToArray();
+        string currentPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        
+        if (currentPath == "landing" || currentPath == "")
+        {
+            SetSubmenu(menuData, "home");
+        }
+        else
+        {
+            string? sectionId = currentPath.Contains("#") ? currentPath.Split('#').LastOrDefault() : null;
+            SetSubmenu(menuData, sectionId ?? string.Empty);
+        }
+    }
+    
+    // The main public method that clears all states and then finds the match.
+    private void SetSubmenu(MainMenuItems[] menu, string targetId)
+    {
+        // Deactivate all menu items first.
+        DeactivateAll(menu);
+
+        // Then, find and activate the specific item.
+        SetSubmenuRecursive(menu, targetId);
+    }
+    
+    // The recursive helper method that finds and activates the specific item.
+    private bool SetSubmenuRecursive(MainMenuItems[] menu, string targetId)
+    {
+        bool found = false;
+        foreach (var item in menu)
+        {
+            string? cleanPath = item.Path?.Split('#').LastOrDefault();
+            bool isDirectMatch = !string.IsNullOrEmpty(cleanPath) && cleanPath == targetId;
+
+            if (isDirectMatch)
+            {
+                item.Selected = true;
+                item.Active = true;
+                found = true;
+            }
+
+            // If the item has children, check them recursively.
+            if (item.Children?.Any() == true)
+            {
+                bool childFound = SetSubmenuRecursive(item.Children, targetId);
+                // If a child match was found, activate the parent without selecting it.
+                if (childFound)
+                {
+                    item.Active = true;
+                    found = true;
+                }
+            }
+        }
+        return found;
+    }
+
+    private void DeactivateAll(MainMenuItems[] menu)
+    {
+        foreach (var item in menu)
+        {
+            item.Selected = false;
+            item.Active = false;
+            if (item.Children?.Any() == true)
+            {
+                DeactivateAll(item.Children);
+            }
+        }
+    }
+
+    private async Task ToggleSubMenu((MainMenuItems targetObject, MainMenuItems[] menuData) data)
+    {
+        var (target, menuData) = data;
+        foreach (var item in menuData)
+        {
+            if (item != target)
+            {
+                item.Active = false;
+            }
+        }
+        target.Active = !target.Active;
+        StateHasChanged();
+        await Task.Yield();
+    }
+}
+<script src="js/scrollHandler.js"></script>

@@ -1,0 +1,16 @@
+﻿.badge-id-pill {
+    border-radius: 9999px;
+    padding: .18rem .6rem;
+    font-weight: 600;
+    font-size: .75rem;
+    letter-spacing: .02em;
+    background: #f1f5f9;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+}
+
+[data-theme-mode="dark"] .badge-id-pill {
+    background: #020617;
+    color: #f9fafb;
+    border-color: #1f2937;
+}

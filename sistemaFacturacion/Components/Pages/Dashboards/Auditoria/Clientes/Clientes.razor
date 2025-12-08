@@ -1,0 +1,508 @@
+﻿@page "/dashboards/auditorias/clientes"
+@using ApexCharts
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize]
+
+<div class="d-flex align-items-center justify-content-between page-header-breadcrumb mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="page-title fw-medium fs-20 mb-0">Auditoría de Clientes</h1>
+        <div class="text-muted fs-12">
+            Cambios realizados sobre la tabla de clientes (datos de ejemplo).
+        </div>
+    </div>
+
+    <!-- Filtros visuales (mock) -->
+    <div class="d-flex align-items-center flex-wrap gap-2">
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Desde</label>
+            <input type="date" class="form-control" @bind="FromDate" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Hasta</label>
+            <input type="date" class="form-control" @bind="ToDate" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Acción</label>
+            <select class="form-select" @bind="SelectedAction">
+                <option value="Todas">Todas</option>
+                <option value="INSERT">Insert</option>
+                <option value="UPDATE">Update</option>
+                <option value="DELETE">Delete</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Usuario</label>
+            <select class="form-select" @bind="SelectedUser">
+                <option value="Todos">Todos</option>
+                <option value="admin">admin</option>
+                <option value="jperez">jperez</option>
+                <option value="mcastro">mcastro</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Estado cliente</label>
+            <select class="form-select" @bind="SelectedStatus">
+                <option value="Todos">Todos</option>
+                <option value="Activo">Activos</option>
+                <option value="Inactivo">Inactivos</option>
+            </select>
+        </div>
+
+        <div class="btn-list ms-2 mt-4">
+            <button class="btn btn-primary btn-wave">
+                <i class="ri-search-line me-1"></i> Aplicar filtros
+            </button>
+            <button class="btn btn-outline-secondary btn-wave">
+                <i class="ri-filter-off-line me-1"></i> Limpiar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Layout principal -->
+<div class="row">
+    <!-- Columna izquierda: KPIs -->
+    <div class="col-xxl-3">
+        <div class="row">
+            <div class="col-12">
+                <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+                    <div class="card-body d-flex align-items-start gap-3">
+                        <div class="flex-fill">
+                            <span class="fs-13 fw-medium">Clientes registrados</span>
+                            <h4 class="fw-semibold my-2">1 024</h4>
+                            <span class="text-muted fs-11">Total de clientes en el sistema</span>
+                        </div>
+                        <span class="avatar avatar-md bg-primary-transparent svg-primary">
+                            <i class="ri-team-line fs-20"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+                    <div class="card-body d-flex align-items-start gap-3">
+                        <div class="flex-fill">
+                            <span class="fs-13 fw-medium">Clientes activos</span>
+                            <h4 class="fw-semibold my-2 text-success">948</h4>
+                            <span class="text-muted fs-11">Con EST_CLI = 1 (mock)</span>
+                        </div>
+                        <span class="avatar avatar-md bg-success-transparent svg-success">
+                            <i class="ri-check-line fs-20"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+                    <div class="card-body d-flex align-items-start gap-3">
+                        <div class="flex-fill">
+                            <span class="fs-13 fw-medium">Altas este mes</span>
+                            <h4 class="fw-semibold my-2 text-primary">37</h4>
+                            <span class="text-muted fs-11">Clientes con FEC_CLI en el mes actual</span>
+                        </div>
+                        <span class="avatar avatar-md bg-info-transparent svg-info">
+                            <i class="ri-user-add-line fs-20"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card custom-card">
+                    <div class="card-header justify-content-between">
+                        <div class="card-title mb-0">Top clientes con más cambios</div>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush fs-12">
+                            @foreach (var top in TopClientesCambios)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold">@top.NombreCompleto</div>
+                                        <small class="text-muted">@top.CodigoCliente · @top.Identificacion</small>
+                                    </div>
+                                    <span class="badge bg-primary-light text-primary">
+                                        @top.Cambios cambios
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna central: gráficos -->
+    <div class="col-xxl-6 mt-3 mt-xxl-0">
+        <div class="card custom-card mb-3">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Cambios en clientes por día</div>
+                <span class="badge bg-primary-transparent text-primary fs-11">
+                    Últimos 7 días (mock)
+                </span>
+            </div>
+            <div class="card-body pt-3 pb-0">
+                <ApexChart TItem="ClienteActivityPoint" Height="260" Options="ActivityChartOptions">
+                    <ApexPointSeries TItem="ClienteActivityPoint"
+                                     Items="CambiosPorDia"
+                                     SeriesType="@SeriesType.Line"
+                                     Name="Cambios"
+                                     XValue="@(p => p.Label)"
+                                     YValue="@(p => p.Count)" />
+                </ApexChart>
+            </div>
+        </div>
+
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Acciones sobre clientes</div>
+                <span class="text-muted fs-11">Registros de tabla AUDITORIA (TAB_AUD = 'CLIENTES')</span>
+            </div>
+            <div class="card-body pt-3 pb-1">
+                <ApexChart TItem="ClienteActionByUserPoint" Height="260" Options="ActionsByUserOptions">
+                    <ApexPointSeries TItem="ClienteActionByUserPoint"
+                                     Items="AccionesPorUsuario"
+                                     SeriesType="@SeriesType.Bar"
+                                     Name="Cambios"
+                                     XValue="@(m => m.Usuario)"
+                                     YValue="@(m => m.Cambios)" />
+                </ApexChart>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna derecha: donut + alertas -->
+    <div class="col-xxl-3 mt-3 mt-xxl-0">
+        <div class="card custom-card mb-3">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Distribución por tipo de acción</div>
+            </div>
+            <div class="card-body">
+                <ApexChart TItem="ClienteActionTypePoint" Height="260" Options="ActionTypeChartOptions">
+                    <ApexPointSeries TItem="ClienteActionTypePoint"
+                                     Items="AccionesPorTipo"
+                                     SeriesType="@SeriesType.Donut"
+                                     Name="Tipos de acción"
+                                     XValue="@(a => a.Label)"
+                                     YValue="@(a => (decimal?)a.Count)" />
+                </ApexChart>
+
+                <ul class="list-unstyled mt-3 mb-0 fs-12 text-muted">
+                    <li><span class="badge bg-primary me-1">&nbsp;</span> Insert</li>
+                    <li><span class="badge bg-warning me-1">&nbsp;</span> Update</li>
+                    <li><span class="badge bg-danger me-1">&nbsp;</span> Delete</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Alertas de clientes</div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    @foreach (var alert in ClienteAlerts)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold">@alert.Title</div>
+                                <small class="text-muted">@alert.Description</small>
+                            </div>
+                            <span class="badge bg-@alert.BadgeClass">@alert.Severity</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tablas inferiores -->
+<div class="row mt-3">
+    <div class="col-xl-5">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Clientes recientes</div>
+                <span class="text-muted fs-11">Mock basado en NOM_CLI / IDE_CLI</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Identificación</th>
+                            <th>Tipo</th>
+                            <th>Ciudad</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in ClientesRecientes)
+                        {
+                            <tr>
+                                <td>@c.CodigoCliente</td>
+                                <td>@c.NombreCompleto</td>
+                                <td>@c.Identificacion</td>
+                                <td>@c.TipoIdentificacion</td>
+                                <td>@c.Ciudad</td>
+                                <td>
+                                    <span class="badge bg-@(c.Estado == "Activo" ? "success" : "secondary")">
+                                        @c.Estado
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-7 mt-3 mt-xl-0">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div>
+                    <div class="card-title mb-0">Últimos eventos de auditoría de clientes</div>
+                    <small class="text-muted fs-11">
+                        Registros mock de la tabla AUDITORIA (TAB_AUD = 'CLIENTES')
+                    </small>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Id registro</th>
+                            <th>Detalle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in AuditoriaClientes)
+                        {
+                            <tr>
+                                <td>@row.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@row.Usuario</td>
+                                <td>
+                                    <span class="badge bg-@GetActionBadge(row.Accion)">
+                                        @row.Accion
+                                    </span>
+                                </td>
+                                <td>@row.IdRegistro</td>
+                                <td>@row.Detalle</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    // ---- Filtros (solo visual) ----
+    private DateTime FromDate { get; set; } = DateTime.Today.AddDays(-7);
+    private DateTime ToDate { get; set; } = DateTime.Today;
+    private string SelectedAction { get; set; } = "Todas";
+    private string SelectedUser { get; set; } = "Todos";
+    private string SelectedStatus { get; set; } = "Todos";
+
+    // ---- Datos mock para gráficos ----
+    private List<ClienteActivityPoint> CambiosPorDia = new();
+    private List<ClienteActionTypePoint> AccionesPorTipo = new();
+    private List<ClienteActionByUserPoint> AccionesPorUsuario = new();
+
+    private ApexChartOptions<ClienteActivityPoint> ActivityChartOptions = new();
+    private ApexChartOptions<ClienteActionByUserPoint> ActionsByUserOptions = new();
+    private ApexChartOptions<ClienteActionTypePoint> ActionTypeChartOptions = new();
+
+    // ---- Tablas mock ----
+    private List<ClienteResumen> ClientesRecientes = new();
+    private List<ClienteResumen> TopClientesCambios = new();
+    private List<ClienteAuditRow> AuditoriaClientes = new();
+    private List<ClienteAlertRow> ClienteAlerts = new();
+
+    protected override void OnInitialized()
+    {
+        // Línea: cambios por día (mock)
+        CambiosPorDia = new List<ClienteActivityPoint>
+        {
+            new() { Label = "01 dic", Count = 4 },
+            new() { Label = "02 dic", Count = 7 },
+            new() { Label = "03 dic", Count = 3 },
+            new() { Label = "04 dic", Count = 6 },
+            new() { Label = "05 dic", Count = 5 },
+            new() { Label = "06 dic", Count = 8 },
+            new() { Label = "07 dic", Count = 4 },
+        };
+
+        // Donut: acciones por tipo (mock basado en AUDITORIA)
+        AccionesPorTipo = new List<ClienteActionTypePoint>
+        {
+            new() { Label = "Insert", Count = 48 },
+            new() { Label = "Update", Count = 92 },
+            new() { Label = "Delete", Count = 12 },
+        };
+
+        // Barras: acciones por usuario (mock)
+        AccionesPorUsuario = new List<ClienteActionByUserPoint>
+        {
+            new() { Usuario = "admin", Cambios = 64 },
+            new() { Usuario = "jperez", Cambios = 52 },
+            new() { Usuario = "mcastro", Cambios = 36 },
+        };
+
+        // Clientes recientes (mock a partir de NOM_CLI / IDE_CLI)
+        ClientesRecientes = new List<ClienteResumen>
+        {
+            new() { CodigoCliente = "CLI-0018", NombreCompleto = "Pablo Reyes",
+                    Identificacion = "1850858009", TipoIdentificacion = "CEDULA",
+                    Ciudad = "Ambato", Estado = "Activo" },
+            new() { CodigoCliente = "CLI-0019", NombreCompleto = "Galleta Korea",
+                    Identificacion = "1717430100001", TipoIdentificacion = "RUC",
+                    Ciudad = "Korea", Estado = "Activo" },
+            new() { CodigoCliente = "CLI-0020", NombreCompleto = "Fabricio Montesdeoca",
+                    Identificacion = "1723077382001", TipoIdentificacion = "RUC",
+                    Ciudad = "Ambato", Estado = "Activo" },
+            new() { CodigoCliente = "CLI-0021", NombreCompleto = "Pato Lm",
+                    Identificacion = "1708810732001", TipoIdentificacion = "RUC",
+                    Ciudad = "Ambato", Estado = "Activo" },
+            new() { CodigoCliente = "CLI-0022", NombreCompleto = "Roberto Auz",
+                    Identificacion = "1706757026", TipoIdentificacion = "CEDULA",
+                    Ciudad = "Cevallos", Estado = "Inactivo" },
+        };
+
+        TopClientesCambios = new List<ClienteResumen>
+        {
+            new() { CodigoCliente = "CLI-0020", NombreCompleto = "Fabricio Montesdeoca",
+                    Identificacion = "1723077382001", Cambios = 9 },
+            new() { CodigoCliente = "CLI-0019", NombreCompleto = "Galleta Korea",
+                    Identificacion = "1717430100001", Cambios = 7 },
+            new() { CodigoCliente = "CLI-0018", NombreCompleto = "Pablo Reyes",
+                    Identificacion = "1850858009", Cambios = 5 },
+        };
+
+        AuditoriaClientes = new List<ClienteAuditRow>
+        {
+            new() { Fecha = DateTime.Today.AddMinutes(-15), Usuario = "jperez",
+                    Accion = "UPDATE", IdRegistro = "CLI-0020",
+                    Detalle = "Actualización de dirección y teléfono." },
+            new() { Fecha = DateTime.Today.AddMinutes(-35), Usuario = "admin",
+                    Accion = "INSERT", IdRegistro = "CLI-0022",
+                    Detalle = "Alta de nuevo cliente Roberto Auz." },
+            new() { Fecha = DateTime.Today.AddHours(-1), Usuario = "mcastro",
+                    Accion = "DELETE", IdRegistro = "CLI-0015",
+                    Detalle = "Baja lógica de cliente inactivo por más de 2 años." },
+            new() { Fecha = DateTime.Today.AddHours(-3), Usuario = "admin",
+                    Accion = "UPDATE", IdRegistro = "CLI-0019",
+                    Detalle = "Cambio de correo electrónico y contacto." },
+            new() { Fecha = DateTime.Today.AddDays(-1).AddHours(-2), Usuario = "jperez",
+                    Accion = "UPDATE", IdRegistro = "CLI-0020",
+                    Detalle = "Actualización de código de cliente COD_CLI." },
+        };
+
+        ClienteAlerts = new List<ClienteAlertRow>
+        {
+            new() { Title = "Cliente con múltiples cambios",
+                    Description = "Fabricio Montesdeoca acumula 9 modificaciones en los últimos 7 días.",
+                    Severity = "Alta", BadgeClass = "danger" },
+            new() { Title = "Clientes sin correo válido",
+                    Description = "3 clientes activos con COR_CLI vacío o inválido.",
+                    Severity = "Media", BadgeClass = "warning" },
+            new() { Title = "Altas concentradas en un mismo usuario",
+                    Description = "El usuario jperez registró el 80% de las altas del mes.",
+                    Severity = "Media", BadgeClass = "warning" },
+        };
+
+        // Opciones de gráficos
+        ActivityChartOptions = new ApexChartOptions<ClienteActivityPoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Stroke = new Stroke { Curve = Curve.Smooth, Width = new List<double> { 3 } },
+            DataLabels = new DataLabels { Enabled = false }
+        };
+
+        ActionsByUserOptions = new ApexChartOptions<ClienteActionByUserPoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar { ColumnWidth = "45%" }
+            },
+            DataLabels = new DataLabels { Enabled = false }
+        };
+
+        ActionTypeChartOptions = new ApexChartOptions<ClienteActionTypePoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Legend = new Legend { Show = false }
+        };
+    }
+
+    private string GetActionBadge(string action) => action switch
+    {
+        "INSERT" => "primary",
+        "UPDATE" => "warning",
+        "DELETE" => "danger",
+        _ => "secondary"
+    };
+
+    // ---- DTOs internos ----
+    public class ClienteActivityPoint
+    {
+        public string Label { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    public class ClienteActionTypePoint
+    {
+        public string Label { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    public class ClienteActionByUserPoint
+    {
+        public string Usuario { get; set; } = "";
+        public int Cambios { get; set; }
+    }
+
+    public class ClienteResumen
+    {
+        public string CodigoCliente { get; set; } = "";
+        public string NombreCompleto { get; set; } = "";
+        public string Identificacion { get; set; } = "";
+        public string TipoIdentificacion { get; set; } = "";
+        public string Ciudad { get; set; } = "";
+        public string Estado { get; set; } = "Activo";
+        public int Cambios { get; set; }
+    }
+
+    public class ClienteAuditRow
+    {
+        public DateTime Fecha { get; set; }
+        public string Usuario { get; set; } = "";
+        public string Accion { get; set; } = "";
+        public string IdRegistro { get; set; } = "";
+        public string Detalle { get; set; } = "";
+    }
+
+    public class ClienteAlertRow
+    {
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Severity { get; set; } = "";
+        public string BadgeClass { get; set; } = "warning";
+    }
+}

@@ -1,0 +1,1282 @@
+﻿@page "/dashboards/facturas"
+@using Microsoft.AspNetCore.Authorization
+@using CurrieTechnologies.Razor.SweetAlert2
+@using sistemaFacturacion.Services
+@using sistemaFacturacion.Models
+@attribute [Authorize]
+
+@inject IJSRuntime JSRuntime
+@inject IFacturasApiClient FacturasApi
+@inject NavigationManager Navigation
+@inject SweetAlertService Swal
+
+<div class="page-header mb-4">
+    <h1 class="page-title fw-semibold fs-20">Gestión de Facturas</h1>
+    <p class="text-muted fs-13">Consulta y administración de facturas emitidas</p>
+</div>
+
+@if (cargando)
+{
+    <div class="alert alert-info">
+        <span class="spinner-border spinner-border-sm me-2"></span> Cargando facturas...
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="alert alert-danger">
+        <i class="ri-error-warning-line me-2"></i>@error
+    </div>
+}
+else
+{
+    <!-- Filtros y búsqueda -->
+    <div class="card mb-3 border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-4 col-12">
+                    <label class="form-label">Búsqueda rápida</label>
+                    <input class="form-control"
+                           @bind="FiltroTexto"
+                           @bind:event="oninput"
+                           placeholder="Número, cliente, empleado..." />
+                </div>
+                <div class="col-lg-2 col-6">
+                    <label class="form-label">Estado</label>
+                    <select class="form-select" @bind="FiltroEstado">
+                        <option value="">Todos</option>
+                        <option value="AUTORIZADO">Autorizado</option>
+                        <option value="FIRMADO">Firmado</option>
+                        <option value="RECHAZADO_SRI">Rechazado SRI</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <label class="form-label">Por página</label>
+                    <select class="form-select" @bind="pageSize">
+                        <option>5</option>
+                        <option>10</option>
+                        <option>20</option>
+                        <option>50</option>
+                    </select>
+                </div>
+                <div class="col-lg-4 d-grid d-lg-flex justify-content-lg-end col-12 gap-2">
+                    <button class="btn btn-success" @onclick="IrACrear">
+                        <i class="ri-add-line me-1"></i>Nueva Factura
+                    </button>
+                </div>
+            </div>
+
+            <div class="row g-2 mt-1">
+                <div class="col-auto">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="Recargar">
+                        <i class="ri-refresh-line me-1"></i>Recargar
+                    </button>
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="LimpiarFiltros">
+                        <i class="ri-filter-off-line me-1"></i>Limpiar
+                    </button>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <button type="button"
+                        class="btn btn-sm btn-link px-0"
+                        @onclick="ToggleFiltrosAvanzados">
+                    <i class="ri-filter-3-line me-1"></i>
+                    @(mostrarFiltrosAvanzados ? "Ocultar filtros avanzados" : "Mostrar filtros avanzados")
+                </button>
+                <span class="text-muted small">
+                    Filtros por cliente, fecha y rango de montos.
+                </span>
+            </div>
+
+            @if (mostrarFiltrosAvanzados)
+            {
+                <div class="row g-3 mt-2">
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">Cliente</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@filtroCliente"
+                                   @oninput="OnClienteInput"
+                                   placeholder="Filtrar por cliente..."
+                                   autocomplete="off" />
+                            @if (sugerenciasCliente.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasCliente)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaCliente(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">Empleado</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@filtroEmpleado"
+                                   @oninput="OnEmpleadoInput"
+                                   placeholder="Filtrar por empleado..."
+                                   autocomplete="off" />
+                            @if (sugerenciasEmpleado.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasEmpleado)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaEmpleado(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">Código de Autorización</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@FiltroAutorizacion"
+                                   @oninput="OnAutorizacionInput"
+                                   placeholder="Buscar por código..."
+                                   autocomplete="off" />
+                            @if (sugerenciasAutorizacion.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasAutorizacion)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaAutorizacion(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <small class="text-muted">Filtra por código del SRI</small>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">Rango de fechas</label>
+                        <div class="d-flex gap-2">
+                            <input type="date"
+                                   class="form-control form-control-sm"
+                                   @bind="FechaDesde" />
+                            <input type="date"
+                                   class="form-control form-control-sm"
+                                   @bind="FechaHasta" />
+                        </div>
+                        <small class="text-muted">Filtra por fecha de emisión</small>
+                    </div>
+
+                    <div class="col-lg-6 col-md-6">
+                        <label class="form-label">Monto total</label>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12">
+                                <select class="form-select form-select-sm"
+                                        @bind="FiltroMontoModo">
+                                    <option value="todos">Todos</option>
+                                    <option value="igual">Igual a</option>
+                                    <option value="mayorIgual">Mayor o igual que</option>
+                                    <option value="menorIgual">Menor o igual que</option>
+                                    <option value="entre">Entre</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <input type="number"
+                                       step="0.01"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroMontoMin"
+                                       @bind:event="oninput"
+                                       placeholder="Monto mínimo" />
+                            </div>
+                            <div class="col-6">
+                                <input type="number"
+                                       step="0.01"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroMontoMax"
+                                       @bind:event="oninput"
+                                       placeholder="Monto máximo"
+                                       disabled="@(FiltroMontoModo != "entre")" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Resumen de métricas -->
+    <div class="row mb-3">
+        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12">
+            <div class="card custom-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-fill">
+                            <p class="text-muted mb-1">Total Facturas</p>
+                            <h4 class="fw-semibold mb-0">@FilteredCount</h4>
+                        </div>
+                        <div class="avatar avatar-lg bg-primary-transparent">
+                            <i class="ri-file-list-3-line fs-20"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12">
+            <div class="card custom-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-fill">
+                            <p class="text-muted mb-1">Subtotal</p>
+                            <h4 class="fw-semibold mb-0">@FormatMoney(TotalSubtotal)</h4>
+                        </div>
+                        <div class="avatar avatar-lg bg-success-transparent">
+                            <i class="ri-money-dollar-circle-line fs-20"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12">
+            <div class="card custom-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-fill">
+                            <p class="text-muted mb-1">IVA</p>
+                            <h4 class="fw-semibold mb-0">@FormatMoney(TotalIva)</h4>
+                        </div>
+                        <div class="avatar avatar-lg bg-warning-transparent">
+                            <i class="ri-percent-line fs-20"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12">
+            <div class="card custom-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-fill">
+                            <p class="text-muted mb-1">Total</p>
+                            <h4 class="fw-semibold mb-0">@FormatMoney(TotalGeneral)</h4>
+                        </div>
+                        <div class="avatar avatar-lg bg-info-transparent">
+                            <i class="ri-wallet-3-line fs-20"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de facturas -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header d-flex align-items-center justify-content-between bg-transparent">
+            <h6 class="mb-0">
+                <i class="ri-bill-line me-2"></i>Facturas (@FilteredCount resultados)
+            </h6>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-light" title="Anterior" @onclick="PrevPage" disabled="@(pageIndex == 1)">
+                    <i class="ri-arrow-left-s-line"></i>
+                </button>
+                <span class="small text-muted">Página @pageIndex de @TotalPages</span>
+                <button class="btn btn-sm btn-light" title="Siguiente" @onclick="NextPage" disabled="@(pageIndex == TotalPages)">
+                    <i class="ri-arrow-right-s-line"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table-hover mb-0 table align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th @onclick="@(() => OrdenarPor(nameof(FacturaDto.NumFac)))"
+                                role="button"
+                                class="user-select-none">
+                                Número @IconoOrden(nameof(FacturaDto.NumFac))
+                            </th>
+                            <th>Cliente</th>
+                            <th>Empleado</th>
+                            <th @onclick="@(() => OrdenarPor(nameof(FacturaDto.FecFac)))"
+                                role="button"
+                                class="user-select-none">
+                                Fecha @IconoOrden(nameof(FacturaDto.FecFac))
+                            </th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-end">IVA</th>
+                            <th class="text-end" @onclick="@(() => OrdenarPor(nameof(FacturaDto.TotFac)))"
+                                role="button">
+                                Total @IconoOrden(nameof(FacturaDto.TotFac))
+                            </th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Paged.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="9" class="text-muted py-4 text-center">
+                                    <i class="ri-inbox-line fs-3 d-block mb-2"></i>
+                                    No hay facturas con los filtros aplicados.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var f in Paged)
+                            {
+                                if (f == null) continue;
+                                <tr @key="f.IdFac">
+                                    <td>
+                                        <span class="badge bg-primary-subtle text-primary fw-semibold">
+                                            @(f.NumFac ?? "-")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var esEmpresa = f.Cliente?.ApeCli?.Contains("-") ?? false;
+                                            var nombreCliente = esEmpresa
+                                                ? f.Cliente?.NomCli
+                                                : $"{f.Cliente?.NomCli} {f.Cliente?.ApeCli}";
+                                        }
+                                        <div class="d-flex flex-column">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <i class="@(esEmpresa ? "ri-building-line" : "ri-user-3-line") text-muted"></i>
+                                                <span class="fw-medium">@(nombreCliente ?? "-")</span>
+                                            </div>
+                                            <small class="text-muted">@(f.Cliente?.IdeCli ?? "")</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var nombreEmpleado = GetNombreCompletoEmpleado(f);
+                                        }
+                                        <div class="d-flex flex-column">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <i class="ri-user-star-line text-muted"></i>
+                                                <span class="fw-medium">@(!string.IsNullOrWhiteSpace(nombreEmpleado) ? nombreEmpleado : "-")</span>
+                                            </div>
+                                            @if (f.Empleado != null)
+                                            {
+                                                <small class="text-muted">COD: @f.Empleado.CodEmp</small>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            @f.FecFac.ToString("dd/MM/yyyy")
+                                            <br />
+                                            <span class="text-muted" style="font-size: 0.75rem;">
+                                                @f.FecFac.ToString("HH:mm")
+                                            </span>
+                                        </small>
+                                    </td>
+                                    <td class="text-end">
+                                        <small>@FormatMoney(f.SubFac)</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <small>@FormatMoney(f.IvaFac)</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>@FormatMoney(f.TotFac)</strong>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var (badgeClass, icon) = GetEstadoBadge(f.EstFac);
+                                        }
+                                        <span class="badge @badgeClass">
+                                            <i class="@icon"></i> @(f.EstFac ?? "Sin estado")
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button"
+                                                    class="btn btn-outline-info"
+                                                    @onclick="() => VerDetalles(f)"
+                                                    title="Ver detalles">
+                                                <i class="ri-eye-line"></i>
+                                            </button>
+                                            @if (f.EstFac == "FIRMADO")
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-outline-warning"
+                                                        @onclick="() => ReenviarFactura(f)"
+                                                        title="Reenviar al SRI para autorización">
+                                                    <i class="ri-send-plane-2-line"></i>
+                                                </button>
+                                            }
+                                            <button type="button"
+                                                    class="btn btn-outline-primary"
+                                                    @onclick="() => DescargarPDF(f)"
+                                                    title="Descargar PDF">
+                                                <i class="ri-download-2-line"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<FacturaDto> items = new();
+    private bool cargando = true;
+    private string? error;
+
+    private string? _filtroTexto;
+    private string? _filtroEstado;
+    private string? _filtroAutorizacion;
+
+    private string? FiltroTexto
+    {
+        get => _filtroTexto;
+        set
+        {
+            if (_filtroTexto != value)
+            {
+                _filtroTexto = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private string? FiltroEstado
+    {
+        get => _filtroEstado;
+        set
+        {
+            if (_filtroEstado != value)
+            {
+                _filtroEstado = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private string? FiltroAutorizacion
+    {
+        get => _filtroAutorizacion;
+        set
+        {
+            if (_filtroAutorizacion != value)
+            {
+                _filtroAutorizacion = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private string? filtroCliente;
+    private string? filtroEmpleado;
+    private DateTime? _fechaDesde;
+    private DateTime? _fechaHasta;
+
+    private DateTime? FechaDesde
+    {
+        get => _fechaDesde;
+        set
+        {
+            if (_fechaDesde != value)
+            {
+                _fechaDesde = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private DateTime? FechaHasta
+    {
+        get => _fechaHasta;
+        set
+        {
+            if (_fechaHasta != value)
+            {
+                _fechaHasta = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private bool mostrarFiltrosAvanzados;
+
+    private List<string> sugerenciasCliente = new();
+    private List<string> sugerenciasEmpleado = new();
+    private List<string> sugerenciasAutorizacion = new();
+
+    private string _filtroMontoModo = "todos";
+    private decimal? _filtroMontoMin;
+    private decimal? _filtroMontoMax;
+
+    private string FiltroMontoModo
+    {
+        get => _filtroMontoModo;
+        set
+        {
+            if (_filtroMontoModo != value)
+            {
+                _filtroMontoModo = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroMontoMin
+    {
+        get => _filtroMontoMin;
+        set
+        {
+            if (_filtroMontoMin != value)
+            {
+                _filtroMontoMin = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroMontoMax
+    {
+        get => _filtroMontoMax;
+        set
+        {
+            if (_filtroMontoMax != value)
+            {
+                _filtroMontoMax = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private int pageIndex = 1;
+    private int _pageSize = 10;
+
+    private int pageSize
+    {
+        get => _pageSize;
+        set
+        {
+            if (_pageSize != value)
+            {
+                _pageSize = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private string? sortBy;
+    private bool sortAsc = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        try
+        {
+            cargando = true;
+            error = null;
+
+            items = await FacturasApi.GetFacturasAsync() ?? new List<FacturaDto>();
+
+            var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Toast = true,
+                Position = SweetAlertPosition.TopEnd,
+                Icon = SweetAlertIcon.Success,
+                Title = $"✓ {items.Count} facturas cargadas",
+                ShowConfirmButton = false,
+                Timer = 2000,
+                TimerProgressBar = true,
+                Background = isDark ? "#1e1e1e" : null,
+                Color = isDark ? "#e6e6e6" : null
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            error = "Error al cargar facturas: " + ex.Message;
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error al cargar",
+                Html = "<small>" + Escape(ex.Message) + "</small>",
+                Icon = SweetAlertIcon.Error,
+                ConfirmButtonText = "Entendido"
+            });
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task Recargar()
+    {
+        var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Toast = true,
+            Position = SweetAlertPosition.TopEnd,
+            Icon = SweetAlertIcon.Info,
+            Title = "Recargando...",
+            ShowConfirmButton = false,
+            Timer = 1000,
+            Background = isDark ? "#1e1e1e" : null,
+            Color = isDark ? "#e6e6e6" : null
+        });
+
+        await CargarDatos();
+        pageIndex = 1;
+    }
+
+    private void LimpiarFiltros()
+    {
+        FiltroTexto = null;
+        FiltroEstado = null;
+        FiltroAutorizacion = null;
+        filtroCliente = null;
+        filtroEmpleado = null;
+        FechaDesde = null;
+        FechaHasta = null;
+
+        sugerenciasCliente.Clear();
+        sugerenciasEmpleado.Clear();
+
+        FiltroMontoModo = "todos";
+        FiltroMontoMin = null;
+        FiltroMontoMax = null;
+
+        sortBy = null;
+        sortAsc = true;
+        pageIndex = 1;
+    }
+
+    private void ToggleFiltrosAvanzados()
+    {
+        mostrarFiltrosAvanzados = !mostrarFiltrosAvanzados;
+    }
+
+    private void OnClienteInput(ChangeEventArgs e)
+    {
+        filtroCliente = e.Value?.ToString();
+        sugerenciasCliente = CalcularSugerencias(
+            filtroCliente,
+            x => GetNombreCompletoCliente(x)
+        );
+        pageIndex = 1;
+    }
+
+
+    private void OnEmpleadoInput(ChangeEventArgs e)
+    {
+        filtroEmpleado = e.Value?.ToString();
+        sugerenciasEmpleado = CalcularSugerencias(
+            filtroEmpleado,
+            x => GetNombreCompletoEmpleado(x)
+        );
+        pageIndex = 1;
+    }
+
+    private void OnAutorizacionInput(ChangeEventArgs e)
+    {
+        var valor = e.Value?.ToString();
+        FiltroAutorizacion = valor; // Usa el setter para mantener la lógica de paginación
+
+        sugerenciasAutorizacion = CalcularSugerencias(
+            FiltroAutorizacion,
+            x => x.AutFac
+        );
+    }
+
+    private static string GetNombreCompletoCliente(FacturaDto x)
+    {
+        if (x?.Cliente == null) return string.Empty;
+
+        var nombre = x.Cliente.NomCli ?? string.Empty;
+        var apellido = x.Cliente.ApeCli ?? string.Empty;
+
+        // Mantiene tu criterio de empresa vs persona
+        var esEmpresa = x.Cliente.ApeCli?.Contains("-") == true;
+
+        return esEmpresa
+            ? nombre.Trim()
+            : $"{nombre} {apellido}".Trim();
+    }
+
+    private static string GetNombreCompletoEmpleado(FacturaDto x)
+    {
+        if (x?.Empleado == null) return string.Empty;
+
+        var nombre = x.Empleado.NomEmp ?? string.Empty;
+        var apellido = x.Empleado.ApeEmp ?? string.Empty; // Se asume propiedad ApeEmp en tu DTO
+
+        return $"{nombre} {apellido}".Trim();
+    }
+
+    private void SeleccionarSugerenciaCliente(string valor)
+    {
+        filtroCliente = valor;
+        sugerenciasCliente.Clear();
+        pageIndex = 1;
+    }
+
+    private void SeleccionarSugerenciaEmpleado(string valor)
+    {
+        filtroEmpleado = valor;
+        sugerenciasEmpleado.Clear();
+        pageIndex = 1;
+    }
+
+    private void SeleccionarSugerenciaAutorizacion(string valor)
+    {
+        FiltroAutorizacion = valor;
+        sugerenciasAutorizacion.Clear();
+        pageIndex = 1;
+    }
+    private List<string> CalcularSugerencias(string? valor, Func<FacturaDto, string?> selector)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+            return new List<string>();
+
+        var query = valor.Trim();
+        if (query.Length < 2)
+            return new List<string>();
+
+        return items
+            .Select(selector)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(s => s.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
+            .OrderBy(s => s)
+            .Take(8)
+            .ToList();
+    }
+
+    private List<FacturaDto> Filtered
+    {
+        get
+        {
+            var r = (items ?? new List<FacturaDto>()).AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_filtroTexto))
+            {
+                var q = _filtroTexto.Trim();
+                r = r.Where(x =>
+                    ContainsIgnoreCase(x.NumFac, q) ||
+                    ContainsIgnoreCase(GetNombreCompletoCliente(x), q) ||
+                    ContainsIgnoreCase(GetNombreCompletoEmpleado(x), q) ||
+                    ContainsIgnoreCase(x.Usuario?.NomUsu, q));
+            }
+
+            if (!string.IsNullOrWhiteSpace(_filtroEstado))
+            {
+                r = r.Where(x => string.Equals(x.EstFac, _filtroEstado, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(_filtroAutorizacion))
+            {
+                var q = _filtroAutorizacion.Trim();
+                r = r.Where(x => ContainsIgnoreCase(x.AutFac, q));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filtroCliente))
+            {
+                var q = filtroCliente.Trim();
+                r = r.Where(x => ContainsIgnoreCase(GetNombreCompletoCliente(x), q));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filtroEmpleado))
+            {
+                var q = filtroEmpleado.Trim();
+                r = r.Where(x => ContainsIgnoreCase(GetNombreCompletoEmpleado(x), q));
+            }
+
+            if (FechaDesde.HasValue)
+            {
+                var desde = FechaDesde.Value.Date;
+                r = r.Where(x => x.FecFac.Date >= desde);
+            }
+
+            if (FechaHasta.HasValue)
+            {
+                var hasta = FechaHasta.Value.Date;
+                r = r.Where(x => x.FecFac.Date <= hasta);
+            }
+
+            r = AplicarFiltroMonto(r);
+
+            r = r.OrderByDescending(x => x.FecFac);
+
+            return r.ToList();
+        }
+    }
+
+    private IEnumerable<FacturaDto> AplicarFiltroMonto(IEnumerable<FacturaDto> src)
+    {
+        if (string.IsNullOrWhiteSpace(_filtroMontoModo) || _filtroMontoModo == "todos")
+            return src;
+
+        var tieneMin = _filtroMontoMin.HasValue;
+        var tieneMax = _filtroMontoMax.HasValue;
+
+        switch (_filtroMontoModo)
+        {
+            case "igual":
+                if (!tieneMin) return src;
+                return src.Where(x => x.TotFac == _filtroMontoMin.Value);
+
+            case "mayorIgual":
+                if (!tieneMin) return src;
+                return src.Where(x => x.TotFac >= _filtroMontoMin.Value);
+
+            case "menorIgual":
+                if (!tieneMin) return src;
+                return src.Where(x => x.TotFac <= _filtroMontoMin.Value);
+
+            case "entre":
+                if (!tieneMin && !tieneMax) return src;
+                return src.Where(x =>
+                {
+                    var t = x.TotFac;
+                    if (tieneMin && tieneMax) return t >= _filtroMontoMin.Value && t <= _filtroMontoMax.Value;
+                    if (tieneMin) return t >= _filtroMontoMin.Value;
+                    return t <= _filtroMontoMax!.Value;
+                });
+
+            default:
+                return src;
+        }
+    }
+
+    private int FilteredCount => Filtered.Count;
+
+    private decimal TotalSubtotal => Filtered.Sum(x => x.SubFac);
+    private decimal TotalIva => Filtered.Sum(x => x.IvaFac);
+    private decimal TotalGeneral => Filtered.Sum(x => x.TotFac);
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredCount / (double)pageSize));
+
+    private List<FacturaDto> Paged =>
+        Filtered
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+    private IEnumerable<FacturaDto> Ordenar(IEnumerable<FacturaDto> src)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+            return src;
+
+        Func<FacturaDto, object?> key = sortBy switch
+        {
+            nameof(FacturaDto.NumFac) => x => x.NumFac ?? string.Empty,
+            nameof(FacturaDto.FecFac) => x => x.FecFac,
+            nameof(FacturaDto.TotFac) => x => x.TotFac,
+            _ => x => x.IdFac
+        };
+
+        return sortAsc ? src.OrderBy(key) : src.OrderByDescending(key);
+    }
+
+    private void OrdenarPor(string prop)
+    {
+        if (sortBy == prop)
+        {
+            sortAsc = !sortAsc;
+        }
+        else
+        {
+            sortBy = prop;
+            sortAsc = true;
+        }
+
+        pageIndex = 1;
+    }
+
+    private string IconoOrden(string prop) =>
+        sortBy != prop ? string.Empty : (sortAsc ? "↑" : "↓");
+
+    private void PrevPage()
+    {
+        if (pageIndex > 1) pageIndex--;
+    }
+    private void NextPage()
+    {
+        if (pageIndex < TotalPages) pageIndex++;
+    }
+
+    private async Task VerDetalles(FacturaDto f)
+    {
+        var detallesHtml = "<div class='table-responsive mt-3'><table class='table-sm table'>" +
+                          "<thead><tr>" +
+                          "<th>Producto</th>" +
+                          "<th>Lote</th>" +
+                          "<th class='text-end'>Cant.</th>" +
+                          "<th class='text-end'>Precio</th>" +
+                          "<th class='text-end'>Total</th>" +
+                          "</tr></thead><tbody>";
+
+        if (f.DetallesFactura != null)
+        {
+            foreach (var d in f.DetallesFactura)
+            {
+                detallesHtml += "<tr>" +
+                               $"<td><small>{Escape(d.NomProducto)}</small></td>" +        // nomProducto
+                               $"<td><small>{Escape(d.CodLote)}</small></td>" +            // codLote
+                               $"<td class='text-end'><small>{d.CanDet}</small></td>" +    // canDet
+                               $"<td class='text-end'><small>{FormatMoney(d.PreDet)}</small></td>" + // preDet
+                               $"<td class='text-end'><small><strong>{FormatMoney(d.TotDet)}</strong></small></td>" + // totDet
+                               "</tr>";
+            }
+        }
+
+
+        detallesHtml += "</tbody></table></div>";
+
+        var html = "<div class='text-start'>" +
+                  $"<p><strong>Número:</strong> {Escape(f.NumFac)}</p>" +
+                  $"<p><strong>Cliente:</strong> {Escape(f.Cliente?.NomCli)}</p>" +
+                  $"<p><strong>Cliente:</strong> {Escape(GetNombreCompletoCliente(f))}</p>" +
+                  $"<p><strong>Empleado:</strong> {Escape(GetNombreCompletoEmpleado(f))}</p>" +
+                  $"<p><strong>Fecha:</strong> {f.FecFac:dd/MM/yyyy HH:mm}</p>" +
+                  $"<hr/>" +
+                  $"<p><strong>Subtotal:</strong> {FormatMoney(f.SubFac)}</p>" +
+                  $"<p><strong>IVA:</strong> {FormatMoney(f.IvaFac)}</p>" +
+                  $"<p><strong>Total:</strong> <span class='text-primary'>{FormatMoney(f.TotFac)}</span></p>" +
+                  $"<hr/>" +
+                  $"<h6>Detalles de la factura:</h6>" +
+                  detallesHtml +
+                  "</div>";
+
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = $"Factura #{f.NumFac}",
+            Html = html,
+            Icon = SweetAlertIcon.Info,
+            ConfirmButtonText = "Cerrar",
+            Width = "800px"
+        });
+    }
+
+    // Método ReenviarFactura - NUEVO
+    // Línea: ~900-1020
+    // Efecto: Reenvía factura al SRI con límite de 15 intentos
+    private async Task ReenviarFactura(FacturaDto f)
+    {
+        const int INTENTOS_MAXIMOS = 1;
+        int intentosRealizados = 0;
+        bool aprobada = false;
+        string? mensajeRechazo = null;
+        bool esMantenimientoSri = false;
+
+        var result = await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "<div class='d-flex align-items-center justify-content-center gap-2'>" +
+                    "<i class='ri-send-plane-2-line'></i>" +
+                    "<span>Reenviar al SRI</span>" +
+                    "</div>",
+            Html = "<div class='py-3 text-center'>" +
+                   $"<div class='mb-3'>" +
+                   $"<p class='fs-15 mb-2'>¿Deseas intentar autorizar la factura?</p>" +
+                   $"<div class='badge bg-primary-subtle text-primary fs-14 px-3 py-2'>{f.NumFac}</div>" +
+                   $"</div>" +
+                   $"<hr class='my-3'/>" +
+                   $"<p class='text-muted small mb-0'>" +
+                   $"<i class='ri-information-line me-1'></i>" +
+                   $"Se realizará hasta {INTENTOS_MAXIMOS} intento de autorización." +
+                   $"</p>" +
+                   "</div>",
+            Icon = SweetAlertIcon.Question,
+            ShowCancelButton = true,
+            ConfirmButtonText = "<i class='ri-check-line me-1'></i>Sí, reenviar",
+            CancelButtonText = "<i class='ri-close-line me-1'></i>Cancelar",
+            ConfirmButtonColor = "#3b82f6",
+            CancelButtonColor = "#6c757d",
+            Width = "450px",
+            CustomClass = new SweetAlertCustomClass
+            {
+                HtmlContainer = "text-start"
+            }
+        });
+
+        if (!result.IsConfirmed) return;
+
+        // Mostrar progreso con animación Lottie (NO se espera el resultado para no bloquear el flujo)
+        _ = Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "Enviando factura al SRI",
+            Html =
+                "<div class='text-center'>" +
+                    "<div class='mb-3'>" +
+                        "<span class='badge bg-warning-subtle text-warning rounded-pill px-3 py-2'>" +
+                            "<i class='ri-send-plane-2-line me-1'></i>" +
+                            "Comunicando con el SRI" +
+                        "</span>" +
+                    "</div>" +
+                    "<p class='text-muted small mb-2'>" +
+                        "Por favor espera mientras procesamos la autorización de tu comprobante." +
+                    "</p>" +
+                    "<div style='width:160px;height:160px;margin:0 auto;display:flex;align-items:center;justify-content:center;'>" +
+                        "<lottie-player src='/assets/animations/loading-factura.json' " +
+                            "background='transparent' speed='0.75' " +
+                            "style='width:160px;height:160px;' " +
+                            "loop autoplay>" +
+                        "</lottie-player>" +
+                    "</div>" +
+                    $"<p class='text-muted mt-3 mb-1'><small>Intento <strong>1</strong> de {INTENTOS_MAXIMOS}</small></p>" +
+                    "<p class='text-muted mb-0'>" +
+                        "<small><i class='ri-information-line me-1'></i>No cierres esta ventana hasta que el proceso termine.</small>" +
+                    "</p>" +
+                "</div>",
+            ShowConfirmButton = false,
+            AllowOutsideClick = false,
+            AllowEscapeKey = false,
+            Width = "420px"
+        });
+
+        try
+        {
+            intentosRealizados = 1;
+
+            var response = await FacturasApi.ReenviarFacturaAsync(f.IdFac);
+
+            if (response.Success && response.Estado == "AUTORIZADO")
+            {
+                aprobada = true;
+                // Mantener coherencia con el backend
+                f.EstFac = response.Estado ?? "AUTORIZADO";
+                f.AutFac = response.NumeroAutorizacion;
+            }
+            else
+            {
+                // Obtener mensaje de rechazo
+                mensajeRechazo = !string.IsNullOrWhiteSpace(response.Mensaje)
+                    ? response.Mensaje
+                    : $"Estado: {response.Estado}";
+
+                esMantenimientoSri = DetectarMantenimientoSri(mensajeRechazo);
+
+                if (response.Estado == "RECHAZADO_SRI")
+                {
+                    f.EstFac = "RECHAZADO_SRI";
+                }
+            }
+
+            StateHasChanged();
+
+            // Mostrar resultado
+            if (aprobada)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "<div class='d-flex align-items-center justify-content-center text-success gap-2'>" +
+                            "<i class='ri-checkbox-circle-line fs-3'></i>" +
+                            "<span>¡Factura Autorizada!</span>" +
+                            "</div>",
+                    Html = "<div class='py-3 text-center'>" +
+                           $"<div class='alert alert-success-subtle mb-3' role='alert'>" +
+                           $"<i class='ri-shield-check-line me-2'></i>" +
+                           $"La factura <strong>{f.NumFac}</strong> fue autorizada correctamente por el SRI" +
+                           $"</div>" +
+                           $"<div class='row g-2 mt-3'>" +
+                           $"<div class='col-12'>" +
+                           $"<div class='card border-success-subtle'>" +
+                           $"<div class='card-body p-2'>" +
+                           $"<small class='text-muted d-block'>Código de autorización</small>" +
+                           $"<code class='text-success'>{f.AutFac}</code>" +
+                           $"</div>" +
+                           $"</div>" +
+                           $"</div>" +
+                           $"</div>" +
+                           $"<p class='text-muted mt-3 mb-0'>" +
+                           $"<small><i class='ri-time-line me-1'></i>Intentos: {intentosRealizados}/{INTENTOS_MAXIMOS}</small>" +
+                           $"</p>" +
+                           "</div>",
+                    Icon = SweetAlertIcon.Success,
+                    ConfirmButtonText = "<i class='ri-check-line me-1'></i>Entendido",
+                    ConfirmButtonColor = "#10b981",
+                    Width = "500px"
+                });
+            }
+            else if (esMantenimientoSri)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "<div class='d-flex align-items-center justify-content-center text-warning gap-2'>" +
+                            "<i class='ri-tools-line fs-3'></i>" +
+                            "<span>Mantenimiento del SRI</span>" +
+                            "</div>",
+                    Html = "<div class='py-3 text-center'>" +
+                           $"<div class='alert alert-warning-subtle mb-3' role='alert'>" +
+                           $"<i class='ri-error-warning-line me-2'></i>" +
+                           $"El Servicio de Rentas Internas (SRI) se encuentra en mantenimiento" +
+                           $"</div>" +
+                           $"<p class='text-muted mb-3'>Por favor, intenta nuevamente más tarde.</p>" +
+                           $"<div class='card border-warning-subtle'>" +
+                           $"<div class='card-body p-3'>" +
+                           $"<small class='text-muted d-block mb-2'><strong>Mensaje del SRI:</strong></small>" +
+                           $"<p class='small mb-0 text-start'>{Escape(mensajeRechazo)}</p>" +
+                           $"</div>" +
+                           $"</div>" +
+                           $"<p class='text-muted mt-3 mb-0'>" +
+                           $"<small><i class='ri-time-line me-1'></i>Intentos: {intentosRealizados}/{INTENTOS_MAXIMOS}</small>" +
+                           $"</p>" +
+                           "</div>",
+                    Icon = SweetAlertIcon.Warning,
+                    ConfirmButtonText = "<i class='ri-check-line me-1'></i>Entendido",
+                    ConfirmButtonColor = "#f59e0b",
+                    Width = "500px"
+                });
+            }
+            else
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "<div class='d-flex align-items-center justify-content-center text-danger gap-2'>" +
+                            "<i class='ri-close-circle-line fs-3'></i>" +
+                            "<span>Factura Rechazada</span>" +
+                            "</div>",
+                    Html = "<div class='py-3 text-center'>" +
+                           $"<div class='alert alert-danger-subtle mb-3' role='alert'>" +
+                           $"<i class='ri-error-warning-line me-2'></i>" +
+                           $"La factura <strong>{f.NumFac}</strong> fue rechazada por el SRI" +
+                           $"</div>" +
+                           $"<div class='card border-danger-subtle'>" +
+                           $"<div class='card-body p-3'>" +
+                           $"<small class='text-danger d-block mb-2'><strong>Motivo del rechazo:</strong></small>" +
+                           $"<p class='small mb-0 text-start'>{Escape(mensajeRechazo)}</p>" +
+                           $"</div>" +
+                           $"</div>" +
+                           $"<div class='alert alert-info-subtle mt-3 mb-0' role='alert'>" +
+                           $"<small>" +
+                           $"<i class='ri-information-line me-1'></i>" +
+                           $"Por favor revisa los datos de la factura y vuelve a intentar más tarde" +
+                           $"</small>" +
+                           $"</div>" +
+                           "</div>",
+                    Icon = SweetAlertIcon.Error,
+                    ConfirmButtonText = "<i class='ri-check-line me-1'></i>Entendido",
+                    ConfirmButtonColor = "#ef4444",
+                    Width = "500px"
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "<div class='d-flex align-items-center justify-content-center text-danger gap-2'>" +
+                        "<i class='ri-wifi-off-line fs-3'></i>" +
+                        "<span>Error de Conexión</span>" +
+                        "</div>",
+                Html = "<div class='py-3 text-center'>" +
+                       $"<div class='alert alert-danger-subtle mb-3' role='alert'>" +
+                       $"<i class='ri-signal-wifi-error-line me-2'></i>" +
+                       $"No se pudo comunicar con el servidor" +
+                       $"</div>" +
+                       $"<div class='card border-secondary-subtle'>" +
+                       $"<div class='card-body p-3'>" +
+                       $"<small class='text-muted d-block mb-2'><strong>Detalles del error:</strong></small>" +
+                       $"<code class='small d-block text-start'>{Escape(ex.Message)}</code>" +
+                       $"</div>" +
+                       $"</div>" +
+                       $"<p class='text-muted mt-3 mb-0'>" +
+                       $"<small><i class='ri-information-line me-1'></i>Verifica tu conexión a internet e intenta nuevamente</small>" +
+                       $"</p>" +
+                       "</div>",
+                Icon = SweetAlertIcon.Error,
+                ConfirmButtonText = "<i class='ri-refresh-line me-1'></i>Entendido",
+                ConfirmButtonColor = "#ef4444",
+                Width = "500px"
+            });
+        }
+    }
+
+    // Método auxiliar para detectar mantenimiento del SRI
+    // Línea: ~1020-1030
+    private static bool DetectarMantenimientoSri(string? mensaje)
+    {
+        if (string.IsNullOrWhiteSpace(mensaje)) return false;
+
+        var mensajeLower = mensaje.ToLower();
+        return mensajeLower.Contains("mantenimiento") ||
+               mensajeLower.Contains("no disponible") ||
+               mensajeLower.Contains("fuera de servicio") ||
+               mensajeLower.Contains("temporalmente") ||
+               mensajeLower.Contains("maintenance");
+    }
+
+    private async Task DescargarPDF(FacturaDto f)
+    {
+        var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Toast = true,
+            Position = SweetAlertPosition.TopEnd,
+            Icon = SweetAlertIcon.Info,
+            Title = "Generando PDF...",
+            ShowConfirmButton = false,
+            Timer = 2000,
+            Background = isDark ? "#1e1e1e" : null,
+            Color = isDark ? "#e6e6e6" : null
+        });
+
+        // Aquí implementarías la lógica para generar/descargar el PDF
+        // Por ahora solo mostramos un mensaje
+    }
+
+    private void IrACrear()
+    {
+        Navigation.NavigateTo("/dashboards/facturas/crear");
+    }
+
+    // Método GetEstadoBadge - MODIFICADO
+    // Línea: ~1080-1090
+    // Efecto: Retorna badge y icono según estado de factura (AUTHORIZADO, FIRMADO, RECHAZADO_SRI)
+    private static (string badgeClass, string icon) GetEstadoBadge(string? estado)
+    {
+        return estado switch
+        {
+            "AUTHORIZADO" => ("bg-success-subtle text-success", "ri-checkbox-circle-line"),
+            "FIRMADO" => ("bg-warning-subtle text-warning", "ri-file-shield-line"),
+            "RECHAZADO_SRI" => ("bg-danger-subtle text-danger", "ri-close-circle-line"),
+            _ => ("bg-secondary-subtle text-secondary", "ri-question-line")
+        };
+    }
+
+    private static bool ContainsIgnoreCase(string? source, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(value))
+            return false;
+
+        return source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static string FormatMoney(decimal? v) =>
+        v.HasValue ? "$" + v.Value.ToString("N2") : "-";
+
+    private static string Escape(string? s) =>
+        string.IsNullOrEmpty(s)
+            ? string.Empty
+            : s.Replace("<", "&lt;").Replace(">", "&gt;");
+}

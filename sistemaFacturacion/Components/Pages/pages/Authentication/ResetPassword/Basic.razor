@@ -1,0 +1,294 @@
+﻿@page "/reset-password"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@using System.ComponentModel.DataAnnotations
+@using CurrieTechnologies.Razor.SweetAlert2
+
+@layout Components.Layout.CustomLayout
+@attribute [AllowAnonymous]
+
+@inject IJSRuntime JS
+@inject AuthService AuthService
+@inject SweetAlertService Swal
+@inject NavigationManager NavigationManager
+
+@implements IAsyncDisposable
+
+<div class="authentication-background">
+    @if (_isValidatingToken)
+    {
+        <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Validando enlace...</span>
+                </div>
+                <p class="text-muted mt-3">Validando enlace de recuperación...</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="auth-bg-wrapper">
+            <div class="authentication-basic-background">
+                <img src="../assets/images/media/backgrounds/9.png" alt="">
+            </div>
+
+            <div id="login-bg"></div>
+
+            <div class="container">
+                <div class="row justify-content-center align-items-center authentication authentication-basic h-100">
+                    <div class="col-xxl-4 col-xl-5 col-lg-6 col-md-6 col-sm-8 col-12">
+                        <div class="card custom-card my-4 border-0">
+                            <div class="card-body p-5">
+
+                                <div class="mb-4">
+                                    <a href="/index">
+                                        <img src="../assets/images/brand-logos/toggle-logo.png" alt="logo" class="desktop-dark">
+                                    </a>
+                                </div>
+
+                                <div>
+                                    <h4 class="fw-semibold mb-1">Restablecer contraseña</h4>
+                                    <p class="text-muted fw-normal mb-4">
+                                        Define tu nueva contraseña para continuar.
+                                    </p>
+                                </div>
+
+                                @if (!_tokenValid)
+                                {
+                                    <div class="alert alert-danger">
+                                        El enlace de recuperación no es válido o ha caducado.
+                                        <br />
+                                        Solicita un nuevo enlace desde la pantalla de recuperación.
+                                    </div>
+                                    <div class="d-grid mt-3">
+                                        <button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo("/recovery-password", true))">
+                                            Volver a recuperación
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <EditForm Model="resetModel" OnValidSubmit="HandleResetAsync">
+                                        <DataAnnotationsValidator />
+                                        <ValidationSummary />
+
+                                        <div class="row gy-3">
+                                            <div class="col-xl-12">
+                                                <label class="form-label text-default">Nueva contraseña</label>
+                                                <div class="position-relative">
+                                                    <PasswordToggle placeholder="Nueva contraseña"
+                                                                    @bind-Password="resetModel.NewPassword" />
+                                                    <ValidationMessage For="@(() => resetModel.NewPassword)" />
+                                                </div>
+                                            </div>
+
+                                            <div class="col-xl-12">
+                                                <label class="form-label text-default">Confirmar contraseña</label>
+                                                <div class="position-relative">
+                                                    <PasswordToggle placeholder="Confirmar contraseña"
+                                                                    @bind-Password="resetModel.ConfirmPassword" />
+                                                    <ValidationMessage For="@(() => resetModel.ConfirmPassword)" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-grid mt-3">
+                                            <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
+                                                @if (_isSubmitting)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                                    <span>Actualizando...</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>Guardar nueva contraseña</span>
+                                                }
+                                            </button>
+                                        </div>
+                                    </EditForm>
+
+                                    <div class="fw-medium mt-3 text-center">
+                                        ¿Recordaste tu contraseña?
+                                        <a href="/" class="text-primary">Inicia sesión aquí</a>
+                                    </div>
+                                }
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "token")]
+    public string? Token { get; set; }
+
+    private bool _isValidatingToken = true;
+    private bool _tokenValid = false;
+    private bool _isSubmitting = false;
+    private bool _particlesInitialized = false;
+
+    private ResetPasswordModel resetModel = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Token))
+        {
+            _tokenValid = false;
+            _isValidatingToken = false;
+
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Error,
+                Title = "Enlace inválido",
+                Text = "El enlace de recuperación es incorrecto o ha sido modificado."
+            });
+
+            NavigationManager.NavigateTo("/recovery-password", replace: true);
+            return;
+        }
+
+        _tokenValid = true;
+        _isValidatingToken = false;
+        resetModel.Token = Token;
+
+        await JS.InvokeVoidAsync("eval",
+            "window.history.replaceState(null, document.title, '/reset-password');");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_tokenValid || _particlesInitialized || _isValidatingToken)
+            return;
+
+        for (int attempt = 1; attempt <= 10; attempt++)
+        {
+            try
+            {
+                await Task.Delay(attempt * 150);
+
+                var functionsReady = await JS.InvokeAsync<bool>("eval",
+                    "typeof window.particleFunctions?.mountParticlesBG === 'function'");
+
+                if (!functionsReady)
+                    continue;
+
+                var elementExists = await JS.InvokeAsync<bool>("eval",
+                    "document.getElementById('login-bg') !== null");
+
+                if (!elementExists)
+                    continue;
+
+                await JS.InvokeVoidAsync("particleFunctions.mountParticlesBG", "login-bg");
+                _particlesInitialized = true;
+                break;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error montando partículas (intento {attempt}/10): {ex.Message}");
+            }
+        }
+    }
+
+    private async Task HandleResetAsync()
+    {
+        if (!_tokenValid || string.IsNullOrWhiteSpace(resetModel.Token))
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Error,
+                Title = "Sesión inválida",
+                Text = "El enlace de recuperación ya no es válido. Solicita uno nuevo."
+            });
+
+            NavigationManager.NavigateTo("/recovery-password", replace: true);
+            return;
+        }
+
+        _isSubmitting = true;
+
+        try
+        {
+            var result = await AuthService.ResetPasswordAsync(
+                resetModel.Token!,
+                resetModel.NewPassword);
+
+            if (result.Success)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Icon = SweetAlertIcon.Success,
+                    Title = "Contraseña actualizada",
+                    Text = "Ahora puedes iniciar sesión con tu nueva contraseña."
+                });
+
+                NavigationManager.NavigateTo("/", forceLoad: true);
+            }
+            else if (result.InvalidOrExpired)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Icon = SweetAlertIcon.Error,
+                    Title = "Enlace inválido o expirado",
+                    Text = result.Message ?? "Solicita un nuevo enlace de recuperación."
+                });
+
+                NavigationManager.NavigateTo("/recovery-password", replace: true);
+            }
+            else
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Icon = SweetAlertIcon.Error,
+                    Title = "No se pudo actualizar",
+                    Text = result.Message ?? "Intenta de nuevo o solicita un nuevo enlace."
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Error,
+                Title = "Error al actualizar contraseña",
+                Html = $"<small>{ex.Message}</small>"
+            });
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!_particlesInitialized) return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("window.particleFunctions.unmountParticlesBG", "login-bg");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error unmounting particles: {ex.Message}");
+        }
+    }
+
+    private sealed class ResetPasswordModel
+    {
+        [Required(ErrorMessage = "La nueva contraseña es obligatoria.")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres.")]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Debe confirmar la contraseña.")]
+        [Compare(nameof(NewPassword), ErrorMessage = "Las contraseñas no coinciden.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+
+        public string? Token { get; set; }
+    }
+}

@@ -1,0 +1,365 @@
+﻿@page "/ecommerce/customers"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+@using Soenneker.Blazor.TomSelect
+@using Soenneker.Blazor.TomSelect.Configuration
+@using Soenneker.Blazor.TomSelect.Enums
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using FlatpickrBlazor
+@using FlatpickrBlazor.Components
+@inject SweetAlertService Swal
+@attribute [Authorize]
+
+
+
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap">
+        <h1 class="page-title fw-medium fs-18 mb-0">Customers List</h1>
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Dashboards</a></li>
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Ecommerce</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Customers List</li>
+        </ol>
+    </div>
+</div>
+<div class="row">
+    <div class="col-xl-12">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between border-bottom-0">
+                <div class="w-sm-25">
+                    <input class="form-control" type="search" id="search-input" placeholder="Search Customer"
+                           aria-label="search-customer" @bind-value="SearchTerm" @oninput="OnSearchInput">
+                </div>
+
+                <div class="d-flex w-sm-50 justify-content-start justify-content-sm-end align-items-center flex-wrap gap-4">
+
+                    <div class="">
+                        @if (isRendered)
+                        {
+                            <TomSelect TItem="SelectItem"
+                                       Items="_selectedItems"
+                                       TType="string"
+                                       Multiple="false"
+                                       @bind-Value="_selectedValue"
+                                       OnChange="OnSelectionChanged"
+                                       Data="_FilterOptions"
+                                       TextField="@(item => item.Name)"
+                                       ValueField="@(item => item.Id)"
+                                       Placeholder="Search"
+                                       Configuration="_configuration" />
+                        }
+                    </div>
+                    <div class="">
+                        <div class="dropdown d-grid">
+                            <button class="btn btn-primary-light dropdown-toggle" type="button" id="dropdownMenuButton1"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="ri-upload-2-line me-1"></i>Export
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                <li><a class="dropdown-item" href="javascript:void(0);"><i
+                                                class="bi bi-file-earmark-excel me-2"></i>Excel</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);"><i
+                                                class="bi bi-file-earmark-excel me-2"></i>Csv</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);"><i
+                                                class="bi bi-filetype-pdf me-2"></i>PDF</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);"><i
+                                                class="bi bi-file-zip me-2"></i>Zip</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addtask"><i class="ri ri-add-line me-1"></i>Add Customer</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive" id="product-table">
+                    <QuickGrid TItem="CustomerDetails" Items="@FilteredItems.AsQueryable()" Pagination="pagination">
+                        <TemplateColumn Title="#" SortBy="@sortByName">
+                            <span><input class="form-check-input" type="checkbox" value="" aria-label="..."></span>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Customer IP" SortBy="@sortByIP">
+                            <ChildContent Context="p">
+                                <span><a href="javascript:void(0);">@p.CustomerIP</a></span>
+                            </ChildContent>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Customer Name" SortBy="@sortByName" class="product-name1">
+                            <ChildContent Context="p">
+                                <span><a href="javascript:void(0);">
+                                <div class="d-flex align-items-center position-relative gap-3">
+                                    <div class="lh-1">
+                                        <span class="avatar avatar-lg bg-light">
+                                            <img src="@p.CustomerImg" alt="Customer Image">
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span class="d-block fw-semibold">@p.CustomerName</span>
+                                        <span class="text-muted fs-13">@p.CustomerEmail</span>
+                                    </div>
+                                </div>
+                                </a></span>
+                            </ChildContent>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Status" SortBy="@sortByStatus">
+                            <ChildContent Context="p">
+                                <span class="badge bg-@(p.Status == "Active" ? "success" : "danger")-transparent">@p.Status</span>
+                            </ChildContent>
+                        </TemplateColumn>
+                        <PropertyColumn  Property="@(p => p.DateAdded)" Sortable="true" Title="Joining Date"/>
+                        <TemplateColumn Title="Actions">
+                            <ChildContent Context="p">
+                                <div class="dropdown">
+                                    <a href="javascript:void(0);" class="btn btn-icon btn-sm btn-primary-light border" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fe fe-more-vertical"></i>
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item"><i class="ri-pencil-line me-2"></i>Edit</a></li>
+                                        <li>
+                                            <a class="dropdown-item btn-delete" href="javascript:void(0);"
+                                               @onclick="() => ConfirmAndDelete(p)">
+                                                <i class="ri-delete-bin-line me-2"></i>Delete
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </ChildContent>
+                        </TemplateColumn>
+                    </QuickGrid>
+                    @if (FilteredItems == null || !FilteredItems.Any())
+                    {
+                        <div class="pt-4 text-center">No matching records found</div>
+                    }
+                    <Paginator State="pagination" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="addtask" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="mail-ComposeLabel">Add Customer</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4">
+                <div class="row gy-2">
+                    <div class="col-xl-12">
+                        <label for="customer-name" class="form-label">Customer Name</label>
+                        <input type="text" class="form-control" id="customer-name" placeholder="Customer Name">
+                    </div>
+                    <div class="col-xl-12">
+                        <label for="customer-email" class="form-label">Customer Email</label>
+                        <input type="email" class="form-control" id="customer-email" placeholder="Customer Email">
+                    </div>
+                    <div class="col-xl-12">
+                        <label class="form-label">Joined Date</label>
+                        <div class="form-group">
+                            <div class="input-group">
+                                <div class="input-group-text text-muted"> <i class="ri-calendar-line"></i> </div>
+                                <Flatpickr class="form-control"
+                                        @ref="_flatpickr"
+                                        placeholder="Choose date and time"
+                                        EnableTime="true"
+                                        DateFormat="Y-m-d H:i"
+                                />
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-12">
+                        <label class="form-label">Status</label>
+                        @if (isRendered)
+                        {
+                            <TomSelect TItem="SelectItem" Items="_selectedItems" TType="string" Multiple="false" @bind-Value="_selectedValue" Data="_StatusOptions" TextField="@(item => item.Name)" ValueField="@(item => item.Id)" Placeholder="" Configuration="_configuration" />
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light"
+                        data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary">Add Customer</button>
+            </div>
+        </div>
+    </div>
+</div>
+@code {
+    PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+    record CustomerDetails(string CustomerIP, string CustomerImg, string CustomerName, string CustomerEmail, string Status, string DateAdded);
+
+    GridSort<CustomerDetails> sortByName = GridSort<CustomerDetails>.ByAscending(p => p.CustomerName);
+    GridSort<CustomerDetails> sortByIP = GridSort<CustomerDetails>.ByAscending(p => p.CustomerIP);
+    GridSort<CustomerDetails> sortByStatus = GridSort<CustomerDetails>.ByAscending(p => p.Status);
+
+    // Master list of all customers
+    List<CustomerDetails> Items = new();
+
+    // List to hold the filtered data for the grid
+    private List<CustomerDetails> FilteredItems = new();
+
+    private string SearchTerm { get; set; } = string.Empty;
+
+    void Delete(CustomerDetails p)
+    {
+        Items.Remove(p);
+        FilteredItems.Remove(p);
+        pagination.ItemsPerPage = Math.Max(1, Math.Min(10, FilteredItems.Count));
+        StateHasChanged(); // Triggers UI refresh
+    }
+}
+
+@code{
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; } = default!;
+
+    private bool isRendered = false;
+
+    private string _selectedValue = default!;
+    private List<SelectItem>? _FilterOptions;
+    private List<SelectItem>? _StatusOptions; 
+    private List<SelectItem> _selectedItems = new List<SelectItem>();
+
+    public class SelectItem
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+    }
+
+    private readonly TomSelectConfiguration _configuration = new()
+    {
+        Plugins = new List<TomSelectPluginType> { TomSelectPluginType.DropdownInput, TomSelectPluginType.NoBackspaceDelete }
+    };
+    
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isRendered = true;
+            StateHasChanged();
+        }
+
+        return Task.CompletedTask;
+    }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        Items = new List<CustomerDetails>
+        {
+            new CustomerDetails("192.168.1.1", "../assets/images/faces/1.jpg","John Doe","john.doe@example.com","Active", "Jan 10, 2025"),
+            new CustomerDetails("192.168.1.2", "../assets/images/faces/2.jpg", "Jane Smith","jane.smith@example.com","Blocked", "Feb 3, 2025"),
+            new CustomerDetails("192.168.1.3", "../assets/images/faces/3.jpg","Michael Brown", "michael.brown@example.com","Active", "Mar 10, 2025"),
+            new CustomerDetails("192.168.1.4", "../assets/images/faces/4.jpg","Emily White", "emily.white@example.com","Active", "Mar 12, 2025"),
+            new CustomerDetails("192.168.1.5", "../assets/images/faces/5.jpg","Chris Johnson","chris.johnson@example.com","Active", "Jan 25, 2025"),
+            new CustomerDetails("192.168.1.6", "../assets/images/faces/9.jpg","Sarah Lee", "sarah.lee@example.com", "Blocked", "Feb 14, 2025"),
+            new CustomerDetails("192.168.1.7", "../assets/images/faces/10.jpg","David Green",  "david.green@example.com","Active", "Mar 17, 2025"),
+            new CustomerDetails("192.168.1.8", "../assets/images/faces/11.jpg","Olivia Davis","olivia.davis@example.com","Active", "Feb 22, 2025"),
+            new CustomerDetails("192.168.1.9", "../assets/images/faces/13.jpg","James Wilsonr", "james.wilson@example.com","Active", "Mar 5, 2025"),
+            new CustomerDetails("192.168.1.10", "../assets/images/faces/14.jpg","Sophia Martinez", "sophia.martinez@example.com", "Blocked", "Jan 30, 2025"),
+        };
+
+        _FilterOptions = new List<SelectItem>
+        {
+            new SelectItem { Id = "0", Name = "All Status" },
+            new SelectItem { Id = "1", Name = "Active" },
+            new SelectItem { Id = "2", Name = "Blocked" }
+        };
+
+        _selectedItems = _FilterOptions.Take(1).ToList();
+        _selectedValue = _selectedItems.FirstOrDefault()?.Id ?? string.Empty;
+
+         _StatusOptions = new List<SelectItem>
+        {
+            new SelectItem { Id = "0", Name = "Active" },
+            new SelectItem { Id = "1", Name = "Block" },
+        };
+        _selectedItems = _StatusOptions.Take(1).ToList(); 
+
+        // Apply the initial filter on load
+        await ApplyFilter();
+    }
+
+    //  Explicit event handler for search input changes
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        SearchTerm = e.Value?.ToString() ?? string.Empty;
+        await ApplyFilter();
+    }
+
+    // Explicit event handler for selection changes
+    private async Task OnSelectionChanged(List<string> selectedValues)
+    {
+        // For single-select, get the first item or default to "All Status"
+        _selectedValue = selectedValues.FirstOrDefault() ?? "0";
+        await ApplyFilter();
+    }
+
+    private async Task ApplyFilter()
+    {
+        // Start with the full list of items
+        IEnumerable<CustomerDetails> query = Items;
+
+        var selectedStatusName = _FilterOptions?.FirstOrDefault(o => o.Id == _selectedValue)?.Name;
+        if (!string.IsNullOrEmpty(selectedStatusName) && selectedStatusName != "All Status")
+        {
+            query = query.Where(c => c.Status.Equals(selectedStatusName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply search term filter
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            query = query.Where(c => c.CustomerName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                     c.CustomerEmail.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                     c.CustomerIP.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+
+        FilteredItems = query.ToList();
+        pagination.ItemsPerPage = Math.Max(1, Math.Min(10, FilteredItems.Count));
+
+        // Reset the paginator to the first page.
+        await pagination.SetCurrentPageIndexAsync(0);
+
+        StateHasChanged();
+    }
+}
+
+<script src="_content/CurrieTechnologies.Razor.SweetAlert2/sweetAlert2.min.js"></script> 
+@code{
+    private async System.Threading.Tasks.Task ConfirmAndDelete(CustomerDetails p)
+    {
+        var confirmResult = await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "Are you sure?",
+            Text = "You won't be able to revert this!",
+            Icon = SweetAlertIcon.Warning,
+            ShowCancelButton = true,
+            ConfirmButtonColor = "#3085d6",
+            CancelButtonColor = "#d33",
+            ConfirmButtonText = "Yes, delete it!"
+        });
+
+        if (confirmResult.IsConfirmed)
+        {
+            Delete(p); // Call delete logic
+
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Deleted!",
+                Text = "Customer has been deleted.",
+                Icon = SweetAlertIcon.Success
+            });
+        }
+    }
+}
+
+@code{
+
+    // Date picker Start//
+    public Flatpickr? _flatpickr;
+    // Date picker End//
+}

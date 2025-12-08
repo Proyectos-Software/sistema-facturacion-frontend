@@ -1,0 +1,1146 @@
+﻿@page "/dashboards/empleados/listar"
+@using Microsoft.AspNetCore.Authorization
+@using CurrieTechnologies.Razor.SweetAlert2
+@using sistemaFacturacion.Services
+@using sistemaFacturacion.Models
+@attribute [Authorize(Roles = "Admin")]
+@implements IDisposable
+
+@inject IJSRuntime JSRuntime
+@inject IEmpleadosApiClient EmpleadosApi
+@inject IUsuariosApiClient UsuariosApi
+@inject NavigationManager Navigation
+@inject SweetAlertService Swal
+
+<div class="page-header mb-4">
+    <h1 class="page-title fw-semibold fs-20">Listado de Empleados</h1>
+    <p class="text-muted fs-13">Consulta y gestión de empleados</p>
+</div>
+
+@if (cargando)
+{
+    <div class="alert alert-info">
+        <span class="spinner-border spinner-border-sm me-2"></span> Cargando empleados...
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="alert alert-danger">
+        <i class="ri-error-warning-line me-2"></i>@error
+    </div>
+}
+else
+{
+    <div class="card mb-3 border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-4 col-12">
+                    <label class="form-label">Búsqueda rápida (código, nombre, apellido, correo, teléfono, cargo)</label>
+                    <input class="form-control"
+                           @bind="FiltroTexto"
+                           @bind:event="oninput"
+                           placeholder="Escribe para filtrar en todos los campos..." />
+                </div>
+                <div class="col-lg-2 col-6">
+                    <label class="form-label">Estado</label>
+                    <select class="form-select" @bind="FiltroEstado">
+                        <option value="">Todos</option>
+                        <option value="activos">Activos</option>
+                        <option value="inactivos">Inactivos</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <label class="form-label">Por página</label>
+                    <select class="form-select" @bind="pageSize">
+                        <option>5</option>
+                        <option>10</option>
+                        <option>20</option>
+                    </select>
+                </div>
+                <div class="col-lg-4 d-grid d-lg-flex justify-content-lg-end col-12 gap-2">
+                    <a class="btn btn-success" href="/dashboards/empleados/crear">
+                        <i class="ri-user-add-line me-1"></i>Nuevo Usuario-Empleado
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="Recargar">
+                        <i class="ri-refresh-line me-1"></i>Recargar
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="LimpiarFiltros">
+                        <i class="ri-filter-off-line me-1"></i>Limpiar
+                    </button>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <button type="button"
+                        class="btn btn-sm btn-link px-0"
+                        @onclick="ToggleFiltrosAvanzados">
+                    <i class="ri-filter-3-line me-1"></i>
+                    @(mostrarFiltrosAvanzados ? "Ocultar filtros avanzados" : "Mostrar filtros avanzados")
+                </button>
+                <span class="text-muted small">
+                    Filtros específicos con autocompletado, rango de sueldo y fecha de ingreso.
+                </span>
+            </div>
+
+            @if (mostrarFiltrosAvanzados)
+            {
+                <div class="row g-3 mt-2">
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Nombre / Apellido</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@filtroNombreCompleto"
+                                   @oninput="OnNombreCompletoInput"
+                                   placeholder="Filtrar por nombre o apellido..."
+                                   autocomplete="off" />
+                            @if (sugerenciasNombreCompleto.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasNombreCompleto)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaNombreCompleto(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Correo</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@filtroCorreo"
+                                   @oninput="OnCorreoInput"
+                                   placeholder="Filtrar por correo..."
+                                   autocomplete="off" />
+                            @if (sugerenciasCorreo.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasCorreo)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaCorreo(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Teléfono</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@filtroTelefono"
+                                   @oninput="OnTelefonoInput"
+                                   placeholder="Filtrar por teléfono..."
+                                   autocomplete="off" />
+                            @if (sugerenciasTelefono.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasTelefono)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaTelefono(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Cargo</label>
+                        <div class="position-relative">
+                            <input class="form-control"
+                                   value="@filtroCargo"
+                                   @oninput="OnCargoInput"
+                                   placeholder="Filtrar por cargo..."
+                                   autocomplete="off" />
+                            @if (sugerenciasCargo.Count > 0)
+                            {
+                                <div class="dropdown-menu show w-100 shadow-sm">
+                                    @foreach (var s in sugerenciasCargo)
+                                    {
+                                        <button type="button"
+                                                class="dropdown-item"
+                                                @onclick="() => SeleccionarSugerenciaCargo(s)">
+                                            @s
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Sueldo</label>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12">
+                                <select class="form-select form-select-sm"
+                                        @bind="FiltroSueldoModo">
+                                    <option value="todos">Todos</option>
+                                    <option value="igual">Igual a</option>
+                                    <option value="mayorIgual">Mayor o igual que</option>
+                                    <option value="menorIgual">Menor o igual que</option>
+                                    <option value="entre">Entre</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <input type="number"
+                                       step="0.01"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroSueldoMin"
+                                       @bind:event="oninput"
+                                       placeholder="Desde" />
+                            </div>
+                            <div class="col-6">
+                                <input type="number"
+                                       step="0.01"
+                                       min="0"
+                                       class="form-control form-control-sm"
+                                       @bind="FiltroSueldoMax"
+                                       @bind:event="oninput"
+                                       placeholder="Hasta"
+                                       disabled="@(FiltroSueldoModo != "entre")" />
+                            </div>
+                            <div class="col-12">
+                                <small class="text-muted d-block">
+                                    Filtra sueldos iguales, mayores, menores o dentro de un rango.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label">Fecha de ingreso</label>
+                        <select class="form-select form-select-sm" @bind="FiltroPeriodo">
+                            <option value="">Todas</option>
+                            <option value="week">Últimos 7 días</option>
+                            <option value="month">Últimos 30 días</option>
+                            <option value="year">Últimos 12 meses</option>
+                            <option value="custom">Rango personalizado</option>
+                        </select>
+
+                        @if (FiltroPeriodo == "custom")
+                        {
+                            <div class="d-flex mt-2 gap-2">
+                                <input type="date"
+                                       class="form-control form-control-sm"
+                                       @bind="PeriodoDesde" />
+                                <input type="date"
+                                       class="form-control form-control-sm"
+                                       @bind="PeriodoHasta" />
+                            </div>
+                            <small class="text-muted">Filtra por fecha de ingreso.</small>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(FiltroPeriodo))
+                        {
+                            <small class="text-muted d-block mt-1">
+                                Basado en la fecha de ingreso del empleado.
+                            </small>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header d-flex align-items-center justify-content-between bg-transparent">
+            <h6 class="mb-0">Empleados (@FilteredCount resultados)</h6>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-light" title="Anterior" @onclick="PrevPage" disabled="@(pageIndex == 1)">
+                    <i class="ri-arrow-left-s-line"></i>
+                </button>
+                <span class="small text-muted">Página @pageIndex de @TotalPages</span>
+                <button class="btn btn-sm btn-light" title="Siguiente" @onclick="NextPage" disabled="@(pageIndex == TotalPages)">
+                    <i class="ri-arrow-right-s-line"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table-hover mb-0 table align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.CodEmp)))"
+                                role="button"
+                                class="user-select-none">
+                                Código @IconoOrden(nameof(RowVM.CodEmp))
+                            </th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.NomUsu)))"
+                                role="button"
+                                class="user-select-none">
+                                Nombre @IconoOrden(nameof(RowVM.NomUsu))
+                            </th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.ApeUsu)))"
+                                role="button"
+                                class="user-select-none">
+                                Apellido @IconoOrden(nameof(RowVM.ApeUsu))
+                            </th>
+                            <th>Correo</th>
+                            <th>Teléfono</th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.CarEmp)))"
+                                role="button"
+                                class="user-select-none">
+                                Cargo @IconoOrden(nameof(RowVM.CarEmp))
+                            </th>
+                            <th>Sueldo</th>
+                            <th @onclick="@(() => OrdenarPor(nameof(RowVM.FecIngreso)))"
+                                role="button"
+                                class="user-select-none">
+                                Fecha Ingreso @IconoOrden(nameof(RowVM.FecIngreso))
+                            </th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Paged.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="10" class="text-muted py-4 text-center">
+                                    <i class="ri-inbox-line fs-3 d-block mb-2"></i>
+                                    No hay resultados con los filtros aplicados.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var r in Paged)
+                            {
+                                <tr @key="r.IdUsu">
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(r.CodEmp))
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary fw-semibold">
+                                                @r.CodEmp
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                </td>
+                                <td>@r.NomUsu</td>
+                                <td>@r.ApeUsu</td>
+                                <td><small>@r.CorUsu</small></td>
+                                <td><small>@r.TelUsu</small></td>
+                                <td>@r.CarEmp</td>
+                                <td><small>@FormatMoney(r.SueEmp)</small></td>
+                                <td>
+                                    <small class="text-muted">
+                                        @(r.FecIngreso.HasValue
+                                                                        ? r.FecIngreso.Value.LocalDateTime.ToString("dd/MM/yyyy")
+                                                                        : "-")
+                                    </small>
+                                </td>
+                                <td>
+                            @if (r.Est)
+                                        {
+                                            <span class="badge bg-success-subtle text-success">
+                                                <i class="ri-check-line"></i> Activo
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger">
+                                                <i class="ri-close-line"></i> Inactivo
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary me-1"
+                                                @onclick="() => IrAEditar(r)"
+                                                title="Editar usuario">
+                                            <i class="ri-edit-line"></i>
+                                        </button>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-info me-1"
+                                                @onclick="() => VerDetalles(r)"
+                                                title="Ver detalles">
+                                            <i class="ri-eye-line"></i>
+                                        </button>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                disabled="@(r.IdEmp is null)"
+                                                @onclick="() => ConfirmarEliminar(r)"
+                                                title="Eliminar empleado">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<RowVM> items = new();
+    private bool cargando = true;
+    private string? error;
+
+    // CancellationTokenSource para cancelar operaciones async cuando el componente se destruye
+    private CancellationTokenSource _cts = new();
+
+    private string? _filtroTexto;
+    private string? _filtroEstado;
+
+    private string? FiltroTexto
+    {
+        get => _filtroTexto;
+        set
+        {
+            if (_filtroTexto != value)
+            {
+                _filtroTexto = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private string? FiltroEstado
+    {
+        get => _filtroEstado;
+        set
+        {
+            if (_filtroEstado != value)
+            {
+                _filtroEstado = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private string? filtroNombreCompleto;
+    private string? filtroCorreo;
+    private string? filtroTelefono;
+    private string? filtroCargo;
+
+    private bool mostrarFiltrosAvanzados;
+
+    private List<string> sugerenciasNombreCompleto = new();
+    private List<string> sugerenciasCorreo = new();
+    private List<string> sugerenciasTelefono = new();
+    private List<string> sugerenciasCargo = new();
+
+    private string _filtroSueldoModo = "todos";
+    private decimal? _filtroSueldoMin;
+    private decimal? _filtroSueldoMax;
+
+    private string FiltroSueldoModo
+    {
+        get => _filtroSueldoModo;
+        set
+        {
+            if (_filtroSueldoModo != value)
+            {
+                _filtroSueldoModo = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroSueldoMin
+    {
+        get => _filtroSueldoMin;
+        set
+        {
+            if (_filtroSueldoMin != value)
+            {
+                _filtroSueldoMin = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private decimal? FiltroSueldoMax
+    {
+        get => _filtroSueldoMax;
+        set
+        {
+            if (_filtroSueldoMax != value)
+            {
+                _filtroSueldoMax = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private string? _filtroPeriodo;
+    private string? FiltroPeriodo
+    {
+        get => _filtroPeriodo;
+        set
+        {
+            if (_filtroPeriodo != value)
+            {
+                _filtroPeriodo = value;
+                if (_filtroPeriodo != "custom")
+                {
+                    PeriodoDesde = null;
+                    PeriodoHasta = null;
+                }
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private DateTime? _periodoDesde;
+    private DateTime? PeriodoDesde
+    {
+        get => _periodoDesde;
+        set
+        {
+            if (_periodoDesde != value)
+            {
+                _periodoDesde = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private DateTime? _periodoHasta;
+    private DateTime? PeriodoHasta
+    {
+        get => _periodoHasta;
+        set
+        {
+            if (_periodoHasta != value)
+            {
+                _periodoHasta = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private int pageIndex = 1;
+    private int _pageSize = 10;
+
+    private int pageSize
+    {
+        get => _pageSize;
+        set
+        {
+            if (_pageSize != value)
+            {
+                _pageSize = value;
+                pageIndex = 1;
+            }
+        }
+    }
+
+    private string? sortBy;
+    private bool sortAsc = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+        await MostrarToastCreacionSiAplica();
+    }
+
+    private async Task CargarDatos()
+    {
+        try
+        {
+            cargando = true;
+            error = null;
+
+            var ct = _cts.Token;
+
+            // Carga paralela de usuarios y empleados usando Task.WhenAll
+            // Esto mejora significativamente el tiempo de carga al ejecutar ambas llamadas API simultaneamente
+            var usuariosTask = UsuariosApi.GetAllAsync(ct);
+            var empleadosTask = EmpleadosApi.GetAllAsync(ct);
+
+            await Task.WhenAll(usuariosTask, empleadosTask);
+
+            // Verificar cancelacion antes de actualizar estado
+            if (ct.IsCancellationRequested) return;
+
+            var usuarios = await usuariosTask;
+            var empleados = await empleadosTask;
+            var empByUsu = empleados.ToDictionary(e => e.IdUsu, e => e);
+
+            items = usuarios
+                .Where(u => u.IdRol == 2)
+                .Select(u =>
+                {
+                    empByUsu.TryGetValue(u.IdUsu, out var emp);
+                    return new RowVM
+                    {
+                        IdUsu = u.IdUsu,
+                        IdEmp = emp?.IdEmp,
+                        NomUsu = u.NomUsu,
+                        ApeUsu = u.ApeUsu,
+                        CorUsu = u.CorUsu,
+                        TelUsu = u.TelUsu,
+                        CarEmp = emp?.CarEmp ?? u.CarEmp,
+                        SueEmp = emp?.SueEmp ?? u.SueEmp,
+                        FecIngreso = emp?.FecEmp ?? u.FecCre,
+                        Est = emp?.EstEmp ?? u.EstUsu,
+                        CodEmp = emp?.CodEmp
+                    };
+                })
+                .OrderBy(r => r.NomUsu)
+                .ToList();
+
+            var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode", ct);
+
+            if (ct.IsCancellationRequested) return;
+
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Toast = true,
+                Position = SweetAlertPosition.TopEnd,
+                Icon = SweetAlertIcon.Success,
+                Title = $"{items.Count} empleados cargados",
+                ShowConfirmButton = false,
+                Timer = 2000,
+                TimerProgressBar = true,
+                Background = isDark ? "#1e1e1e" : null,
+                Color = isDark ? "#e6e6e6" : null
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Operacion cancelada por disposal del componente - comportamiento esperado
+        }
+        catch (HttpRequestException ex)
+        {
+            if (_cts.Token.IsCancellationRequested) return;
+
+            error = "Error al cargar empleados: " + ex.Message;
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error al cargar",
+                Html = "<small>" + Escape(ex.Message) + "</small>",
+                Icon = SweetAlertIcon.Error,
+                ConfirmButtonText = "Entendido"
+            });
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task Recargar()
+    {
+        var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Toast = true,
+            Position = SweetAlertPosition.TopEnd,
+            Icon = SweetAlertIcon.Info,
+            Title = "Recargando...",
+            ShowConfirmButton = false,
+            Timer = 1000,
+            Background = isDark ? "#1e1e1e" : null,
+            Color = isDark ? "#e6e6e6" : null
+        });
+
+        await CargarDatos();
+        pageIndex = 1;
+    }
+
+    private void LimpiarFiltros()
+    {
+        FiltroTexto = null;
+        FiltroEstado = null;
+
+        filtroNombreCompleto = null;
+        filtroCorreo = null;
+        filtroTelefono = null;
+        filtroCargo = null;
+
+        sugerenciasNombreCompleto.Clear();
+        sugerenciasCorreo.Clear();
+        sugerenciasTelefono.Clear();
+        sugerenciasCargo.Clear();
+
+        FiltroSueldoModo = "todos";
+        FiltroSueldoMin = null;
+        FiltroSueldoMax = null;
+
+        FiltroPeriodo = null;
+        PeriodoDesde = null;
+        PeriodoHasta = null;
+
+        sortBy = null;
+        sortAsc = true;
+        pageIndex = 1;
+    }
+
+    private void ToggleFiltrosAvanzados()
+    {
+        mostrarFiltrosAvanzados = !mostrarFiltrosAvanzados;
+    }
+
+    private void OnNombreCompletoInput(ChangeEventArgs e)
+    {
+        filtroNombreCompleto = e.Value?.ToString();
+        sugerenciasNombreCompleto = CalcularSugerencias(
+            filtroNombreCompleto,
+            x => string.Join(" ", new[] { x.NomUsu, x.ApeUsu }
+                .Where(v => !string.IsNullOrWhiteSpace(v)))
+        );
+        pageIndex = 1;
+    }
+
+    private void OnCorreoInput(ChangeEventArgs e)
+    {
+        filtroCorreo = e.Value?.ToString();
+        sugerenciasCorreo = CalcularSugerencias(filtroCorreo, x => x.CorUsu);
+        pageIndex = 1;
+    }
+
+    private void OnTelefonoInput(ChangeEventArgs e)
+    {
+        filtroTelefono = e.Value?.ToString();
+        sugerenciasTelefono = CalcularSugerencias(filtroTelefono, x => x.TelUsu);
+        pageIndex = 1;
+    }
+
+    private void OnCargoInput(ChangeEventArgs e)
+    {
+        filtroCargo = e.Value?.ToString();
+        sugerenciasCargo = CalcularSugerencias(filtroCargo, x => x.CarEmp);
+        pageIndex = 1;
+    }
+
+    private void SeleccionarSugerenciaNombreCompleto(string valor)
+    {
+        filtroNombreCompleto = valor;
+        sugerenciasNombreCompleto.Clear();
+        pageIndex = 1;
+    }
+
+    private void SeleccionarSugerenciaCorreo(string valor)
+    {
+        filtroCorreo = valor;
+        sugerenciasCorreo.Clear();
+        pageIndex = 1;
+    }
+
+    private void SeleccionarSugerenciaTelefono(string valor)
+    {
+        filtroTelefono = valor;
+        sugerenciasTelefono.Clear();
+        pageIndex = 1;
+    }
+
+    private void SeleccionarSugerenciaCargo(string valor)
+    {
+        filtroCargo = valor;
+        sugerenciasCargo.Clear();
+        pageIndex = 1;
+    }
+
+    private List<string> CalcularSugerencias(string? valor, Func<RowVM, string?> selector)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+            return new List<string>();
+
+        var query = valor.Trim();
+        if (query.Length < 2)
+            return new List<string>();
+
+        return items
+            .Select(selector)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(s => s.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
+            .OrderBy(s => s)
+            .Take(8)
+            .ToList();
+    }
+
+    private List<RowVM> Filtered
+    {
+        get
+        {
+            var r = items.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_filtroTexto))
+            {
+                var q = _filtroTexto.Trim();
+                r = r.Where(x =>
+                    ContainsIgnoreCase(x.CodEmp, q) ||
+                    ContainsIgnoreCase(x.NomUsu, q) ||
+                    ContainsIgnoreCase(x.ApeUsu, q) ||
+                    ContainsIgnoreCase(x.CorUsu, q) ||
+                    ContainsIgnoreCase(x.TelUsu, q) ||
+                    ContainsIgnoreCase(x.CarEmp, q));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filtroNombreCompleto))
+            {
+                var q = filtroNombreCompleto.Trim();
+                r = r.Where(x =>
+                {
+                    var full = string.Join(" ", new[] { x.NomUsu, x.ApeUsu }
+                        .Where(v => !string.IsNullOrWhiteSpace(v)));
+                    return ContainsIgnoreCase(full, q);
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(filtroCorreo))
+            {
+                var q = filtroCorreo.Trim();
+                r = r.Where(x => ContainsIgnoreCase(x.CorUsu, q));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filtroTelefono))
+            {
+                var q = filtroTelefono.Trim();
+                r = r.Where(x => ContainsIgnoreCase(x.TelUsu, q));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filtroCargo))
+            {
+                var q = filtroCargo.Trim();
+                r = r.Where(x => ContainsIgnoreCase(x.CarEmp, q));
+            }
+
+            r = AplicarFiltroSueldo(r);
+
+            if (!string.IsNullOrWhiteSpace(_filtroPeriodo) || PeriodoDesde.HasValue || PeriodoHasta.HasValue)
+            {
+                var now = DateTimeOffset.Now;
+                DateTimeOffset? from = null;
+                DateTimeOffset? to = null;
+
+                switch (_filtroPeriodo)
+                {
+                    case "week":
+                        from = now.AddDays(-7);
+                        break;
+                    case "month":
+                        from = now.AddDays(-30);
+                        break;
+                    case "year":
+                        from = now.AddYears(-1);
+                        break;
+                    case "custom":
+                        if (PeriodoDesde.HasValue)
+                            from = new DateTimeOffset(PeriodoDesde.Value.Date, TimeSpan.Zero);
+                        if (PeriodoHasta.HasValue)
+                            to = new DateTimeOffset(PeriodoHasta.Value.Date.AddDays(1).AddTicks(-1), TimeSpan.Zero);
+                        break;
+                }
+
+                if (string.IsNullOrWhiteSpace(_filtroPeriodo) && (PeriodoDesde.HasValue || PeriodoHasta.HasValue))
+                {
+                    from ??= PeriodoDesde.HasValue
+                        ? new DateTimeOffset(PeriodoDesde.Value.Date, TimeSpan.Zero)
+                        : null;
+
+                    to ??= PeriodoHasta.HasValue
+                        ? new DateTimeOffset(PeriodoHasta.Value.Date.AddDays(1).AddTicks(-1), TimeSpan.Zero)
+                        : null;
+                }
+
+                if (from.HasValue || to.HasValue)
+                {
+                    r = r.Where(x =>
+                    {
+                        if (!x.FecIngreso.HasValue) return false;
+                        var fecha = x.FecIngreso.Value;
+                        if (from.HasValue && fecha < from.Value) return false;
+                        if (to.HasValue && fecha > to.Value) return false;
+                        return true;
+                    });
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(_filtroEstado))
+            {
+                var activo = _filtroEstado == "activos";
+                r = r.Where(x => x.Est == activo);
+            }
+
+            r = Ordenar(r);
+            return r.ToList();
+        }
+    }
+
+    private IEnumerable<RowVM> AplicarFiltroSueldo(IEnumerable<RowVM> src)
+    {
+        if (string.IsNullOrWhiteSpace(_filtroSueldoModo) || _filtroSueldoModo == "todos")
+            return src;
+
+        var tieneMin = _filtroSueldoMin.HasValue;
+        var tieneMax = _filtroSueldoMax.HasValue;
+
+        switch (_filtroSueldoModo)
+        {
+            case "igual":
+                if (!tieneMin) return src;
+                return src.Where(x => x.SueEmp.HasValue && x.SueEmp.Value == _filtroSueldoMin.Value);
+
+            case "mayorIgual":
+                if (!tieneMin) return src;
+                return src.Where(x => x.SueEmp.HasValue && x.SueEmp.Value >= _filtroSueldoMin.Value);
+
+            case "menorIgual":
+                if (!tieneMin) return src;
+                return src.Where(x => x.SueEmp.HasValue && x.SueEmp.Value <= _filtroSueldoMin.Value);
+
+            case "entre":
+                if (!tieneMin && !tieneMax) return src;
+                return src.Where(x =>
+                {
+                    if (!x.SueEmp.HasValue) return false;
+                    var s = x.SueEmp.Value;
+
+                    if (tieneMin && tieneMax) return s >= _filtroSueldoMin.Value && s <= _filtroSueldoMax.Value;
+                    if (tieneMin) return s >= _filtroSueldoMin.Value;
+                    return s <= _filtroSueldoMax!.Value;
+                });
+
+            default:
+                return src;
+        }
+    }
+
+    private int FilteredCount => Filtered.Count;
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredCount / (double)pageSize));
+
+    private List<RowVM> Paged =>
+        Filtered
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+    private IEnumerable<RowVM> Ordenar(IEnumerable<RowVM> src)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy))
+            return src;
+
+        Func<RowVM, object?> key = sortBy switch
+        {
+            nameof(RowVM.CodEmp) => x => x.CodEmp ?? string.Empty,
+            nameof(RowVM.NomUsu) => x => x.NomUsu ?? string.Empty,
+            nameof(RowVM.ApeUsu) => x => x.ApeUsu ?? string.Empty,
+            nameof(RowVM.CarEmp) => x => x.CarEmp ?? string.Empty,
+            nameof(RowVM.FecIngreso) => x => x.FecIngreso?.UtcDateTime.Ticks ?? 0L,
+            _ => x => x.NomUsu ?? string.Empty
+        };
+
+        return sortAsc ? src.OrderBy(key) : src.OrderByDescending(key);
+    }
+
+    private void OrdenarPor(string prop)
+    {
+        if (sortBy == prop)
+        {
+            sortAsc = !sortAsc;
+        }
+        else
+        {
+            sortBy = prop;
+            sortAsc = true;
+        }
+
+        pageIndex = 1;
+    }
+
+    private string IconoOrden(string prop) =>
+        sortBy != prop ? string.Empty : (sortAsc ? "↑" : "↓");
+
+    private void PrevPage()
+    {
+        if (pageIndex > 1) pageIndex--;
+    }
+
+    private void NextPage()
+    {
+        if (pageIndex < TotalPages) pageIndex++;
+    }
+
+    private async Task VerDetalles(RowVM r)
+    {
+        var html =
+            "<div class='text-start'>" +
+            "<p><strong>Código empleado:</strong> " + Escape(r.CodEmp) + "</p>" +
+            "<p><strong>Correo:</strong> " + Escape(r.CorUsu) + "</p>" +
+            "<p><strong>Teléfono:</strong> " + Escape(r.TelUsu) + "</p>" +
+            "<p><strong>Cargo:</strong> " + Escape(r.CarEmp) + "</p>" +
+            "<p><strong>Fecha ingreso:</strong> " +
+            (r.FecIngreso.HasValue ? r.FecIngreso.Value.LocalDateTime.ToString("dd/MM/yyyy") : "-") +
+            "</p>" +
+            "<p><strong>Estado:</strong> " + (r.Est ? "Activo" : "Inactivo") + "</p>" +
+            "</div>";
+
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = Escape(r.NomUsu) + " " + Escape(r.ApeUsu),
+            Html = html,
+            Icon = SweetAlertIcon.Info,
+            ConfirmButtonText = "Cerrar",
+            Width = "560px"
+        });
+    }
+
+    private async Task ConfirmarEliminar(RowVM r)
+    {
+        if (r.IdEmp is null) return;
+
+        var resp = await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "¿Eliminar empleado?",
+            Html = "Se eliminará el empleado <strong>" + Escape(r.NomUsu) + " " + Escape(r.ApeUsu) + "</strong>",
+            Icon = SweetAlertIcon.Warning,
+            ShowCancelButton = true,
+            ConfirmButtonText = "Sí, eliminar",
+            CancelButtonText = "Cancelar",
+            ConfirmButtonColor = "#dc3545",
+            CancelButtonColor = "#6c757d"
+        });
+
+        if (resp.IsConfirmed)
+        {
+            try
+            {
+                var ok = await EmpleadosApi.DeleteAsync(r.IdEmp.Value);
+                if (ok)
+                {
+                    var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+                    var idx = items.FindIndex(x => x.IdEmp == r.IdEmp);
+                    if (idx >= 0)
+                    {
+                        items[idx].Est = false;
+                        StateHasChanged();
+                    }
+
+                    await Swal.FireAsync(new SweetAlertOptions
+                    {
+                        Toast = true,
+                        Position = SweetAlertPosition.TopEnd,
+                        Icon = SweetAlertIcon.Success,
+                        Title = "Empleado eliminado",
+                        ShowConfirmButton = false,
+                        Timer = 1600,
+                        TimerProgressBar = true,
+                        Background = isDark ? "#1e1e1e" : null,
+                        Color = isDark ? "#e6e6e6" : null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Icon = SweetAlertIcon.Error,
+                    Title = "No se pudo eliminar",
+                    Text = Trunca(ex.Message, 250)
+                });
+            }
+        }
+    }
+
+    private void IrAEditar(RowVM r)
+    {
+        if (r.IdUsu <= 0) return;
+        Navigation.NavigateTo($"/dashboards/empleados/editar/{r.IdUsu}");
+    }
+
+    private async Task MostrarToastCreacionSiAplica()
+    {
+        var created = GetQueryParam("created");
+        if (string.Equals(created, "1", StringComparison.OrdinalIgnoreCase))
+        {
+            var name = GetQueryParam("name") ?? "Empleado";
+            var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Toast = true,
+                Position = SweetAlertPosition.TopEnd,
+                Icon = SweetAlertIcon.Success,
+                Title = Escape(name) + " creado",
+                ShowConfirmButton = false,
+                Timer = 2200,
+                TimerProgressBar = true,
+                Background = isDark ? "#1e1e1e" : null,
+                Color = isDark ? "#e6e6e6" : null
+            });
+            Navigation.NavigateTo("/dashboards/empleados/listar", replace: true);
+        }
+    }
+
+    private string? GetQueryParam(string name)
+    {
+        var uri = new Uri(Navigation.Uri);
+        var q = uri.Query;
+        if (string.IsNullOrEmpty(q) || q.Length <= 1) return null;
+        var pairs = q.Substring(1).Split('&', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var p in pairs)
+        {
+            var kv = p.Split('=', 2);
+            if (kv.Length == 2 && string.Equals(kv[0], name, StringComparison.OrdinalIgnoreCase))
+                return Uri.UnescapeDataString(kv[1].Replace('+', ' '));
+        }
+        return null;
+    }
+
+    private static bool ContainsIgnoreCase(string? source, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(value))
+            return false;
+
+        return source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static string FormatMoney(decimal? v) =>
+        v.HasValue ? v.Value.ToString("N2") : "-";
+
+    private static string Trunca(string? s, int max) =>
+        string.IsNullOrWhiteSpace(s)
+            ? string.Empty
+            : (s!.Length <= max ? s : s[..max] + "…");
+
+    private static string Escape(string? s) =>
+        string.IsNullOrEmpty(s)
+            ? string.Empty
+            : s.Replace("<", "&lt;").Replace(">", "&gt;");
+
+    private sealed class RowVM
+    {
+        public int IdUsu { get; init; }
+        public int? IdEmp { get; init; }
+        public string NomUsu { get; init; } = string.Empty;
+        public string ApeUsu { get; init; } = string.Empty;
+        public string CorUsu { get; init; } = string.Empty;
+        public string TelUsu { get; init; } = string.Empty;
+        public string? CarEmp { get; init; }
+        public decimal? SueEmp { get; init; }
+        public DateTimeOffset? FecIngreso { get; init; }
+        public bool Est { get; set; }
+        public string? CodEmp { get; init; } = string.Empty;
+    }
+
+    // Libera recursos y cancela operaciones pendientes cuando el componente se destruye
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

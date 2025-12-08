@@ -1,0 +1,571 @@
+﻿@page "/dashboards/productos/editar"
+@page "/dashboards/productos/editar/{IdFromRoute:int}"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Linq
+@using Microsoft.AspNetCore.Authorization
+@using sistemaFacturacion.Models
+@using sistemaFacturacion.Services
+@using CurrieTechnologies.Razor.SweetAlert2
+
+@inject IProductosApiClient ProductosApi
+@inject ICategoriasApiClient CategoriasApi
+@inject ITipoTributarioApiClient TipoTributarioApi
+@inject SweetAlertService Swal
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Nav
+@attribute [Authorize]
+
+<div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary shadow-sm"
+                 style="width:3rem;height:3rem;">
+                <i class="ri-price-tag-3-line fs-4"></i>
+            </div>
+            <div>
+                <h1 class="page-title fw-semibold fs-20 mb-0">Editar producto</h1>
+                <p class="text-muted fs-13 mb-0">
+                    Busca por código o nombre y actualiza los datos del producto.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3 border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h6 class="fw-semibold d-flex align-items-center mb-0 gap-2">
+                    <i class="ri-search-line text-primary fs-5"></i>
+                    <span>Búsqueda de producto</span>
+                </h6>
+                <small class="text-muted">
+                    Escribe parte del código interno o del nombre para localizar el producto.
+                </small>
+            </div>
+            <div class="d-none d-md-block">
+                <a class="btn btn-light btn-wave" href="/dashboards/productos/listar">
+                    <i class="ri-arrow-go-back-line me-1 align-middle"></i>
+                    Volver al listado
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-2 align-items-end">
+            <div class="col-md-7 col-12">
+                <label class="form-label">Código o nombre</label>
+                <InputText class="form-control"
+                           @bind-Value="searchText"
+                           placeholder="Ej: PRD-001, Aceite 15W40" />
+            </div>
+            <div class="col-md-3 d-grid col-12">
+                <button class="btn btn-primary btn-wave"
+                        @onclick="BuscarProducto"
+                        disabled="@cargando">
+                    @if (cargando)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2 align-middle"
+                              role="status" aria-hidden="true"></span>
+                        <span>Buscando...</span>
+                    }
+                    else
+                    {
+                        <i class="ri-search-line me-1 align-middle"></i>
+                        <span>Buscar</span>
+                    }
+                </button>
+            </div>
+            <div class="col-md-2 d-md-none d-grid mt-md-0 col-12 mt-2">
+                <a class="btn btn-light btn-wave" href="/dashboards/productos/listar">
+                    <i class="ri-arrow-go-back-line me-1 align-middle"></i>
+                    Volver
+                </a>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(searchError))
+        {
+            <div class="alert alert-danger mt-3 mb-0">@searchError</div>
+        }
+    </div>
+</div>
+
+@if (cargando)
+{
+    <div class="alert alert-info d-flex align-items-center gap-2">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span>Cargando producto...</span>
+    </div>
+}
+else if (form is not null)
+{
+    <div class="card mb-3 border-0 shadow-sm">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary shadow-sm"
+                     style="width:3rem;height:3rem;">
+                    <i class="ri-price-tag-3-line fs-4"></i>
+                </div>
+                <div>
+                    <h5 class="mb-0">@form.Nombre</h5>
+                    <small class="text-muted">
+                        Código: <strong>@form.Codigo</strong>
+                        @if (!string.IsNullOrWhiteSpace(NombreCategoriaActual))
+                        {
+                            <span class="ms-2">· @NombreCategoriaActual</span>
+                        }
+                    </small>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge rounded-pill text-bg-@(form.Estado ? "success" : "secondary")">
+                    @(form.Estado ? "Activo" : "Inactivo")
+                </span>
+                <span class="badge badge-id-pill rounded-pill">Productos</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <EditForm Model="@form" OnValidSubmit="@GuardarCambios">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <ValidationSummary />
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-5">
+                        <div class="rounded-3 h-100 border p-3">
+                            <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                                <i class="ri-information-line text-primary fs-5"></i>
+                                <span>Datos generales</span>
+                            </h6>
+
+                            <div class="mb-3">
+                                <label class="form-label">Código</label>
+                                <InputText class="form-control"
+                                           @bind-Value="form.Codigo"
+                                           readonly />
+                                <small class="text-muted">Campo no editable.</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Categoría</label>
+                                <InputSelect class="form-select"
+                                             @bind-Value="form.IdCategoria">
+                                    <option value="">-- Selecciona una categoría --</option>
+                                    @foreach (var cat in categorias)
+                                    {
+                                        <option value="@cat.Id">@cat.Nombre</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => form.IdCategoria)" />
+                            </div>
+
+                            <div>
+                                <label class="form-label">Tipo tributario</label>
+                                <InputSelect class="form-select"
+                                             @bind-Value="form.IdTipoTributario">
+                                    <option value="">-- Selecciona un tipo tributario --</option>
+                                    @foreach (var tt in tiposTributarios)
+                                    {
+                                        <option value="@tt.Id">@tt.Nombre (@tt.CodigoSri)</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => form.IdTipoTributario)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-7">
+                        <div class="rounded-3 h-100 border p-3">
+                            <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                                <i class="ri-file-list-3-line text-primary fs-5"></i>
+                                <span>Detalles del producto</span>
+                            </h6>
+
+                            <div class="row g-3">
+                                <!-- NOMBRE -->
+                                <div class="col-12">
+                                    <label class="form-label">Nombre</label>
+                                    <InputText class="form-control" @bind-Value="form.Nombre" />
+                                    <ValidationMessage For="@(() => form.Nombre)" />
+                                </div>
+
+                                <!-- PRECIO DE VENTA -->
+                                <div class="col-12">
+                                    <label class="form-label">Precio de venta</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="ri-money-dollar-circle-line"></i>
+                                        </span>
+                                        <InputNumber @bind-Value="form.PrecioVenta"
+                                                     class="form-control" />
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Precio unitario de venta del producto.
+                                    </small>
+                                    <ValidationMessage For="@(() => form.PrecioVenta)" />
+                                </div>
+
+                                <!-- DESCRIPCIÓN -->
+                                <div class="col-12">
+                                    <label class="form-label">Descripción</label>
+                                    <InputTextArea class="form-control"
+                                                   @bind-Value="form.Descripcion"
+                                                   rows="3" />
+                                    <ValidationMessage For="@(() => form.Descripcion)" />
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4 flex-wrap gap-2">
+                    <a class="btn btn-light btn-wave" href="/dashboards/productos/listar">
+                        <i class="ri-arrow-go-back-line me-1 align-middle"></i>
+                        Volver
+                    </a>
+                    <button type="submit"
+                            class="btn btn-primary btn-wave"
+                            disabled="@guardando">
+                        @if (guardando)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2 align-middle"
+                                  role="status" aria-hidden="true"></span>
+                            <span>Guardando...</span>
+                        }
+                        else
+                        {
+                            <i class="ri-save-3-line me-1 align-middle"></i>
+                            <span>Guardar cambios</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+else if (yaBusco)
+{
+    <div class="alert alert-warning">No se encontró un producto con esos datos.</div>
+}
+
+@code {
+    [Parameter] public int? IdFromRoute { get; set; }
+    private int? _loadedFromId;
+
+    private string? searchText;
+    private ProductoEditVM? form;
+    private bool cargando = false;
+    private bool guardando = false;
+    private bool yaBusco = false;
+    private string? searchError;
+    private int? productoIdActual;
+
+    // ===== VM de edición (con validaciones) =====
+    private sealed class ProductoEditVM
+    {
+        public int Id { get; set; }
+
+        [Required]
+        public string? Codigo { get; set; }
+
+        [Required(ErrorMessage = "La categoría es obligatoria.")]
+        public int? IdCategoria { get; set; }
+
+        [Required(ErrorMessage = "El tipo tributario es obligatorio.")]
+        public int? IdTipoTributario { get; set; }
+
+        [Required, StringLength(100)]
+        public string? Nombre { get; set; }
+
+        [Required, StringLength(200)]
+        public string? Descripcion { get; set; }
+
+        // ⭐ Nuevo: precio de venta editable
+        [Required(ErrorMessage = "El precio de venta es obligatorio.")]
+        [Range(0.01, 999999.99, ErrorMessage = "El precio debe ser mayor a 0.")]
+        public decimal? PrecioVenta { get; set; }
+
+        // Estado solo para mostrar badge, no se manda en el PUT
+        public bool Estado { get; set; }
+    }
+
+
+    private List<CategoriaProductoDto> categorias = new();
+    private List<TipoTributarioDto> tiposTributarios = new();
+
+    private string? NombreCategoriaActual =>
+        form?.IdCategoria is int idCat
+            ? categorias.FirstOrDefault(c => c.Id == idCat)?.Nombre
+            : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        categorias = (await CategoriasApi.ListarAsync()).Where(c => c.Estado).ToList();
+        tiposTributarios = (await TipoTributarioApi.ListarAsync()).Where(t => t.Estado).ToList();
+    }
+
+    // Cargar por ruta /editar/{id}
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IdFromRoute is int rid && rid > 0 && _loadedFromId != rid)
+        {
+            _loadedFromId = rid;
+            await CargarPorId(rid);
+        }
+    }
+
+    // Búsqueda por código o nombre
+    private async Task BuscarProducto()
+    {
+        searchError = null;
+        yaBusco = true;
+
+        var term = (searchText ?? string.Empty).Trim();
+        if (term.Length < 2)
+        {
+            searchError = "Escribe al menos 2 caracteres para buscar por código o nombre.";
+            return;
+        }
+
+        cargando = true;
+        form = null;
+        productoIdActual = null;
+        StateHasChanged();
+
+        try
+        {
+            var lista = await ProductosApi.GetAllAsync();
+            var termLower = term.ToLowerInvariant();
+
+            var coincidencias = lista
+                .Where(p =>
+                    (!string.IsNullOrWhiteSpace(p.Codigo) &&
+                     p.Codigo.ToLowerInvariant().Contains(termLower)) ||
+                    (!string.IsNullOrWhiteSpace(p.Nombre) &&
+                     p.Nombre.ToLowerInvariant().Contains(termLower)))
+                .ToList();
+
+            if (coincidencias.Count == 0)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Sin resultados",
+                    Text = "No se encontró un producto que coincida con el código o nombre indicado.",
+                    Icon = SweetAlertIcon.Warning
+                });
+                return;
+            }
+
+            if (coincidencias.Count == 1)
+            {
+                await CargarPorId(coincidencias[0].Id);
+                return;
+            }
+
+            var opciones = coincidencias
+                .Take(15)
+                .ToDictionary(
+                    p => p.Id.ToString(),
+                    p => $"{p.Codigo} · {p.Nombre}");
+
+            var total = coincidencias.Count;
+
+            var seleccion = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Selecciona un producto",
+                Icon = SweetAlertIcon.Question,
+                Input = SweetAlertInputType.Radio,
+                InputOptions = opciones,
+                ShowCancelButton = true,
+                ConfirmButtonText = "Usar selección",
+                CancelButtonText = "Cancelar",
+                Width = "600px",
+                Html = total > opciones.Count
+                    ? "<div class='text-muted small mt-2'>Mostrando las primeras coincidencias. Refina el texto para acotar la búsqueda.</div>"
+                    : null
+            });
+
+            if (seleccion.IsConfirmed && int.TryParse(seleccion.Value, out var idSeleccionado))
+            {
+                await CargarPorId(idSeleccionado);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error al buscar",
+                Html = $"<small>{Escape(ex.Message)}</small>",
+                Icon = SweetAlertIcon.Error
+            });
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CargarPorId(int id)
+    {
+        cargando = true;
+        yaBusco = true;
+        form = null;
+        productoIdActual = null;
+        searchError = null;
+        StateHasChanged();
+
+        try
+        {
+            var dto = await ProductosApi.GetByIdAsync(id);
+            if (dto is null)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "No encontrado",
+                    Text = $"No existe un producto con el identificador interno {id}.",
+                    Icon = SweetAlertIcon.Warning
+                });
+                return;
+            }
+
+            MapearForm(dto);
+
+            // 🔹 Cargar NOMBRE (y fallback al código) en el campo de búsqueda
+            searchText = string.IsNullOrWhiteSpace(dto.Nombre)
+                ? dto.Codigo
+                : dto.Nombre;
+
+            // 🔹 Obtener modo oscuro de forma segura
+            var isDark = false;
+            try
+            {
+                isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+            }
+            catch
+            {
+                // Si falla, se mantiene en false (modo claro por defecto)
+            }
+
+            // 🔹 Toast de "Producto cargado" (ahora sí se mostrará)
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Position = SweetAlertPosition.TopEnd,
+                Icon = SweetAlertIcon.Success,
+                Title = "Producto cargado",
+                ShowConfirmButton = false,
+                Timer = 1200,
+                Toast = true,
+                Background = isDark ? "var(--form-control-bg)" : null,
+                Color = isDark ? "var(--default-text-color)" : null
+            });
+
+            // 🔹 Limpiar la URL para quitar el {id} si vino por ruta
+            Nav.NavigateTo("/dashboards/productos/editar", forceLoad: false, replace: true);
+        }
+        catch (HttpRequestException ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error al cargar",
+                Html = $"<small>{Escape(ex.Message)}</small>",
+                Icon = SweetAlertIcon.Error
+            });
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private void MapearForm(ProductoDto dto)
+    {
+        productoIdActual = dto.Id;
+
+        form = new ProductoEditVM
+        {
+            Id = dto.Id,
+            Codigo = dto.Codigo,
+            IdCategoria = dto.IdCategoria,
+            IdTipoTributario = dto.IdTipoTributario,
+            Nombre = dto.Nombre,
+            Descripcion = dto.Descripcion,
+            PrecioVenta = dto.PrecioVenta, 
+            Estado = dto.Estado
+        };
+    }
+     
+    private async Task GuardarCambios()
+    {
+        if (productoIdActual is null || form is null)
+        {
+            return;
+        }
+
+        var confirmar = await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "¿Guardar cambios?",
+            Text = "Se actualizarán la categoría, el tipo tributario, el nombre, la descripción y el precio de venta.",
+            Icon = SweetAlertIcon.Question,
+            ShowCancelButton = true,
+            ConfirmButtonText = "Sí, guardar",
+            CancelButtonText = "Cancelar"
+        });
+
+        if (!confirmar.IsConfirmed)
+        {
+            return;
+        }
+
+        guardando = true;
+        try
+        {
+            var payload = new ProductoUpdateRequest
+            {
+                IdCategoria = form.IdCategoria!.Value,
+                IdTipoTributario = form.IdTipoTributario!.Value,
+                Nombre = form.Nombre!.Trim(),
+                Descripcion = form.Descripcion!.Trim(),
+                PrecioVenta = form.PrecioVenta!.Value    
+            };
+
+            var actualizado = await ProductosApi.UpdateAsync(productoIdActual.Value, payload);
+
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Position = SweetAlertPosition.TopEnd,
+                Icon = SweetAlertIcon.Success,
+                Title = "Cambios guardados",
+                Text = $"“{actualizado.Nombre}” actualizado correctamente.",
+                ShowConfirmButton = false,
+                Timer = 1500,
+                Toast = true
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "No se pudo guardar",
+                Html = $"<small>{Escape(ex.Message)}</small>",
+                Icon = SweetAlertIcon.Error
+            });
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private static string Escape(string? s) =>
+        string.IsNullOrEmpty(s) ? "" : s.Replace("<", "&lt;").Replace(">", "&gt;");
+}

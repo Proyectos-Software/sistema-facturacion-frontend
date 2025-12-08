@@ -1,0 +1,582 @@
+﻿@page "/profilesettings"
+@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Json
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using sistemaFacturacion.Services
+
+@attribute [Authorize]
+
+@inject HttpClient Http
+@inject SweetAlertService Swal
+@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthService AuthService
+@inject IUsuariosApiClient UsuariosApi
+
+<!-- Start::page-header -->
+<div class="page-header-breadcrumb mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h1 class="page-title fw-semibold fs-20 mb-1">Configuración de Perfil</h1>
+            <p class="text-muted fs-13 mb-0">Administra tu información personal y seguridad</p>
+        </div>
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/dashboard/admin">Página Principal</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Configuración de Perfil</li>
+        </ol>
+    </div>
+</div>
+<!-- End::page-header -->
+@if (estaCargando)
+{
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="text-muted mt-3">Cargando información del perfil...</p>
+        </div>
+    </div>
+}
+else if (!usuarioCargado)
+{
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="ti ti-alert-circle fs-20 me-2"></i>
+        <div>
+            <strong>Error:</strong> No se pudo cargar la información del usuario. Por favor, intenta recargar la página.
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        <!-- Datos de la cuenta -->
+        <div class="col-xl-12">
+            <div class="card custom-card shadow-sm">
+                <div class="card-header bg-primary-transparent border-bottom">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-sm avatar-rounded bg-primary me-2">
+                            <i class="ti ti-user fs-16"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-title fw-semibold mb-0">Información de la Cuenta</h6>
+                            <p class="text-muted fs-12 mb-0">Actualiza tus datos personales</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <EditForm Model="@perfilModel" OnValidSubmit="@GuardarDatosAsync">
+                        <DataAnnotationsValidator />
+
+                        <div class="row gy-4">
+                            <!-- Avatar Section -->
+                            <div class="col-12">
+                                <div class="d-flex align-items-center bg-light rounded-3 gap-3 border p-3">
+                                    <div>
+                                        <span class="avatar avatar-xxl avatar-rounded">
+                                            <img src="@AvatarUrl" alt="Avatar del usuario" class="img-fluid">
+                                        </span>
+                                    </div>
+                                    <div class="flex-fill">
+                                        <h6 class="fw-semibold mb-2">Avatar del Usuario</h6>
+                                        <p class="fs-13 text-muted mb-0">
+                                            <i class="ti ti-info-circle me-1"></i>
+                                            La imagen se asigna automáticamente según el rol
+                                            (administrador o empleado) y no es editable.
+                                        </p>
+                                        <span class="badge bg-primary-transparent mt-2">
+                                            @(AvatarUrl.Contains("admin") ? "Administrador" : "Empleado")
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form Fields -->
+                            <div class="col-xl-6">
+                                <label for="profile-nombre" class="form-label fw-medium">
+                                    <i class="ti ti-user text-primary me-1"></i>Nombre
+                                </label>
+                                <InputText id="profile-nombre"
+                                           class="form-control form-control-lg"
+                                           placeholder="Ingresa tu nombre"
+                                           @bind-Value="perfilModel.Nombre" />
+                                <ValidationMessage For="@(() => perfilModel.Nombre)" class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-xl-6">
+                                <label for="profile-apellido" class="form-label fw-medium">
+                                    <i class="ti ti-user text-primary me-1"></i>Apellido
+                                </label>
+                                <InputText id="profile-apellido"
+                                           class="form-control form-control-lg"
+                                           placeholder="Ingresa tu apellido"
+                                           @bind-Value="perfilModel.Apellido" />
+                                <ValidationMessage For="@(() => perfilModel.Apellido)" class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-xl-6">
+                                <label for="profile-email" class="form-label fw-medium">
+                                    <i class="ti ti-mail text-primary me-1"></i>Correo Electrónico
+                                </label>
+                                <InputText id="profile-email"
+                                           type="email"
+                                           class="form-control form-control-lg"
+                                           placeholder="correo@ejemplo.com"
+                                           @bind-Value="perfilModel.Correo" />
+                                <ValidationMessage For="@(() => perfilModel.Correo)" class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-xl-6">
+                                <label for="profile-telefono" class="form-label fw-medium">
+                                    <i class="ti ti-phone text-primary me-1"></i>Teléfono
+                                </label>
+                                <InputText id="profile-telefono"
+                                           class="form-control form-control-lg"
+                                           placeholder="+593 999 999 999"
+                                           @bind-Value="perfilModel.Telefono" />
+                                <ValidationMessage For="@(() => perfilModel.Telefono)" class="text-danger small mt-1" />
+                            </div>
+                        </div>
+
+                        <div class="border-top d-flex justify-content-end mt-4 gap-2 pt-3">
+                            <button type="button"
+                                    class="btn btn-light"
+                                    @onclick="RecargarDatosUsuarioAsync"
+                                    disabled="@estaGuardandoDatos">
+                                <i class="ti ti-refresh me-1"></i>Restablecer
+                            </button>
+                            <button type="submit" class="btn btn-primary" disabled="@estaGuardandoDatos">
+                                @if (estaGuardandoDatos)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Guardando...</span>
+                                }
+                                else
+                                {
+                                    <i class="ti ti-device-floppy me-1"></i>
+                                    <span>Guardar Cambios</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cambiar contraseña -->
+        <div class="col-xl-12">
+            <div class="card custom-card shadow-sm">
+                <div class="card-header bg-warning-transparent border-bottom">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-sm avatar-rounded bg-warning me-2">
+                            <i class="ti ti-lock fs-16"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-title fw-semibold mb-0">Cambiar Contraseña</h6>
+                            <p class="text-muted fs-12 mb-0">Actualiza tu contraseña de acceso</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <EditForm Model="@cambioContrasenaModel" OnValidSubmit="@CambiarContrasenaAsync">
+                        <DataAnnotationsValidator />
+
+                        <div class="alert alert-warning border-warning mb-4 border" role="alert">
+                            <div class="d-flex align-items-start">
+                                <i class="ti ti-alert-triangle fs-20 me-2"></i>
+                                <div class="flex-fill">
+                                    <h6 class="alert-heading fw-semibold mb-1">Requisitos de seguridad</h6>
+                                    <p class="fs-13 mb-0">
+                                        La contraseña debe tener al menos 8 caracteres. Se recomienda
+                                        incluir mayúsculas, minúsculas, números y caracteres especiales.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row gy-4">
+                            <div class="col-xl-12">
+                                <label for="password-actual" class="form-label fw-medium">
+                                    <i class="ti ti-key text-warning me-1"></i>Contraseña Actual
+                                </label>
+                                <InputText id="password-actual"
+                                           type="password"
+                                           class="form-control form-control-lg"
+                                           placeholder="Ingresa tu contraseña actual"
+                                           @bind-Value="cambioContrasenaModel.ContrasenaActual" />
+                                <ValidationMessage For="@(() => cambioContrasenaModel.ContrasenaActual)"
+                                                   class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-xl-6">
+                                <label for="password-nueva" class="form-label fw-medium">
+                                    <i class="ti ti-lock-open text-warning me-1"></i>Nueva Contraseña
+                                </label>
+                                <InputText id="password-nueva"
+                                           type="password"
+                                           class="form-control form-control-lg"
+                                           placeholder="Mínimo 8 caracteres"
+                                           @bind-Value="cambioContrasenaModel.NuevaContrasena" />
+                                <ValidationMessage For="@(() => cambioContrasenaModel.NuevaContrasena)"
+                                                   class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-xl-6">
+                                <label for="password-confirmar" class="form-label fw-medium">
+                                    <i class="ti ti-lock-check text-warning me-1"></i>Confirmar Contraseña
+                                </label>
+                                <InputText id="password-confirmar"
+                                           type="password"
+                                           class="form-control form-control-lg"
+                                           placeholder="Repite la nueva contraseña"
+                                           @bind-Value="cambioContrasenaModel.ConfirmarContrasena" />
+                                <ValidationMessage For="@(() => cambioContrasenaModel.ConfirmarContrasena)"
+                                                   class="text-danger small mt-1" />
+                            </div>
+                        </div>
+
+                        <div class="border-top d-flex justify-content-end mt-4 gap-2 pt-3">
+                            <button type="button"
+                                    class="btn btn-light"
+                                    @onclick="@(() => cambioContrasenaModel = new CambiarContrasenaModel())"
+                                    disabled="@estaCambiandoContrasena">
+                                <i class="ti ti-x me-1"></i>Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-warning" disabled="@estaCambiandoContrasena">
+                                @if (estaCambiandoContrasena)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Actualizando...</span>
+                                }
+                                else
+                                {
+                                    <i class="ti ti-shield-check me-1"></i>
+                                    <span>Actualizar Contraseña</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code
+{
+    private PerfilUsuarioModel perfilModel = new();
+    private CambiarContrasenaModel cambioContrasenaModel = new();
+
+    private bool estaGuardandoDatos;
+    private bool estaCambiandoContrasena;
+    private bool estaCargando = true;
+    private bool usuarioCargado = false;
+
+    private int? usuarioId;
+    private string AvatarUrl = "../assets/images/media/avatar-empleado.svg";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatosIniciales();
+    }
+
+    private async Task CargarDatosIniciales()
+    {
+        estaCargando = true;
+        usuarioCargado = false;
+
+        try
+        {
+            // Obtener ID del usuario autenticado
+            usuarioId = await AuthService.GetCurrentUserIdAsync();
+
+            if (usuarioId == null)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Error de Autenticación",
+                    Text = "No se pudo identificar al usuario actual.",
+                    Icon = SweetAlertIcon.Error,
+                    ShowConfirmButton = true
+                });
+                return;
+            }
+
+            // Establecer avatar según rol
+            await EstablecerAvatarSegunRolAsync();
+
+            // Cargar datos del usuario
+            await CargarDatosUsuarioAsync();
+
+            usuarioCargado = true;
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error",
+                Text = $"No se pudo cargar la información del perfil: {ex.Message}",
+                Icon = SweetAlertIcon.Error,
+                ShowConfirmButton = true
+            });
+        }
+        finally
+        {
+            estaCargando = false;
+        }
+    }
+
+    private async Task EstablecerAvatarSegunRolAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is not null && user.Identity.IsAuthenticated)
+        {
+            AvatarUrl = user.IsInRole("Admin")
+                ? "../assets/images/media/avatar-admin.svg"
+                : "../assets/images/media/avatar-empleado.svg";
+        }
+    }
+
+    private async Task CargarDatosUsuarioAsync()
+    {
+        if (usuarioId == null) return;
+
+        try
+        {
+            var usuario = await UsuariosApi.GetByIdAsync(usuarioId.Value);
+
+            if (usuario != null)
+            {
+                perfilModel = new PerfilUsuarioModel
+                {
+                    Nombre = usuario.NomUsu ?? string.Empty,
+                    Apellido = usuario.ApeUsu ?? string.Empty,
+                    Correo = usuario.CorUsu ?? string.Empty,
+                    Telefono = usuario.TelUsu ?? string.Empty
+                };
+            }
+            else
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Usuario No Encontrado",
+                    Text = "No se encontró información del usuario.",
+                    Icon = SweetAlertIcon.Warning,
+                    ShowConfirmButton = true
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error al Cargar Datos",
+                Text = $"No se pudieron cargar los datos del usuario: {ex.Message}",
+                Icon = SweetAlertIcon.Error,
+                ShowConfirmButton = true
+            });
+        }
+    }
+
+    private async Task RecargarDatosUsuarioAsync()
+    {
+        await CargarDatosUsuarioAsync();
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "Datos Restablecidos",
+            Text = "Se han recargado los datos originales del usuario.",
+            Icon = SweetAlertIcon.Info,
+            ShowConfirmButton = true,
+            Timer = 2000
+        });
+    }
+
+    private async Task GuardarDatosAsync()
+    {
+        if (estaGuardandoDatos) return;
+
+        estaGuardandoDatos = true;
+
+        try
+        {
+            var request = new UpdateUsuarioRequest
+            {
+                NomUsu = perfilModel.Nombre,
+                ApeUsu = perfilModel.Apellido,
+                CorUsu = perfilModel.Correo,
+                TelUsu = perfilModel.Telefono
+            };
+
+            var usuarioActualizado = await UsuariosApi.UpdateDatosAsync(request);
+
+            if (usuarioActualizado != null)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "¡Éxito!",
+                    Text = "Tu información de usuario se ha actualizado correctamente.",
+                    Icon = SweetAlertIcon.Success,
+                    ShowConfirmButton = true,
+                    Timer = 3000
+                });
+
+                // Recargar datos actualizados
+                await CargarDatosUsuarioAsync();
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.Message.Contains("400"))
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Datos Inválidos",
+                    Text = "Revisa la información ingresada.",
+                    Icon = SweetAlertIcon.Warning,
+                    ShowConfirmButton = true
+                });
+            }
+            else
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Error",
+                    Text = $"Ocurrió un error al actualizar los datos: {ex.Message}",
+                    Icon = SweetAlertIcon.Error,
+                    ShowConfirmButton = true
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error Inesperado",
+                Text = $"Ocurrió un error inesperado: {ex.Message}",
+                Icon = SweetAlertIcon.Error,
+                ShowConfirmButton = true
+            });
+        }
+        finally
+        {
+            estaGuardandoDatos = false;
+        }
+    }
+
+    private async Task CambiarContrasenaAsync()
+    {
+        if (estaCambiandoContrasena) return;
+
+        if (cambioContrasenaModel.NuevaContrasena != cambioContrasenaModel.ConfirmarContrasena)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Contraseñas No Coinciden",
+                Text = "La nueva contraseña y su confirmación deben ser iguales.",
+                Icon = SweetAlertIcon.Warning,
+                ShowConfirmButton = true
+            });
+            return;
+        }
+
+        estaCambiandoContrasena = true;
+
+        try
+        {
+            var request = new ChangePasswordRequest
+            {
+                ContrasenaActual = cambioContrasenaModel.ContrasenaActual,
+                ContrasenaNueva = cambioContrasenaModel.NuevaContrasena
+            };
+
+            var resultado = await UsuariosApi.CambiarContrasenaAsync(request);
+
+            if (resultado)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "¡Contraseña Actualizada!",
+                    Text = "Tu contraseña se ha cambiado correctamente.",
+                    Icon = SweetAlertIcon.Success,
+                    ShowConfirmButton = true,
+                    Timer = 3000
+                });
+
+                cambioContrasenaModel = new CambiarContrasenaModel();
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.Message.Contains("400"))
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Datos Inválidos",
+                    Text = "Verifica la contraseña actual y los requisitos de la nueva contraseña.",
+                    Icon = SweetAlertIcon.Warning,
+                    ShowConfirmButton = true
+                });
+            }
+            else
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Error",
+                    Text = $"Ocurrió un error al cambiar la contraseña: {ex.Message}",
+                    Icon = SweetAlertIcon.Error,
+                    ShowConfirmButton = true
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error Inesperado",
+                Text = $"Ocurrió un error inesperado: {ex.Message}",
+                Icon = SweetAlertIcon.Error,
+                ShowConfirmButton = true
+            });
+        }
+        finally
+        {
+            estaCambiandoContrasena = false;
+        }
+    }
+
+    public class PerfilUsuarioModel
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [StringLength(50, ErrorMessage = "El nombre no puede exceder 50 caracteres.")]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El apellido es obligatorio.")]
+        [StringLength(50, ErrorMessage = "El apellido no puede exceder 50 caracteres.")]
+        public string Apellido { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
+        [EmailAddress(ErrorMessage = "El correo electrónico no es válido.")]
+        public string Correo { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El teléfono es obligatorio.")]
+        [Phone(ErrorMessage = "El número de teléfono no es válido.")]
+        public string Telefono { get; set; } = string.Empty;
+    }
+
+    public class CambiarContrasenaModel
+    {
+        [Required(ErrorMessage = "La contraseña actual es obligatoria.")]
+        public string ContrasenaActual { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La nueva contraseña es obligatoria.")]
+        [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres.")]
+        public string NuevaContrasena { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Debe confirmar la nueva contraseña.")]
+        [Compare(nameof(NuevaContrasena), ErrorMessage = "Las contraseñas no coinciden.")]
+        public string ConfirmarContrasena { get; set; } = string.Empty;
+    }
+}

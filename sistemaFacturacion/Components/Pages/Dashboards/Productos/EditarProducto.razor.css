@@ -1,0 +1,111 @@
+﻿/* ===== Título y descripción ===== */
+.titulo-form {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #e5e7eb; /* mismo tono claro usado en crear */
+    margin-bottom: 0.25rem;
+}
+
+.descripcion-form {
+    color: #9ca3af;
+    margin-bottom: 1rem;
+}
+
+/* ===== Estructura del formulario ===== */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 0.75rem;
+}
+
+.campo {
+    grid-column: span 6;
+}
+
+    .campo.descripcion {
+        grid-column: span 12;
+    }
+
+/* ===== Campos ===== */
+.form-control {
+    background: #111827;
+    border: 1px solid #253047;
+    color: #e5e7eb;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.5rem;
+    width: 100%;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+    .form-control:focus {
+        outline: none;
+        border-color: #3b82f6; /* azul acento igual al crear */
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+    }
+
+/* ===== Botones ===== */
+.acciones {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.btn-guardar,
+.btn-cancelar {
+    border: 0;
+    border-radius: 0.5rem;
+    padding: 0.6rem 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-guardar {
+    background: #2563eb; /* azul principal */
+    color: white;
+}
+
+    .btn-guardar:hover {
+        background: #1d4ed8;
+    }
+
+.btn-cancelar {
+    background: #374151;
+    color: #e5e7eb;
+}
+
+    .btn-cancelar:hover {
+        background: #4b5563;
+    }
+
+/* ===== Mensajes ===== */
+.alerta-exito {
+    background-color: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+}
+.badge-id-pill {
+    border-radius: 9999px;
+    padding: .18rem .6rem;
+    font-weight: 600;
+    font-size: .75rem;
+    letter-spacing: .02em;
+    background: #f1f5f9; 
+    color: #0f172a; 
+    border: 1px solid #e2e8f0;
+}
+
+[data-theme-mode="dark"] .badge-id-pill {
+    background: #020617; 
+    color: #f9fafb;
+    border-color: #1f2937;
+}
+
+/* ===== Responsivo ===== */
+@media (max-width: 992px) {
+    .campo {
+        grid-column: span 12;
+    }
+}

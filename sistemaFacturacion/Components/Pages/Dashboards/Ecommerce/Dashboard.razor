@@ -1,0 +1,1065 @@
+﻿@page "/ecommerce/dashboard"
+@using ApexCharts
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+
+
+<!-- Start::page-header -->
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap gap-1">
+        <h1 class="page-title fw-medium fs-18 mb-0">Dashboard</h1>
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+                <a href="javascript:void(0);">
+                    Dashboards
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="javascript:void(0);">
+                    Ecommerce
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+        </ol>
+    </div>
+</div>
+<!-- End::page-header -->
+
+<!-- Start:: row-1 -->
+<div class="row">
+    <div class="col-xxl-6">
+        <div class="row">
+            @foreach (var card in DashboardStatCards)
+            {
+                <div class="col-lg-6">
+                    <div class="card custom-card dashboard-main-card @card.BgColorClass">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h5 class="fw-semibold">@card.Value</h5>
+                                    <span class="d-block fs-12 text-muted">@card.Title</span>
+                                </div>
+                                <div>
+                                    <span class="avatar avatar-lg bg-@card.BgColorClass-transparent svg-@card.BgColorClass">
+                                        @if (!string.IsNullOrEmpty(card.Svg))
+                                        {
+                                            @((MarkupString)card.Svg)
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            <div class="col-xl-12">
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Sales Statistics
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row sales-stats mb-3">
+                            <div class="col-xl-4 col-lg-4 col-md-4 col-sm-4">
+                                <div>Orders</div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="fs-16 fw-semibold">3,542</span>
+                                    <span class="text-success"><i class="ti ti-arrow-narrow-up align-middle"></i>
+                                        <span class="badge bg-success-transparent">0.9%</span></span>
+                                </div>
+                            </div>
+                            <div class="col-xl-4 col-lg-4 col-md-4 col-sm-4">
+                                <div>Revenue</div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="fs-16 fw-semibold">$52,38,346</span>
+                                    <span class="text-success"><i class="ti ti-arrow-narrow-up align-middle"></i>
+                                        <span class="badge bg-success-transparent">0.39%</span></span>
+                                </div>
+                            </div>
+                            <div class="col-xl-4 col-lg-4 col-md-4 col-sm-4">
+                                <div>Conversion Ratio</div>
+                                <div class="mb-0">
+                                    <span class="fs-16 fw-semibold text-secondary">33.7%</span>
+                                    <span class="text-success"><i class="ti ti-arrow-narrow-up align-middle"></i>
+                                        <span class="badge bg-success-transparent">0.5%</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="sale-stats">
+                            <ApexChart TItem="Earnings"  Height="320" Options=EarningsChartOptions>
+                                <ApexPointSeries TItem="Earnings" Items="earnings" SeriesType="@SeriesType.Bar" Name="Profit"
+                                    XValue="@(e => e.Month)" YAggregate="@(e => e.Sum(e => e.Profit))"/>
+                                <ApexPointSeries TItem="Earnings" Items="earnings" SeriesType="@SeriesType.Area" Name="Sales"
+                                    XValue="@(e => e.Month)" YAggregate="@(e => e.Sum(e => e.Sales))"/>
+                                <ApexPointSeries TItem="Earnings" Items="earnings" SeriesType="@SeriesType.Line" Name="Revenue"
+                                    XValue="@(e => e.Month)" YAggregate="@(e => e.Sum(e => e.Revenue))"/>
+                            </ApexChart>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-12">
+                <div class="card custom-card overflow-hidden">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Top Selling Products
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table text-nowrap">
+                                <thead>
+                                    <tr>
+                                        <th>s.no</th>
+                                        <th>Product Category</th>
+                                        <th class="text-center">Sale Value</th>
+                                        <th class="text-center">Total Sales</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var product in TopSellingProductsData)
+                                    {
+                                        <tr class="@(product.Id == TopSellingProductsData.Last().Id ? "border-bottom-0" : "")">
+                                            <td class="@(product.Id == TopSellingProductsData.Last().Id ? "border-bottom-0" : "")">@product.Id</td>
+                                            <td class="@(product.Id == TopSellingProductsData.Last().Id ? "border-bottom-0" : "")">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="lh-1">
+                                                        <span class="avatar avatar-sm avatar-rounded bg-light">
+                                                            <img src="@product.ImageUrl" alt="@product.Title" />
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <span class="fw-semibold">@product.Title</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="@(product.Id == TopSellingProductsData.Last().Id ? "border-bottom-0 text-center" : "text-center")">
+                                                @product.Price
+                                            </td>
+                                            <td class="@(product.Id == TopSellingProductsData.Last().Id ? "border-bottom-0 text-center" : "text-center")">
+                                                @product.SalesCount
+                                            </td>
+                                            <td class="@(product.Id == TopSellingProductsData.Last().Id ? "border-bottom-0" : "")">
+                                                <span class="badge @(product.StockStatus == "In Stock" ? "bg-success-transparent" : "bg-danger-transparent")">
+                                                    @product.StockStatus
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-3">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Recent Orders
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled ecommerce-recent-orders-list">
+                            @foreach (var order in RecentOrdersData)
+                            {
+                                <li>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="lh-1">
+                                            <span class="avatar avatar-md">
+                                                <img src="@order.ImageUrl" alt="@order.ProductName">
+                                            </span>
+                                        </div>
+                                        <div class="flex-fill">
+                                            <span class="d-block fw-semibold">
+                                                <a href="javascript:void(0);">@order.ProductName</a>
+                                            </span>
+                                            <span class="text-muted fs-12">@order.Category</span>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-semibold">@order.Price</div>
+                                            <span class="fs-12 text-muted">Price</span>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-12">
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Top Categories
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="top-categories">
+                        <ApexChart TItem="PieSimplechart" Options=PieSimplechartOptions Height="255">
+                            <ApexPointSeries TItem="PieSimplechart" Items="PieSimplecharts" Name="Team" SeriesType="SeriesType.Donut" XValue="@(e => e.SimpleSeries)" YAggregate="@(e => e.Sum(e => e.SimpleValue))" />
+                        </ApexChart>
+                        </div>
+                        <ul class="list-unstyled top-categories-list mt-3">
+                            <li>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="flex-fill">Mobile</div>
+                                    <div class="fw-semibold">$46,000</div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="flex-fill">Desktop</div>
+                                    <div class="fw-semibold">$28,500</div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="flex-fill">Tablet</div>
+                                    <div class="fw-semibold">$24,500</div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="flex-fill">Others</div>
+                                    <div class="fw-semibold">$19,600</div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-12">
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Top Countries By Sales
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3 flex-wrap">
+                            <div>
+                                <h4 class="lh-1 mb-0">38,256</h4>
+                            </div>
+                            <div><span class="badge bg-primary-transparent ms-2 me-1">12.24%</span><span
+                                    class="text-muted fs-11">Since last week</span></div>
+                        </div>
+                        <ul class="list-unstyled top-country-sales-list pt-2">
+                            @foreach (var country in TopCountriesBySales)
+                            {
+                                <li class="@(country == TopCountriesBySales.Last() ? "mb-0" : "")">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center lh-1 gap-2">
+                                            <span class="avatar avatar-xs avatar-rounded">
+                                                <img src="@country.FlagImageSrc" alt="@country.CountryName" />
+                                            </span>
+                                            <span class="top-country-name">@country.CountryName</span>
+                                        </div>
+                                        <div>
+                                            @if (country.IsTrendingUp)
+                                            {
+                                                <i class="ti ti-trending-up fs-16 text-success"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="ti ti-trending-down fs-16 text-danger"></i>
+                                            }
+                                        </div>
+                                        <div class="fs-14">@country.SalesCount.ToString("N0")</div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-3">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="card custom-card atm-card overflow-hidden border-0">
+                    <div class="card-body">
+                        <div class="atm-card-background-container">
+                            <img src="../assets/images/ecommerce/png/21.png" alt="">
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div>
+                                <svg width="50" xmlns="http://www.w3.org/2000/svg" data-name="Layer 3"
+                                    viewBox="0 0 128 128">
+                                    <path fill="#ffd66e"
+                                        d="M30.07,31.722H97.931a12.415,12.415,0,0,1,12.415,12.415V83.865A12.413,12.413,0,0,1,97.933,96.278H30.069A12.415,12.415,0,0,1,17.654,83.864V44.138A12.416,12.416,0,0,1,30.07,31.722Z">
+                                    </path>
+                                    <path fill="#005f75"
+                                        d="M97.931,30.047H30.069A14.1,14.1,0,0,0,15.98,44.135V83.862A14.106,14.106,0,0,0,30.069,97.953H97.931A14.106,14.106,0,0,0,112.02,83.862V44.135A14.1,14.1,0,0,0,97.931,30.047ZM71.883,51.653c0,.034.014.064.02.1a1.628,1.628,0,0,0,.173.511c.017.03.039.056.058.086a1.638,1.638,0,0,0,.351.4c.016.013.023.033.04.046a14.084,14.084,0,0,1-.008,22.421c-.023.018-.034.045-.056.064a1.523,1.523,0,0,0-.544.909,1.655,1.655,0,0,0-.042.207c0,.053-.031.1-.031.153V94.6H56.155V76.531c0-.048-.023-.089-.028-.137a1.607,1.607,0,0,0-.042-.209,1.632,1.632,0,0,0-.147-.433c-.02-.036-.047-.067-.069-.1a1.635,1.635,0,0,0-.358-.407c-.011-.008-.015-.021-.026-.029a14.081,14.081,0,0,1,0-22.429c.011-.008.015-.021.026-.029a1.635,1.635,0,0,0,.358-.407c.023-.035.049-.066.069-.1a1.632,1.632,0,0,0,.147-.433,1.607,1.607,0,0,0,.042-.209c0-.047.028-.088.028-.137V33.4H71.845V51.463A1.564,1.564,0,0,0,71.883,51.653ZM108.672,71.1H79.905a17.275,17.275,0,0,0,.133-13.878h28.633ZM19.328,57.218H47.962A17.274,17.274,0,0,0,48.1,71.1H19.328ZM30.069,33.4H52.807V50.678a17.492,17.492,0,0,0-2.967,3.191H19.328V44.135A10.751,10.751,0,0,1,30.069,33.4ZM19.328,83.862V74.444H50.07a17.517,17.517,0,0,0,2.736,2.878V94.6H30.069A10.753,10.753,0,0,1,19.328,83.862ZM97.931,94.6H75.193V77.325a17.509,17.509,0,0,0,2.738-2.88h30.74v9.418A10.753,10.753,0,0,1,97.931,94.6Zm10.74-40.735H78.16a17.492,17.492,0,0,0-2.966-3.191V33.4H97.931a10.751,10.751,0,0,1,10.74,10.739Z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <h6 class="fw-semibold flex-fill text-fixed-black mb-0">Debit Card</h6>
+                            <div><span class="badge badge-sm bg-primary rounded-pill">Max Bank</span></div>
+                        </div>
+                        <p class="fs-18 text-fixed-black mb-3">**** **** **** ****</p>
+                        <div class="fs-15 text-fixed-black mb-3">ELISA GIBSON ANABELLA</div>
+                        <div class="d-flex align-items-center flex-wrap gap-3">
+                            <div class="flex-fill">
+                                <span class="fs-13 text-white-75 text-fixed-black mb-1">Exp Date:05/27</span>
+                            </div>
+                            <div>
+                                <span class="fs-14 mb-1"><svg xmlns="http://www.w3.org/2000/svg" width="32.003"
+                                        height="20">
+                                        <path fill="#26A6D1"
+                                            d="M19.994 10c0 5.524-4.475 10-9.997 10s-9.997-4.477-9.997-10 4.476-10 9.997-10 9.997 4.477 9.997 10z">
+                                        </path>
+                                        <path fill="#E2574C"
+                                            d="M22.003 0c-2.242 0-4.306.747-5.974 1.994l.008.001c.328.317.69.54.969.905l-2.08.033c-.326.329-.623.687-.903 1.059h3.668c.279.335.537.626.771.996h-5.104c-.187.322-.36.653-.511.997h6.196c.162.343.307.602.43.965h-6.993c-.111.345-.206.698-.278 1.058h7.564c.074.346.131.666.17.992h-7.884c-.033.329-.05.663-.05 1h7.991c0 .354-.025.682-.061 1h-7.88c.034.339.084.672.15 1h7.552c-.078.324-.168.65-.281.988h-7.016c.106.342.235.674.376.998h6.21c-.172.364-.367.655-.582.996h-5.121c.202.35.425.684.667 1.004l3.684.055c-.314.377-.717.604-1.084.934.02.016-.587-.002-1.782-.021 1.818 1.876 4.359 3.046 7.178 3.046 5.523 0 10-4.477 10-10s-4.476-10-10-10z">
+                                        </path>
+                                    </svg></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-12">
+                <div class="card custom-card overflow-hidden">
+                    <div class="card-header justify-content-between">
+                        <div class="card-title">
+                            Customers Satisfaction
+                            <a href="javascript:void(0);"
+                                class="d-block fs-12 text-muted fw-normal text-decoration-underline">View report <i
+                                    class="ti ti-arrow-narrow-right"></i></a>
+                        </div>
+                        <div class="text-end">
+                            <span class="d-block fw-semibold">25,765</span>
+                            <span class="d-block fs-12 text-muted">Total Customers</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                        @foreach (var item in CustomersSatisfactionData)
+                        {
+                            <li class="list-group-item">
+                                <div class="d-flex align-items-center mb-1 gap-2">
+                                    <div class="fs-14 fw-semibold mb-0 @item.TextClass">@item.Percentage%</div>
+                                    <div class="text-muted flex-fill fs-12">@item.Text</div>
+                                    <div>
+                                        <span class="avatar avatar-xs">
+                                            <img src="@item.EmojiImgSrc" alt="@item.Text" />
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="progress progress-xs progress-animate" role="progressbar" 
+                                    aria-valuenow="@item.Percentage" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar @item.ProgressBarClass" style="width: @item.Percentage%"></div>
+                                </div>
+                            </li>
+                        }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-12">
+                <div class="card custom-card overflow-hidden">
+                    <div class="card-header justify-content-between">
+                        <div class="card-title">
+                            Transaction History
+                        </div>
+                        <a href="javascript:void(0);" class="text-muted text-decoration-underline fs-12">View All <i
+                                class="ti ti-arrow-narrow-right"></i></a>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled transaction-history-list">
+                            @foreach (var transaction in TransactionHistoryData)
+                            {
+                                <li>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="lh-1">
+                                            <span class="avatar avatar-md avatar-rounded">
+                                                <img src="@transaction.ImageUrl" alt="@transaction.Name" />
+                                            </span>
+                                        </div>
+                                        <div class="flex-fill">
+                                            <div class="fw-semibold">@transaction.Name</div>
+                                            <span class="text-muted fs-12">@transaction.PaymentMethod</span>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-semibold">@transaction.Amount</div>
+                                            <span class="badge bg-@(transaction.Status == "Failed"?"danger" : transaction.Status == "Pending"?"warning" : "success")-transparent">@transaction.Status</span>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End:: row-1 -->
+
+<!-- Start:: row-2 -->
+<div class="row">
+    <div class="col-xl-12">
+        <div class="card custom-card overflow-hidden">
+            <div class="card-header justify-content-between">
+                <div class="card-title">
+                    Order History
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <div class="dropdown custom-invoice">
+                        <a href="javascript:void(0);" class="btn btn-outline-light btn-wave waves-effect waves-light"
+                            data-bs-toggle="dropdown" aria-expanded="false">Filters<i
+                                class="ri-arrow-down-s-line d-inline-block ms-1 align-middle"></i> </a>
+                        <ul class="dropdown-menu" role="menu">
+                            <li><a class="dropdown-item" href="javascript:void(0);">New</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0);">Popular</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0);">Relevant</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <input class="form-control" type="text" placeholder="Search Here"
+                            aria-label=".form-control-sm example">
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table text-nowrap">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Product</th>
+                                <th class="text-center">Quantity</th>
+                                <th>Total Amount</th>
+                                <th>Payment Method</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                             @foreach (var order in Orders)
+                                {
+                                    <tr>
+                                        <td><a href="javascript:void(0);">@order.OrderId</a></td>
+                                        <td><a href="javascript:void(0);">@order.CustomerName</a></td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="lh-1">
+                                                    <span class="avatar avatar-sm avatar-rounded">
+                                                        <img src="@order.ProductImage" alt="">
+                                                    </span>
+                                                </div>
+                                                <div>@order.ProductName</div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">@order.Quantity</td>
+                                        <td>@($"${order.Price:F2}")</td>
+                                        <td>@order.PaymentMethod</td>
+                                        <td>@order.Date.ToString("yyyy-MM-dd")</td>
+                                        <td>
+                                            <span class="badge @order.BadgeClass">@order.Status</span>
+                                        </td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <a aria-label="anchor" href="javascript:void(0);"
+                                                class="btn btn-icon btn-sm btn-light border" data-bs-toggle="dropdown"
+                                                aria-expanded="false">
+                                                    <i class="fe fe-more-vertical"></i>
+                                                </a>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" href="javascript:void(0);"><i class="ri-eye-line me-2"></i>View</a></li>
+                                                    <li><a class="dropdown-item" href="javascript:void(0);"><i class="ri-pencil-line me-2"></i>Edit</a></li>
+                                                    <li><a class="dropdown-item" href="javascript:void(0);" @onclick="() => DeleteItem(order)">
+                                                        <i class="ri-delete-bin-line me-2"></i>Delete</a></li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer border-top-0">
+                <div class="d-flex align-items-center flex-wrap">
+                    <div> Showing 6 Entries <i class="bi bi-arrow-right fw-semibold ms-2"></i> </div>
+                    <div class="ms-auto">
+                        <nav aria-label="Page navigation" class="pagination-style-2">
+                            <ul class="pagination mb-0 flex-wrap">
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="javascript:void(0);">
+                                        Prev
+                                    </a>
+                                </li>
+                                <li class="page-item"><a class="page-link" href="javascript:void(0);">1</a></li>
+                                <li class="page-item active"><a class="page-link" href="javascript:void(0);">2</a></li>
+                                <li class="page-item">
+                                    <a class="page-link" href="javascript:void(0);">
+                                        <i class="bi bi-three-dots"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item"><a class="page-link" href="javascript:void(0);">17</a></li>
+                                <li class="page-item">
+                                    <a class="page-link text-primary" href="javascript:void(0);">
+                                        next
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End:: row-2 -->
+
+<!-- Charts -->
+@code{
+
+    // Sales Statistics start//
+    private List<Earnings> earnings { get; set; } = EarningsData.GetEarnings();
+    private ApexChartOptions<Earnings> EarningsChartOptions { get; set; } = new ApexChartOptions<Earnings>
+    {
+        Chart = new () {
+                Height = 320,
+                Type = ChartType.Line,
+                Toolbar = new ApexCharts.Toolbar {
+                    Tools = new Tools { Zoom = false, Zoomin = false, Zoomout = false,Pan = false, Reset = false,  Download = false},
+                },
+                Background = "none",
+                    
+        },
+        PlotOptions = new PlotOptions {
+                Bar = new PlotOptionsBar {
+                    BorderRadius = 2,
+                    ColumnWidth = "30%",
+                },
+        },
+        Grid = new Grid {
+                BorderColor = "#f1f1f1",
+                StrokeDashArray = 2,
+                Xaxis=new() {
+                    Lines=new() {
+                        Show= true
+                    }
+                },
+                Yaxis=new() {
+                    Lines=new() {
+                          Show= false
+                    }
+                },
+        },
+        Colors = new List<string> {"var(--primary-color)", "rgb(255, 73, 205)", "var(--primary03)"},
+         
+        DataLabels = new DataLabels {
+                Enabled = false,
+        },
+        Stroke = new Stroke { 
+                Curve = [Curve.Smooth],
+                Width = [2, 1.5, 2],
+                DashArray= [0, 0, 6],
+        },
+        Legend = new Legend {
+                Show = true,
+                Position = LegendPosition.Top,
+                Markers = new() {
+                    Width = 8,
+                    Height = 8,
+                },
+                
+        },
+        Xaxis=new() {
+            AxisBorder=new() {
+                Show = false, 
+                Color = "rgba(119, 119, 142, 0.05)", 
+                OffsetX = 0,
+                OffsetY = 0,
+            },
+            AxisTicks = new () {
+                    Show = false,
+                    BorderType = ApexCharts.BorderType.Solid,
+                    Color = "rgba(119, 119, 142, 0.05)",
+                    OffsetX = 0,
+                    OffsetY = 0,
+            },
+            Labels = new(){
+                Rotate = -90,
+            }
+        },
+        Fill = new Fill {
+                Type = new List<FillType> { FillType.Solid, FillType.Gradient, FillType.Solid},
+                Gradient = new FillGradient {
+                    ShadeIntensity = 1,
+                    OpacityFrom = 0.4,
+                    OpacityTo = 0.1,
+                    Stops= [0, 90, 100],
+                    ColorStops = new List<FillGradientStops> { 
+                        new FillGradientStops { Offset = 0, Color = "rgba(255, 73, 205, 0.1)", Opacity = 0.1 },
+                        new FillGradientStops { Offset = 75, Color = "rgba(255, 73, 205, 0.1)", Opacity = 1 },
+                        new FillGradientStops { Offset = 100, Color = "rgba(255, 73, 205, 0.1)", Opacity = 1 },
+                    }
+                },
+        },
+        Yaxis = new List<YAxis>() {
+                new YAxis {
+                    Show = false,
+                    AxisBorder = new AxisBorder {
+                        Show = false,
+                    },
+                    AxisTicks = new AxisTicks{
+                        Show = false,
+                    }
+                }
+        },
+        Tooltip = new() {
+                X = new(){
+                    Format = "dd/MM/yy HH-mm"
+                },
+        },
+       
+            
+    };
+    public class Earnings {
+        public string? Month { get; set; }
+        public decimal Profit { get; set; }
+        public decimal Sales { get; set; }
+        public decimal Revenue { get; set; }
+    } ;
+    public static class EarningsData {
+        public static List<Earnings> GetEarnings() {
+            
+            List<Earnings> earnings = new List<Earnings>
+            {  
+                new Earnings { Month = "Jan", Profit = 99, Sales = 136, Revenue = 128},
+                new Earnings { Month = "Feb", Profit = 15, Sales = 150, Revenue = 148},
+                new Earnings { Month = "Mar", Profit = 36, Sales = 158, Revenue = 39},
+                new Earnings { Month = "Apr", Profit = 63, Sales = 115, Revenue = 152},
+                new Earnings { Month = "May", Profit = 42, Sales = 102, Revenue = 169},
+                new Earnings { Month = "Jun", Profit = 120, Sales = 156, Revenue = 129},
+                new Earnings { Month = "Jul", Profit = 78, Sales = 135, Revenue = 112},
+                new Earnings { Month = "Aug", Profit = 51, Sales = 151, Revenue = 148},
+                new Earnings { Month = "Sep", Profit = 32, Sales = 125, Revenue = 150},
+                new Earnings { Month = "Oct", Profit = 62, Sales = 68, Revenue = 117},
+                new Earnings { Month = "Nov", Profit = 76, Sales = 164, Revenue = 198},
+                new Earnings { Month = "Dec", Profit = 32, Sales = 163, Revenue = 120},
+            };
+            return earnings;
+        }
+    }
+    // Sales Statistics end//
+
+    // Top Categoriest Start //
+    private List<PieSimplechart> PieSimplecharts { get; set; } = DataPieSimplechart.PieSimplechart();
+    private ApexChartOptions<PieSimplechart> PieSimplechartOptions { get; set; } = new ApexChartOptions<PieSimplechart>
+    {
+        Chart = new () {
+            Height = 255,
+            Toolbar = new ApexCharts.Toolbar {
+                Tools = new Tools { Zoom = false, Zoomin = false, Zoomout = false,Pan = false, Reset = false,  Download = false},
+            }, 
+        },
+        DataLabels = new DataLabels {
+                Enabled = false,
+        },
+        Legend = new Legend {
+            Show = false,
+         }, 
+        Stroke = new Stroke { 
+                Show= true,
+                Curve = Curve.Smooth,
+                LineCap = ApexCharts.LineCap.Round,
+                Colors = new List<string> {"fff"},
+                Width = 3,
+                DashArray = 0,
+        },
+        PlotOptions = new PlotOptions {
+                Pie = new PlotOptionsPie {
+                    StartAngle = -90,
+                    EndAngle = 90,
+                    OffsetY = 10,
+                    ExpandOnClick = false,
+                    Donut = new PlotOptionsDonut
+                        {
+                            Size = "85%",
+                            Background = "transparent",
+                            Labels = new DonutLabels{
+                                Show = true,
+                                Name = new() {
+                                    Show = true,
+                                    FontSize = "20px",
+                                    Color = "#495057",
+                                    OffsetY = -30
+                                },
+                                Value = new() {
+                                    Show = true,
+                                    FontSize = "15px",
+                                    Color = "undefined",
+                                    OffsetY = -25,
+                                    Formatter = @"function (val) {
+                                        return val + '%'
+                                    }"
+                                },
+                                Total = new() {
+                                    Show = true,
+                                    ShowAlways = true,
+                                    Label = "Total",
+                                    FontSize = "21px",
+                                    FontWeight = 600,
+                                    Color = "#495057",
+                                }
+                            }
+                        }
+                }
+        },
+        Grid = new Grid {
+            Padding = new() {
+                Bottom = -100,
+            },
+        },
+        Colors = new List<string> {"var(--primary-color)", "rgb(255, 73, 205)", "rgb(50, 212, 132)", "rgb(253, 175, 34)"}
+    };
+    public static class DataPieSimplechart
+    {
+        public static List<PieSimplechart> PieSimplechart()
+        {
+            return new List<PieSimplechart>
+            {
+                new PieSimplechart { SimpleSeries = "Mobile", SimpleValue = 46000},
+                new PieSimplechart { SimpleSeries = "Desktop", SimpleValue = 28500},
+                new PieSimplechart { SimpleSeries = "Tablet", SimpleValue = 24500},
+                new PieSimplechart { SimpleSeries = "Others", SimpleValue = 19600},
+            };
+        }
+    }
+    public class PieSimplechart
+    {
+        public string? SimpleSeries { get; set; }
+        public decimal SimpleValue { get; set; }
+    }
+    // Top Categories End //
+}
+
+<!-- Looping -->
+@code{
+
+    //Dashboard Cards start
+    public class DashboardStatCard
+    {
+        public string? Title { get; set; }
+        public string? Value { get; set; }
+        public string? Svg { get; set; }
+        public string? BgColorClass { get; set; } 
+
+    }
+    List<DashboardStatCard> DashboardStatCards = new()
+    {
+        new()
+        {
+            Title = "Total Sales",
+            Value = "$43,038.00",
+            BgColorClass = "primary",
+            Svg = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'> <path d='M5 22h14a2 2 0 0 0 2-2V9a1 1 0 0 0-1-1h-3v-.777c0-2.609-1.903-4.945-4.5-5.198A5.005 5.005 0 0 0 7 7v1H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2zm12-12v2h-2v-2h2zM9 7c0-1.654 1.346-3 3-3s3 1.346 3 3v1H9V7zm-2 3h2v2H7v-2z'></path></svg>"
+        },
+        new()
+        {
+            Title = "Total Expenses",
+            Value = "$28,346.00",
+            BgColorClass = "secondary",
+            Svg = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M20 12v6a1 1 0 0 1-2 0V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v14c0 1.654 1.346 3 3 3h14c1.654 0 3-1.346 3-3v-6h-2zm-6-1v2H6v-2h8zM6 9V7h8v2H6zm8 6v2h-3v-2h3z'></path></svg>"
+        },
+        new()
+        {
+            Title = "Total Visitors",
+            Value = "1,29,368",
+            BgColorClass = "warning",
+            Svg = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M7.5 6.5C7.5 8.981 9.519 11 12 11s4.5-2.019 4.5-4.5S14.481 2 12 2 7.5 4.019 7.5 6.5zM20 21h1v-1c0-3.859-3.141-7-7-7h-4c-3.86 0-7 3.141-7 7v1h17z'></path>"
+        },
+        new()
+        {
+            Title = "Total Orders",
+            Value = "35,367",
+            BgColorClass = "success",
+            Svg = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M21.822 7.431A1 1 0 0 0 21 7H7.333L6.179 4.23A1.994 1.994 0 0 0 4.333 3H2v2h2.333l4.744 11.385A1 1 0 0 0 10 17h8c.417 0 .79-.259.937-.648l3-8a1 1 0 0 0-.115-.921z'></path><circle cx='10.5' cy='19.5' r='1.5'></circle><circle cx='17.5' cy='19.5' r='1.5'></circle></svg>"
+        }
+    };
+    //Dashboard Cards end
+
+    //Top Selling Products start
+    public class Product
+    {
+        public int Id { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? Title { get; set; }
+        public string? Price { get; set; }
+        public string? SalesCount { get; set; }
+        public string? StockStatus { get; set; } 
+    }
+    List<Product> TopSellingProductsData = new()
+    {
+        new Product { Id = 1, ImageUrl = "../assets/images/ecommerce/png/11.png", Title = "TaoTronics Wall Clock", Price = "$699", SalesCount = "1000", StockStatus = "In Stock" },
+        new Product { Id = 2, ImageUrl = "../assets/images/ecommerce/png/12.png", Title = "Club Fleece Hoodie", Price = "$55", SalesCount = "3,100", StockStatus = "In Stock" },
+        new Product { Id = 3, ImageUrl = "../assets/images/ecommerce/png/14.png", Title = "SmartGizmo Pro", Price = "$199", SalesCount = "1,250", StockStatus = "In Stock" },
+        new Product { Id = 4, ImageUrl = "../assets/images/ecommerce/png/16.png", Title = "TaoTronics Cattle", Price = "$699", SalesCount = "1000", StockStatus = "Out Of Stock" },
+        new Product { Id = 5, ImageUrl = "../assets/images/ecommerce/png/13.png", Title = "UltraMaze School Bag", Price = "$89", SalesCount = "2,150", StockStatus = "In Stock" }
+    };
+    //Top Selling Products end
+
+    //Recent Orders start
+    public class RecentOrder
+    {
+        public string? ImageUrl { get; set; }
+        public string? ProductName { get; set; }
+        public string? Category { get; set; }
+        public string? Price { get; set; }
+    }
+    List<RecentOrder> RecentOrdersData = new()
+    {
+        new RecentOrder { ImageUrl = "../assets/images/ecommerce/png/13.png", ProductName = "Urban Chic Satchel", Category = "Fashion & Accessories", Price = "$90" },
+        new RecentOrder { ImageUrl = "../assets/images/ecommerce/png/15.png", ProductName = "TrailBlaze Runners", Category = "Sports & Fitness", Price = "$60" },
+        new RecentOrder { ImageUrl = "../assets/images/ecommerce/png/19.png", ProductName = "VisionTech SLR", Category = "Electronics", Price = "$375" },
+        new RecentOrder { ImageUrl = "../assets/images/ecommerce/png/6.png", ProductName = "FlexiSeat Office Chair", Category = "Furniture", Price = "$150" },
+        new RecentOrder { ImageUrl = "../assets/images/ecommerce/png/11.png", ProductName = "DecoDial Classic", Category = "Home Decor", Price = "$35" },
+    };
+    //Recent Orders end
+
+    //Transaction History start
+    public class TransactionHistoryItem
+    {
+        public string? ImageUrl { get; set; }
+        public string? Name { get; set; }
+        public string? PaymentMethod { get; set; }
+        public string? Amount { get; set; }
+        public string? Status { get; set; } // "Completed", "Pending", "Failed"
+    }
+    List<TransactionHistoryItem> TransactionHistoryData = new()
+    {
+        new TransactionHistoryItem { ImageUrl = "../assets/images/faces/11.jpg", Name = "John Doe", PaymentMethod = "Credit Card", Amount = "$120.50", Status = "Completed" },
+        new TransactionHistoryItem { ImageUrl = "../assets/images/faces/2.jpg", Name = "Jane Smith", PaymentMethod = "PayPal", Amount = "$45.00", Status = "Pending" },
+        new TransactionHistoryItem { ImageUrl = "../assets/images/faces/12.jpg", Name = "Robert Brown", PaymentMethod = "Debit Card", Amount = "$75.75", Status = "Failed" },
+        new TransactionHistoryItem { ImageUrl = "../assets/images/faces/3.jpg", Name = "Emma Williams", PaymentMethod = "Credit Card", Amount = "$220.00", Status = "Completed" },
+        new TransactionHistoryItem { ImageUrl = "../assets/images/faces/10.jpg", Name = "Michael Johnson", PaymentMethod = "PayPal", Amount = "$89.99", Status = "Completed" },
+        new TransactionHistoryItem { ImageUrl = "../assets/images/faces/7.jpg", Name = "Sarah Jones", PaymentMethod = "Credit Card", Amount = "$129.99", Status = "Pending" },
+    };
+    //Transaction History end
+
+    // Order History start
+    public class Order
+    {
+        public string? OrderId { get; set; }
+        public string? CustomerName { get; set; }
+        public string? ProductName { get; set; }
+        public string? ProductImage { get; set; }
+        public int Quantity { get; set; }
+        public decimal Price { get; set; }
+        public string? PaymentMethod { get; set; }
+        public DateTime Date { get; set; }
+        public string? Status { get; set; }
+        public string? BadgeClass { get; set; }
+    }
+    private List<Order> Orders = new List<Order>
+    {
+        new Order
+        {
+            OrderId = "$SPK15432",
+            CustomerName = "John Doe",
+            ProductName = "Urban Chic Ladies Bag",
+            ProductImage = "../assets/images/ecommerce/png/13.png",
+            Quantity = 2,
+            Price = 150.00m,
+            PaymentMethod = "Credit Card",
+            Date = new DateTime(2025, 2, 10),
+            Status = "Completed",
+            BadgeClass = "bg-success"
+        },
+        new Order
+        {
+            OrderId = "$SPK15433",
+            CustomerName = "Jane Smith",
+            ProductName = "TrailBlaze Runners",
+            ProductImage = "../assets/images/ecommerce/png/15.png",
+            Quantity = 1,
+            Price = 230.75m,
+            PaymentMethod = "PayPal",
+            Date = new DateTime(2025, 2, 11),
+            Status = "Pending",
+            BadgeClass = "bg-warning"
+        },
+        new Order
+        {
+            OrderId = "$SPK15434",
+            CustomerName = "Michael Green",
+            ProductName = "VisionTech SLR",
+            ProductImage = "../assets/images/ecommerce/png/19.png",
+            Quantity = 3,
+            Price = 95.50m,
+            PaymentMethod = "Debit Card",
+            Date = new DateTime(2025, 2, 12),
+            Status = "Failed",
+            BadgeClass = "bg-danger"
+        },
+        new Order
+        {
+            OrderId = "$SPK15435",
+            CustomerName = "Sarah Johnson",
+            ProductName = "FlexiSeat Sofa Chair",
+            ProductImage = "../assets/images/ecommerce/png/6.png",
+            Quantity = 1,
+            Price = 112.00m,
+            PaymentMethod = "Credit Card",
+            Date = new DateTime(2025, 2, 13),
+            Status = "Completed",
+            BadgeClass = "bg-success"
+        },
+        new Order
+        {
+            OrderId = "$SPK15436",
+            CustomerName = "William Brown",
+            ProductName = "DecoDial Classic",
+            ProductImage = "../assets/images/ecommerce/png/11.png",
+            Quantity = 5,
+            Price = 60.25m,
+            PaymentMethod = "Credit Card",
+            Date = new DateTime(2025, 2, 14),
+            Status = "Pending",
+            BadgeClass = "bg-warning"
+        },
+        new Order
+        {
+            OrderId = "$SPK15437",
+            CustomerName = "Emma White",
+            ProductName = "Club Fleece Hoodie",
+            ProductImage = "../assets/images/ecommerce/png/12.png",
+            Quantity = 2,
+            Price = 145.80m,
+            PaymentMethod = "PayPal",
+            Date = new DateTime(2025, 2, 14),
+            Status = "Completed",
+            BadgeClass = "bg-success"
+        }
+    };
+    private void DeleteItem(Order order)
+    {
+        Orders.Remove(order);
+    }
+    //Order History end
+
+    //Customers Satisfaction
+    public class SatisfactionItem
+    {
+        public int Percentage { get; set; }
+        public string? Text { get; set; }
+        public string? TextClass { get; set; } // e.g. text-primary, text-success, etc.
+        public string? ProgressBarClass { get; set; } // e.g. bg-primary, bg-success, etc.
+        public string? EmojiImgSrc { get; set; }
+    }
+    List<SatisfactionItem> CustomersSatisfactionData = new()
+    {
+        new SatisfactionItem
+        {
+            Percentage = 85,
+            Text = "Excellent",
+            TextClass = "text-primary",
+            ProgressBarClass = "bg-primary",
+            EmojiImgSrc = "../assets/images/faces/emojis/1.png"
+        },
+        new SatisfactionItem
+        {
+            Percentage = 65,
+            Text = "Good",
+            TextClass = "text-success",
+            ProgressBarClass = "bg-success",
+            EmojiImgSrc = "../assets/images/faces/emojis/2.png"
+        },
+        new SatisfactionItem
+        {
+            Percentage = 64,
+            Text = "Neutral",
+            TextClass = "text-info",
+            ProgressBarClass = "bg-info",
+            EmojiImgSrc = "../assets/images/faces/emojis/3.png"
+        },
+        new SatisfactionItem
+        {
+            Percentage = 44,
+            Text = "Unsatisfied",
+            TextClass = "text-warning",
+            ProgressBarClass = "bg-warning",
+            EmojiImgSrc = "../assets/images/faces/emojis/4.png"
+        },
+        new SatisfactionItem
+        {
+            Percentage = 35,
+            Text = "Very Unsatisfied",
+            TextClass = "text-orange",
+            ProgressBarClass = "bg-orange",
+            EmojiImgSrc = "../assets/images/faces/emojis/5.png"
+        },
+        new SatisfactionItem
+        {
+            Percentage = 24,
+            Text = "Poor",
+            TextClass = "text-danger",
+            ProgressBarClass = "bg-danger",
+            EmojiImgSrc = "../assets/images/faces/emojis/6.png"
+        }
+    };
+
+    //Top Countries By Sales
+    public class CountrySale
+    {
+        public string? CountryName { get; set; }
+        public string? FlagImageSrc { get; set; }
+        public bool IsTrendingUp { get; set; }
+        public int SalesCount { get; set; }
+    }
+    List<CountrySale> TopCountriesBySales = new()
+    {
+        new CountrySale
+        {
+            CountryName = "France",
+            FlagImageSrc = "../assets/images/flags/french_flag.jpg",
+            IsTrendingUp = true,
+            SalesCount = 5932
+        },
+        new CountrySale
+        {
+            CountryName = "Spain",
+            FlagImageSrc = "../assets/images/flags/spain_flag.jpg",
+            IsTrendingUp = false,
+            SalesCount = 5383
+        },
+        new CountrySale
+        {
+            CountryName = "Argentina",
+            FlagImageSrc = "../assets/images/flags/argentina_flag.jpg",
+            IsTrendingUp = true,
+            SalesCount = 4825
+        },
+        new CountrySale
+        {
+            CountryName = "Uae",
+            FlagImageSrc = "../assets/images/flags/uae_flag.jpg",
+            IsTrendingUp = true,
+            SalesCount = 4527
+        },
+        new CountrySale
+        {
+            CountryName = "Germany",
+            FlagImageSrc = "../assets/images/flags/germany_flag.jpg",
+            IsTrendingUp = false,
+            SalesCount = 4501
+        }
+    };
+
+}

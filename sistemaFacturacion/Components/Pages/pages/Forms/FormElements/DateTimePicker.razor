@@ -1,0 +1,360 @@
+@page "/formelements/datetimepicker"
+@using FlatpickrBlazor
+@using FlatpickrBlazor.Components
+
+<!-- Start::page-header -->
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap">
+        <h1 class="page-title fw-medium fs-18 mb-0">Date & Time Pickers</h1>
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Forms</a></li>
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Form Elements</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Date & Time Pickers</li>
+        </ol>
+    </div>
+</div>
+<!-- End::page-header -->
+
+<!-- Start:: row-1 -->
+<div class="row">
+    <div class="col-xl-6">
+        <div class="card custom-card">
+            <div class="card-header">
+                <div class="card-title">
+                    Basic Date picker
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-text text-muted"> <i class="ri-calendar-line"></i> </div>
+                        <Flatpickr class="form-control" @ref="_flatpickr" placeholder="Choose date"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card custom-card">
+            <div class="card-header">
+                <div class="card-title">
+                    Date picker With Time
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-text text-muted"> <i class="ri-calendar-line"></i> </div>
+                        <Flatpickr class="form-control" @ref="_datetime" Options="@_flatpickrOptions2"  placeholder="Choose date with time"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card custom-card">
+            <div class="card-header">
+                <div class="card-title">
+                    Human Friendly dates
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-text text-muted"> <i class="ri-calendar-line"></i> </div>
+                        <Flatpickr class="form-control" @ref="_humanfrienndlydate" Options="@_humanfrienndlydateOptions" PluginOptions="@humanPluginOptions" placeholder="Human friendly dates"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card custom-card">
+            <div class="card-header">
+                <div class="card-title">
+                    Date range picker
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-text text-muted"> <i class="ri-calendar-line"></i> </div>
+                        <Flatpickr class="form-control" @ref="_daterange" Options="@_daterangeOptions" placeholder="Date range picker"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- End:: row-1 -->
+
+<!-- Start:: row-2 -->
+<div class="row">
+    <div class="col-xl-6">
+        <div class="card custom-card">
+            <div class="card-header">
+                <div class="card-title">
+                    Basic Time picker
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-text text-muted"> <i class="ri-time-line"></i> </div>
+                        <Flatpickr class="form-control" @ref="_timepikcr" Options="@_timepikcrOptions" placeholder="Choose time"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card custom-card">
+            <div class="card-header">
+                <div class="card-title">
+                    Time picker with 24hr Format
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-text text-muted"> <i class="ri-time-line"></i> </div>
+                        <Flatpickr class="form-control" @ref="_timepickr1" Options="@_timepickr1Options" placeholder="Choose time in 24hr format"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card custom-card">
+            <div class="card-header">
+                <div class="card-title">
+                    Time Picker with Limits
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-text text-muted"> <i class="ri-time-line"></i> </div>
+                        <Flatpickr class="form-control" @ref="_limittime" Options="@_limittimeOptions" placeholder="choose time min 16:00 to max 22:30" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card custom-card">
+            <div class="card-header">
+                <div class="card-title">
+                    DateTimePicker with Limited Time Range
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-text text-muted"> <i class="ri-time-line"></i> </div>
+                        <Flatpickr class="form-control" @ref="_limitdatetime" Options="@_limitdatetimeOptions" placeholder="date with time limit from 16:00 to 22:00" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End:: row-2 -->
+
+<!-- Start:: row-3 -->
+<div class="row">
+    <div class="col-xl-6">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Date Picker with week numbers
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-0">
+                            <div class="input-group">
+                                <div class="input-group-text text-muted"> <i class="ri-calendar-line"></i> </div>
+                                 <Flatpickr class="form-control" @ref="_weeknum" Options="@_weeknumOptions" placeholder="Choose date" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-12">
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Inline Time Picker
+                        </div>
+                    </div>
+                    <div class="card-body custom-date-picker">
+                        <div class="form-group mb-0">
+                            <Flatpickr class="form-control" @ref="_inlinetime" Options="@_inlinetimeOptions" placeholder="Choose time" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-12">
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Preloading time
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-0">
+                            <div class="input-group">
+                                <div class="input-group-text text-muted"> <i class="ri-time-line"></i> </div>
+                                <Flatpickr class="form-control" @ref="_pretime" Options="@_pretimeOptions" placeholder="Preloading time" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card custom-card">
+            <div class="card-header">
+                <div class="card-title">
+                    Inline Calendar
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-group overflow-auto">
+                    <Flatpickr class="form-control" @ref="_inlinecalendar" Options="@_inlinecalendarOptions" placeholder="Choose Date" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End:: row-3 -->
+
+@code {
+
+    // Basic Date picker //
+    public Flatpickr? _flatpickr;
+    // Basic Date picker //
+
+    // Date picker With Time //
+    public Flatpickr? _datetime;
+    // Date picker With Time //
+
+    // Date picker With Time //
+    private FlatpickrBlazor.FlatpickrOptions _flatpickrOptions2 = new FlatpickrBlazor.FlatpickrOptions   
+    {
+        EnableTime = true,
+        DateFormat = "Y-m-d H:i",
+    };
+    // Date picker With Time // 
+
+    // Human Friendly dates //
+    public Flatpickr? _humanfrienndlydate;
+    private FlatpickrBlazor.FlatpickrOptions _humanfrienndlydateOptions = new FlatpickrBlazor.FlatpickrOptions
+    {
+        EnableTime = false, // Disable time selection
+        DateFormat = "Y-m-d", // Format for submitting the date (e.g., "2024-01-15"),
+    };
+    private FlatpickrPluginOptions humanPluginOptions = new FlatpickrPluginOptions
+    {
+        UseMonthSelectPlugin = new FlatpickrPluginOptions.MonthSelectOptions
+        {
+            ShortHand = false,
+            DateFormat = "F j, Y", // Complete date, month, and year format
+            AltFormat = "F j, Y", // Alternate format
+        },
+    };
+    // Human Friendly dates //
+
+    // Date range picker //
+    public Flatpickr? _daterange;
+    private FlatpickrBlazor.FlatpickrOptions _daterangeOptions = new FlatpickrBlazor.FlatpickrOptions
+    {
+        EnableTime = false, // Disable time selection
+        DateFormat = "Y-m-d", // Format for submitting the date (e.g., "2024-01-15"),
+        Mode = FlatpickrOptionsMode.Range
+    };
+    // Date range picker //
+
+    // Basic Time picker //
+    public Flatpickr? _timepikcr;
+     private FlatpickrBlazor.FlatpickrOptions _timepikcrOptions = new FlatpickrBlazor.FlatpickrOptions
+    {
+        EnableTime = true, 
+        DateFormat = "H:i",
+        NoCalendar = true,
+    };
+    //  Basic Time picker //
+
+    // Time picker with 24hr Format // 
+    public Flatpickr? _timepickr1;
+     private FlatpickrBlazor.FlatpickrOptions _timepickr1Options = new FlatpickrBlazor.FlatpickrOptions
+    {
+        EnableTime = true, 
+        DateFormat = "H:i",
+        NoCalendar = true,
+        Time24Hours = true
+    };    
+    // Time picker with 24hr Format //
+
+    // Time Picker with Limits //
+    public Flatpickr? _limittime;
+    private FlatpickrBlazor.FlatpickrOptions _limittimeOptions = new FlatpickrBlazor.FlatpickrOptions
+    {
+        EnableTime = true, 
+        DateFormat = "H:i",
+        NoCalendar = true,
+    };    
+    // Time Picker with Limits //
+    
+    // DateTimePicker with Limited Time Range //
+    public Flatpickr? _limitdatetime;
+    private FlatpickrBlazor.FlatpickrOptions _limitdatetimeOptions = new FlatpickrBlazor.FlatpickrOptions
+    {
+        EnableTime = true, 
+        DateFormat = "Y-m-d H:i",
+    }; 
+    // DateTimePicker with Limited Time Range //
+
+    // Date Picker with week numbers //
+    public Flatpickr? _weeknum;
+    private FlatpickrBlazor.FlatpickrOptions _weeknumOptions = new FlatpickrBlazor.FlatpickrOptions
+    {
+        WeekNumbers = true,
+    };
+    // Date Picker with week numbers //
+
+    // Inline Time Picker //
+    public Flatpickr? _inlinetime;
+    private FlatpickrBlazor.FlatpickrOptions _inlinetimeOptions = new FlatpickrBlazor.FlatpickrOptions
+    {
+        Inline = true,
+        EnableTime = true,
+        NoCalendar = true,
+        DateFormat = "H:i",
+    };  
+    // Inline Time Picker //  
+
+    // Preloading time // 
+    public Flatpickr? _pretime;
+    private FlatpickrBlazor.FlatpickrOptions _pretimeOptions = new FlatpickrBlazor.FlatpickrOptions
+    {
+        EnableTime = true,
+        NoCalendar = true,
+        DateFormat = "H:i",
+        DefaultDate = new List<string> { "13:45" }
+    };
+    // Preloading time //
+
+    // Inline Calendar //
+    public Flatpickr? _inlinecalendar;
+    private FlatpickrBlazor.FlatpickrOptions _inlinecalendarOptions = new FlatpickrBlazor.FlatpickrOptions
+    {
+        Inline = true,
+    };
+    // Inline Calendar //
+
+}

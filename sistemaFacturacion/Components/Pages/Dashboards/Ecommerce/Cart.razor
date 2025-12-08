@@ -1,0 +1,239 @@
+﻿@page "/ecommerce/cart"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+
+<!-- Start::page-header -->
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap">
+        <h1 class="page-title fw-medium fs-18 mb-0">Cart</h1>
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+                <a href="javascript:void(0);">
+                    Dashboards
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="javascript:void(0);">
+                    Ecommerce
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Cart</li>
+        </ol>
+    </div>
+</div>
+<!-- End::page-header -->
+
+<!-- Start::row-1 -->
+<div class="row">
+    <div class="col-xl-9">
+        <div class="card custom-card overflow-hidden">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table text-nowrap">
+                        <tbody>
+                            @foreach (var item in CartItems)
+                            {
+                                <tr>
+                                    <td class="@((item == CartItems.Last()) ? "border-bottom-0" : "")">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="lh-1">
+                                                <span class="avatar avatar-xxl">
+                                                    <img src="@item.ImageUrl" alt="">
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span class="d-block text-muted mb-1">@item.Brand</span>
+                                                <h6 class="fw-semibold">@item.ProductName</h6>
+                                                <div class="d-flex align-items-center fs-13 gap-2">
+                                                    <div>Color : <span class="fw-medium text-muted">@item.Color</span></div>
+                                                    <div class="vr"></div>
+                                                    <div>Size : <span class="fw-medium text-muted">@item.Size</span></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="@((item == CartItems.Last()) ? "border-bottom-0" : "")">
+                                        <span class="badge @item.StockBadgeClass fs-13">@item.StockStatus</span>
+                                    </td>
+                                    <td class="@((item == CartItems.Last()) ? "border-bottom-0" : "")">
+                                        <div class="fw-medium">$@item.UnitPrice</div>
+                                    </td>
+                                    <td class="@((item == CartItems.Last()) ? "border-bottom-0" : "")">
+                                        <div class="d-inline-flex align-items-center order-qnt bg-light flex-nowrap gap-2 rounded p-1">
+                                            <a href="javascript:void(0);" class="badge text-muted fs-13 product-quantity-minus border bg-white p-2" @onclick="() => DecrementQuantity(item)">
+                                                <i class="ri-subtract-line"></i>
+                                            </a>
+                                            <input type="text" class="form-control form-control-cart w-100 border-0 text-center shadow-none"
+                                                aria-label="quantity" value="@item.Quantity">
+                                            <a href="javascript:void(0);" class="badge text-muted fs-13 product-quantity-plus border bg-white p-2" @onclick="() => IncrementQuantity(item)">
+                                                <i class="ri-add-line"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td class="@((item == CartItems.Last()) ? "border-bottom-0" : "")">
+                                        <div class="fw-medium">$@item.Total.ToString("N2")</div>
+                                    </td>
+                                    <td class="@((item == CartItems.Last()) ? "border-bottom-0" : "")">
+                                        <div class="d-flex align-items-center lh-1 gap-2">
+                                            <div>
+                                                <a href="javascript:void(0);" class="text-muted d-inline-flex align-items-center justify-content-center" @onclick="() => DeleteItem(item)">
+                                                    <i class="ti ti-trash me-1"></i>Delete
+                                                </a>
+                                            </div>
+                                            <div class="vr"></div>
+                                            <div>
+                                                <a href="javascript:void(0);" class="text-muted d-inline-flex align-items-center justify-content-center">
+                                                    <i class="ti ti-heart me-1"></i>Save For Later
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            
+                        </tbody>
+                    </table>
+                </div>
+                @if(CartItems.Count < 1){
+                       
+                    <div class="empty-item p-5">
+                        <div class="text-center">
+                            <span class="avatar avatar-xl avatar-rounded bg-success-transparent">
+                                <i class="ti ti-shopping-cart fs-2"></i>
+                            </span>
+                            <h6 class="fw-medium mt-3 mb-1">No items in your cart yet</h6>
+                            <span class="fw-normal fs-13 d-block mb-3">Add some to enjoy a seamless checkout experience! :)</span>
+                        </div>
+                        <div class="text-center">
+                            <a href="/ecommerce/products" class="btn btn-primary btn-wave">Shop Now</a>
+                        </div>
+                    </div>
+                
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">
+                    Order Summary
+                </div>
+                <div class="text-end">
+                    <span class="text-muted fs-13">Estimated Delivery</span>
+                    <span class="d-block fw-medium">13,Apr 2025</span>
+                </div>
+            </div>
+            <div class="card-header">
+                <span class="d-block fs-14 fw-medium mb-1">Have a coupon?</span>
+                <div class="input-group mb-1">
+                    <input type="text" class="form-control form-control-sm" placeholder="Coupon Code"
+                        aria-label="coupon-code" aria-describedby="coupons">
+                    <button class="btn btn-primary input-group-text" id="coupons">Apply</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled cart-order-summary-list">
+                    <li>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>Sub Total</div>
+                            <div class="fw-medium">$929.79</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>Discount (10%)</div>
+                            <div class="fw-medium">- $92.97</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>Tax</div>
+                            <div class="fw-medium">$0.00</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>Shipping</div>
+                            <div class="fw-medium text-success">Free</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>Total</div>
+                            <div class="fw-medium">$837.79</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-footer d-grid">
+                <a href="/ecommerce/checkout"
+                    class="btn btn-primary d-inline-flex align-items-center justify-content-center">Proceed to
+                    checkout<i class="ti ti-arrow-narrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+<!--End::row-1 -->
+
+@code{
+
+    public class CartItem
+    {
+        public string? Brand { get; set; }
+        public string? ProductName { get; set; }
+        public string? Color { get; set; }
+        public string? Size { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? StockStatus { get; set; } // "In Stock", "Limited Stock"
+        public string? StockBadgeClass { get; set; } // "bg-success-transparent", "bg-danger-transparent"
+        public decimal UnitPrice { get; set; }
+        public int Quantity { get; set; }
+        public decimal Total => UnitPrice * Quantity;
+    }
+    private List<CartItem> CartItems = new()
+    {
+        new CartItem {
+            Brand = "Adidas", ProductName = "Adidas UltraBoost 2023", Color = "Green", Size = "10 US",
+            ImageUrl = "../assets/images/ecommerce/jpg/1.jpg", StockStatus = "In Stock", StockBadgeClass = "bg-success-transparent",
+            UnitPrice = 159.99m, Quantity = 1
+        },
+        new CartItem {
+            Brand = "Puma", ProductName = "Puma RS-X Sneakers", Color = "Gray", Size = "8 US",
+            ImageUrl = "../assets/images/ecommerce/jpg/2.jpg", StockStatus = "Limited Stock", StockBadgeClass = "bg-danger-transparent",
+            UnitPrice = 119.99m, Quantity = 2
+        },
+        new CartItem {
+            Brand = "Reebok", ProductName = "Reebok Classic Leather", Color = "Blue", Size = "11 US",
+            ImageUrl = "../assets/images/ecommerce/jpg/3.jpg", StockStatus = "In Stock", StockBadgeClass = "bg-success-transparent",
+            UnitPrice = 89.99m, Quantity = 1
+        },
+        new CartItem {
+            Brand = "Nike", ProductName = "Nike Air Max 2025 Sneakers", Color = "Teal", Size = "10 US",
+            ImageUrl = "../assets/images/ecommerce/jpg/4.jpg", StockStatus = "In Stock", StockBadgeClass = "bg-success-transparent",
+            UnitPrice = 129.99m, Quantity = 1
+        },
+        new CartItem {
+            Brand = "Under Armour", ProductName = "Under Armour HOVR Phantom", Color = "Neon Green", Size = "10 US",
+            ImageUrl = "../assets/images/ecommerce/jpg/5.jpg", StockStatus = "In Stock", StockBadgeClass = "bg-success-transparent",
+            UnitPrice = 139.99m, Quantity = 2
+        }
+    };
+
+    void IncrementQuantity(CartItem item)
+    {
+        item.Quantity++;
+    }
+
+    void DecrementQuantity(CartItem item)
+    {
+        if (item.Quantity > 1)
+            item.Quantity--;
+    }
+
+    void DeleteItem(CartItem item)
+    {
+        CartItems.Remove(item);
+    }
+}

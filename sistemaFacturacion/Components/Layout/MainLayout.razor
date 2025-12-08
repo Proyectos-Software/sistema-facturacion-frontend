@@ -1,0 +1,80 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime JSRuntime
+@inject StateService stateService
+@inject SessionService _sessionService
+@using BlazorColorPicker
+@inject IColorPickerService ColorPickerService
+
+
+<Switcher />
+
+<div class="page">
+    
+    <div class="progress-top-bar"></div>
+
+    <MainHeader />
+
+    <NavMenu @ref="navMenuRef" />
+
+    <!-- Start::app-content -->
+    <div class="main-content app-content" @onclick="() => icontextCloseFn()">
+        <div id="MainLayoutContainer" class="container-fluid page-container">
+            @Body
+        </div>
+
+    </div>
+    
+    <Footer />
+    
+    @if (ShowButton)
+    {
+        <!-- Scroll To Top -->
+        <div class="scrollToTop" @onclick="ScrollToTop">
+            <span class="arrow lh-1"><i class="ti ti-arrow-big-up fs-18"></i></span>
+        </div>
+        
+        <!-- Scroll To Top -->
+    }
+</div>
+
+<BlazorColorPicker.ColorPicker />
+
+
+
+@code {
+    NavMenu? navMenuRef;
+    bool ShowButton { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Inicializa el servicio de estado (sin Task.Run)
+        await stateService.InitializeAsync();
+
+        // Aplica el estado actual al DOM (data-*, css vars...)
+        await stateService.retrieveFromLocalStorage();
+
+        // Hooks JS que ya llamas:
+        await JSRuntime.InvokeVoidAsync("interop.applyPageStyleClass");
+        await JSRuntime.InvokeVoidAsync("interop.updateScrollVisibility", DotNetObjectReference.Create(this));
+
+        // Reactividad
+        stateService.OnStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        stateService.OnStateChanged -= StateHasChanged;
+    }
+
+    [JSInvokable]
+    public void UpdateScrollVisibility(int scrollHeight)
+    {
+        ShowButton = scrollHeight >= 100;
+        StateHasChanged();
+    }
+
+    private async void icontextCloseFn() { /* tu código tal como está */ }
+    async Task ScrollToTop() => await JSRuntime.InvokeVoidAsync("interop.scrollToTop");
+}

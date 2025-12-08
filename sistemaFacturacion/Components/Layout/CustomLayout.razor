@@ -1,0 +1,40 @@
+@inherits LayoutComponentBase
+@inject StateService stateService
+@inject IJSRuntime JSRuntime
+
+<!-- SWITCHER -->
+<Switcher />
+<!-- END SWITCHER -->
+
+@Body
+
+@code {
+    private DotNetObjectReference<CustomLayout>? _objectRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var currentState = new AppState();
+            var newState = stateService.GetAppState();
+
+            if (!currentState.Equals(newState))
+            {
+                await stateService.retrieveFromLocalStorage();
+            }
+
+            StateHasChanged();
+
+            _objectRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("interop.updateScrollVisibility", _objectRef);
+        }
+    }
+
+    [JSInvokable("UpdateScrollVisibility")]
+    public void UpdateScrollVisibility(double scrollHeight){}
+
+    public void Dispose()
+    {
+        _objectRef?.Dispose();
+    }
+}

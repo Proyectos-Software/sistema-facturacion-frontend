@@ -1,0 +1,919 @@
+﻿@page "/dashboards/lotes"
+@using Microsoft.AspNetCore.Authorization
+@using sistemaFacturacion.Models
+@using sistemaFacturacion.Services
+@using CurrieTechnologies.Razor.SweetAlert2
+@using ApexCharts
+@using System.Linq
+@inject NavigationManager Nav
+@inject IProductosApiClient ProductosApi
+@inject SweetAlertService Swal
+@inject IJSRuntime JS
+@attribute [Authorize]
+
+<div class="lotes-dashboard">
+
+    <!-- Encabezado principal -->
+    <div class="dashboard-header mb-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8 col-md-7 mb-md-0 mb-3">
+                <div class="header-content">
+                    <h1 class="page-title mb-2">
+                        <i class="ri-database-2-line me-2"></i>
+                        Gestión de Lotes
+                    </h1>
+                    <p class="page-subtitle mb-0">
+                        Crea lotes a partir de productos existentes y visualiza el estado general del catálogo.
+                    </p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-5 text-md-end">
+                <button class="btn btn-primary btn-action" @onclick="@(() => Nav.NavigateTo("/dashboards/lotes/listar"))">
+                    <i class="ri-list-check-2 me-2"></i>
+                    <span>Listar lotes</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (cargando)
+    {
+        <div class="alert alert-info alert-modern d-flex align-items-center">
+            <span class="spinner-border spinner-border-sm me-3 animate-pulse"></span>
+            <span>Cargando productos del sistema...</span>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="alert alert-danger alert-modern">
+            <i class="ri-error-warning-line me-2"></i>
+            <span>@error</span>
+        </div>
+    }
+    else
+    {
+        <!-- KPIs principales -->
+        <div class="row g-3 animate-fade-in mb-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="card kpi-card h-100">
+                    <div class="card-body">
+                        <div class="kpi-header mb-3">
+                            <div class="kpi-icon-wrapper primary">
+                                <div class="kpi-icon">
+                                    <i class="ri-archive-2-line"></i>
+                                </div>
+                            </div>
+                            <div class="kpi-badge">
+                                <span class="badge badge-trend trend-neutral">
+                                    <i class="ri-database-2-line"></i>
+                                    Total
+                                </span>
+                            </div>
+                        </div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Productos Totales</div>
+                            <div class="kpi-value">@TotalProductos</div>
+                            <div class="kpi-footer">
+                                <i class="ri-folder-line me-1"></i>
+                                <small>Catálogo completo</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card kpi-card h-100">
+                    <div class="card-body">
+                        <div class="kpi-header mb-3">
+                            <div class="kpi-icon-wrapper success">
+                                <div class="kpi-icon">
+                                    <i class="ri-checkbox-circle-line"></i>
+                                </div>
+                            </div>
+                            <div class="kpi-badge">
+                                @if (TotalProductos > 0)
+                                {
+                                    <span class="badge badge-trend trend-up">
+                                        <i class="ri-arrow-up-line"></i>
+                                        @Math.Round((decimal)TotalActivos / TotalProductos * 100, 1)%
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Productos Activos</div>
+                            <div class="kpi-value text-success">@TotalActivos</div>
+                            <div class="kpi-footer">
+                                <i class="ri-shield-check-line me-1"></i>
+                                <small>Disponibles para venta</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card kpi-card h-100">
+                    <div class="card-body">
+                        <div class="kpi-header mb-3">
+                            <div class="kpi-icon-wrapper danger">
+                                <div class="kpi-icon">
+                                    <i class="ri-close-circle-line"></i>
+                                </div>
+                            </div>
+                            <div class="kpi-badge">
+                                @if (TotalProductos > 0)
+                                {
+                                    <span class="badge badge-trend trend-down">
+                                        <i class="ri-arrow-down-line"></i>
+                                        @Math.Round((decimal)TotalInactivos / TotalProductos * 100, 1)%
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Productos Inactivos</div>
+                            <div class="kpi-value text-danger">@TotalInactivos</div>
+                            <div class="kpi-footer">
+                                <i class="ri-alert-line me-1"></i>
+                                <small>Requieren atención</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card kpi-card h-100">
+                    <div class="card-body">
+                        <div class="kpi-header mb-3">
+                            <div class="kpi-icon-wrapper warning">
+                                <div class="kpi-icon">
+                                    <i class="ri-price-tag-3-line"></i>
+                                </div>
+                            </div>
+                            <div class="kpi-badge">
+                                <span class="badge badge-trend trend-neutral">
+                                    <i class="ri-folder-3-line"></i>
+                                    Activas
+                                </span>
+                            </div>
+                        </div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Categorías</div>
+                            <div class="kpi-value text-warning">@TotalCategorias</div>
+                            <div class="kpi-footer">
+                                <i class="ri-stack-line me-1"></i>
+                                <small>Organizadas</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos de análisis -->
+        <div class="row g-3 mb-4">
+            <!-- Gráfico de distribución -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="card chart-card h-100">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-1">
+                                    <i class="ri-pie-chart-line me-2"></i>
+                                    Distribución de Estado
+                                </h6>
+                                <small class="card-subtitle">Análisis de productos activos vs. inactivos</small>
+                            </div>
+                            <div class="chart-indicator">
+                                <span class="indicator-dot active"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-wrapper">
+                            @if (TotalProductos > 0)
+                            {
+                                <ApexChart TItem="EstadoChartItem"
+                                           Height="280"
+                                           Options="EstadoChartOptions">
+                                    <ApexPointSeries TItem="EstadoChartItem"
+                                                     Items="productosPorEstado"
+                                                     Name="Productos"
+                                                     SeriesType="SeriesType.Donut"
+                                                     XValue="@(e => e.Estado)"
+                                                     YAggregate="@(items => items.Sum(x => x.Total))" />
+                                </ApexChart>
+                            }
+                            else
+                            {
+                                <div class="empty-state">
+                                    <i class="ri-pie-chart-line"></i>
+                                    <p>No hay datos disponibles para mostrar</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top categorías -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="card chart-card h-100">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-1">
+                                    <i class="ri-bar-chart-horizontal-line me-2"></i>
+                                    Top 5 Categorías
+                                </h6>
+                                <small class="card-subtitle">Productos activos por categoría</small>
+                            </div>
+                            <div class="chart-indicator">
+                                <span class="indicator-dot active"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-wrapper">
+                            @if (productosPorCategoria.Any())
+                            {
+                                <ApexChart TItem="ProductoCategoriaChartItem"
+                                           Height="280"
+                                           Options="ProductosPorCategoriaChartOptions">
+                                    <ApexPointSeries TItem="ProductoCategoriaChartItem"
+                                                     Items="productosPorCategoria"
+                                                     Name="Productos"
+                                                     SeriesType="SeriesType.Bar"
+                                                     XValue="@(e => e.Categoria)"
+                                                     YAggregate="@(items => items.Sum(x => x.Total))" />
+                                </ApexChart>
+                            }
+                            else
+                            {
+                                <div class="empty-state">
+                                    <i class="ri-bar-chart-line"></i>
+                                    <p>No hay categorías disponibles para mostrar</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de productos -->
+  <div class="card table-card">
+    <div class="card-header productos-header">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-4 col-md-12">
+                <div>
+                    <h6 class="productos-title">
+                        <i class="ri-list-check me-2"></i>
+                        Productos disponibles
+                    </h6>
+                    <small class="productos-subtitle">Seleccione un producto para crear un lote</small>
+                </div>
+            </div>
+
+            <div class="col-lg-8 col-md-12">
+                <div class="productos-controls">
+                    <div class="productos-controls-left">
+                        <div class="search-box">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="ri-search-line"></i>
+                                </span>
+                                <input type="text"
+                                       class="form-control"
+                                       placeholder="Buscar por código, nombre o categoría..."
+                                       @bind="filtroBusqueda"
+                                       @bind:event="oninput" />
+                            </div>
+                        </div>
+
+                        <select class="form-select form-select-modern"
+                                style="min-width: 120px;"
+                                value="@tamanioPagina"
+                                @onchange="CambiarTamanioPagina">
+                            <option value="5">5 / pág.</option>
+                            <option value="10">10 / pág.</option>
+                            <option value="20">20 / pág.</option>
+                            <option value="50">50 / pág.</option>
+                        </select>
+                    </div>
+
+                    <div class="productos-controls-right">
+                        <button class="btn btn-icon btn-light"
+                                type="button"
+                                title="Limpiar filtro"
+                                @onclick="LimpiarFiltroProductos"
+                                disabled="@string.IsNullOrWhiteSpace(filtroBusqueda)">
+                            <i class="ri-filter-off-line"></i>
+                        </button>
+
+                        <button class="btn btn-icon btn-light" 
+                                title="Recargar" 
+                                @onclick="Recargar">
+                            <i class="ri-refresh-line"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+                    <div class="card-body p-0">
+                        @{
+                            var productosPagina = ObtenerProductosPaginaActual().ToList();
+                            var totalFiltrados = CalcularTotalFiltrados();
+                            var totalPaginas = CalcularTotalPaginas();
+                        }
+
+                        <div class="table-responsive">
+                            <table class="table-modern mb-0 table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">
+                                            <div class="th-content">
+                                                <i class="ri-barcode-line me-1"></i>
+                                                Código
+                                            </div>
+                                        </th>
+                                        <th scope="col">
+                                            <div class="th-content">
+                                                <i class="ri-shopping-bag-line me-1"></i>
+                                                Nombre
+                                            </div>
+                                        </th>
+                                        <th scope="col">
+                                            <div class="th-content">
+                                                <i class="ri-folder-line me-1"></i>
+                                                Categoría
+                                            </div>
+                                        </th>
+                                        <th scope="col">
+                                            <div class="th-content">
+                                                <i class="ri-file-text-line me-1"></i>
+                                                Descripción
+                                            </div>
+                                        </th>
+                                        <th scope="col">
+                                            <div class="th-content">
+                                                <i class="ri-toggle-line me-1"></i>
+                                                Estado
+                                            </div>
+                                        </th>
+                                        <th scope="col" class="text-end">
+                                            <div class="th-content justify-content-end">
+                                                <i class="ri-settings-3-line me-1"></i>
+                                                Acciones
+                                            </div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (!productosPagina.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="6">
+                                                <div class="empty-state py-5">
+                                                    <i class="ri-inbox-line"></i>
+                                                    <p class="mb-0">No se encontraron productos con el filtro aplicado</p>
+                                                    @if (!string.IsNullOrWhiteSpace(filtroBusqueda))
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-primary mt-3" @onclick="LimpiarFiltroProductos">
+                                                            <i class="ri-refresh-line me-1"></i>
+                                                            Limpiar filtros
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var p in productosPagina)
+                                        {
+                                            <tr @key="p.Id" class="table-row">
+                                                <td>
+                                                    <div class="td-content">
+                                                        <span class="product-code" title="@($"Id interno: {p.Id}")">
+                                                            @p.Codigo
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="td-content">
+                                                        <span class="product-name">@p.Nombre</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="td-content">
+                                                        <span class="badge badge-category">
+                                                            <i class="ri-folder-3-line me-1"></i>
+                                                            @p.NombreCategoria
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="td-content">
+                                                        <small class="text-muted product-description">
+                                                            @(string.IsNullOrWhiteSpace(p.Descripcion) ? "Sin descripción" : p.Descripcion)
+                                                        </small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="td-content">
+                                                        <span class="badge badge-status @(p.Estado ? "status-active" : "status-inactive")">
+                                                            <span class="status-dot"></span>
+                                                            @(p.Estado ? "Activo" : "Inactivo")
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="td-content justify-content-end">
+                                                        <button class="btn btn-sm btn-create-lote"
+                                                                type="button"
+                                                                title="Crear lote desde este producto"
+                                                                @onclick="@(() => IrCrearLote(p.Id, p.Nombre))">
+                                                            <i class="ri-add-circle-line me-1"></i>
+                                                            Crear lote
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div class="pagination-info">
+                                <i class="ri-information-line me-2"></i>
+                                <span>Mostrando <strong>@productosPagina.Count</strong> de <strong>@totalFiltrados</strong> producto(s)</span>
+                            </div>
+
+                            <nav aria-label="Paginación de productos">
+                                <ul class="pagination pagination-modern mb-0">
+                                    <li class="page-item @(paginaActual == 1 ? "disabled" : "")">
+                                        <button type="button"
+                                                class="page-link"
+                                                @onclick="@(() => CambiarPagina(paginaActual - 1))"
+                                                disabled="@(paginaActual == 1)">
+                                            <i class="ri-arrow-left-s-line"></i>
+                                        </button>
+                                    </li>
+
+                                    @if (totalPaginas <= 7)
+                                    {
+                                        @for (int i = 1; i <= totalPaginas; i++)
+                                        {
+                                            var pagina = i;
+                                            <li class="page-item @(paginaActual == pagina ? "active" : "")">
+                                                <button type="button"
+                                                        class="page-link"
+                                                        @onclick="@(() => CambiarPagina(pagina))">
+                                                    @pagina
+                                                </button>
+                                            </li>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <li class="page-item active">
+                                            <span class="page-link">@paginaActual</span>
+                                        </li>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">de @totalPaginas</span>
+                                        </li>
+                                    }
+
+                                    <li class="page-item @(paginaActual >= totalPaginas ? "disabled" : "")">
+                                        <button type="button"
+                                                class="page-link"
+                                                @onclick="@(() => CambiarPagina(paginaActual + 1))"
+                                                disabled="@(paginaActual >= totalPaginas)">
+                                            <i class="ri-arrow-right-s-line"></i>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ProductoDto> productos = new();
+    private bool cargando = true;
+    private string? error;
+    private bool isDarkMode;
+
+    private string filtroBusqueda = string.Empty;
+    private int paginaActual = 1;
+    private int tamanioPagina = 10;
+
+    // Datos para gráficos
+    private List<ProductoCategoriaChartItem> productosPorCategoria = new();
+    private List<EstadoChartItem> productosPorEstado = new();
+    
+    private ApexChartOptions<ProductoCategoriaChartItem> ProductosPorCategoriaChartOptions { get; set; } = new();
+    private ApexChartOptions<EstadoChartItem> EstadoChartOptions { get; set; } = new();
+    
+    private bool opcionesChartConfiguradas;
+
+    private int TotalProductos => productos?.Count ?? 0;
+    private int TotalActivos => productos?.Count(p => p.Estado) ?? 0;
+    private int TotalInactivos => productos?.Count(p => !p.Estado) ?? 0;
+    private int TotalCategorias =>
+        productos?
+            .Select(p => p.NombreCategoria)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct()
+            .Count() ?? 0;
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Recargar()
+    {
+        paginaActual = 1;
+        filtroBusqueda = string.Empty;
+        await Cargar(toast: true);
+    }
+
+    private async Task Cargar(bool toast = false)
+    {
+        try
+        {
+            cargando = true;
+            error = null;
+            isDarkMode = await JS.InvokeAsync<bool>("isAppInDarkMode");
+
+            productos = await ProductosApi.GetAllAsync();
+
+            ConstruirDatosGraficos();
+
+            if (toast)
+            {
+                var isDark = await JS.InvokeAsync<bool>("isAppInDarkMode");
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Toast = true,
+                    Position = SweetAlertPosition.TopEnd,
+                    Icon = SweetAlertIcon.Success,
+                    Title = $"✓ {productos.Count} productos cargados",
+                    ShowConfirmButton = false,
+                    Timer = 1400,
+                    Background = isDark ? "#1e1e1e" : null,
+                    Color = isDark ? "#e6e6e6" : null
+                });
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            error = $"Error al cargar productos: {ex.Message}";
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Error al cargar",
+                Html = $"<small>{ex.Message}</small>",
+                Icon = SweetAlertIcon.Error
+            });
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<ProductoDto> AplicarFiltroProductos()
+    {
+        if (productos is null || productos.Count == 0)
+        {
+            return Enumerable.Empty<ProductoDto>();
+        }
+
+        if (string.IsNullOrWhiteSpace(filtroBusqueda))
+        {
+            return productos;
+        }
+
+        var filtro = filtroBusqueda.Trim().ToLowerInvariant();
+
+        return productos.Where(p =>
+            (!string.IsNullOrWhiteSpace(p.Codigo) &&
+             p.Codigo!.ToLowerInvariant().Contains(filtro)) ||
+            (!string.IsNullOrWhiteSpace(p.Nombre) &&
+             p.Nombre.ToLowerInvariant().Contains(filtro)) ||
+            (!string.IsNullOrWhiteSpace(p.NombreCategoria) &&
+             p.NombreCategoria.ToLowerInvariant().Contains(filtro)));
+    }
+
+    private IEnumerable<ProductoDto> ObtenerProductosPaginaActual()
+    {
+        var query = AplicarFiltroProductos().ToList();
+
+        if (!query.Any())
+        {
+            paginaActual = 1;
+            return query;
+        }
+
+        var total = query.Count;
+        var totalPaginas = (int)Math.Ceiling(total / (double)tamanioPagina);
+        if (paginaActual > totalPaginas)
+        {
+            paginaActual = totalPaginas;
+        }
+
+        var skip = (paginaActual - 1) * tamanioPagina;
+        return query.Skip(skip).Take(tamanioPagina);
+    }
+
+    private int CalcularTotalFiltrados()
+    {
+        return AplicarFiltroProductos().Count();
+    }
+
+    private int CalcularTotalPaginas()
+    {
+        var total = CalcularTotalFiltrados();
+        if (total == 0)
+        {
+            return 1;
+        }
+
+        return (int)Math.Ceiling(total / (double)tamanioPagina);
+    }
+
+    private void CambiarPagina(int nuevaPagina)
+    {
+        var totalPaginas = CalcularTotalPaginas();
+
+        if (nuevaPagina < 1 || nuevaPagina > totalPaginas)
+        {
+            return;
+        }
+
+        paginaActual = nuevaPagina;
+    }
+
+    private void CambiarTamanioPagina(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var nuevoTamano) && nuevoTamano > 0)
+        {
+            tamanioPagina = nuevoTamano;
+            paginaActual = 1;
+        }
+    }
+
+    private void LimpiarFiltroProductos()
+    {
+        filtroBusqueda = string.Empty;
+        paginaActual = 1;
+    }
+
+    private void ConstruirDatosGraficos()
+    {
+        ConstruirProductosPorCategoria();
+        ConstruirProductosPorEstado();
+        ConfigurarOpcionesChart();
+    }
+
+    private void ConstruirProductosPorCategoria()
+    {
+        if (productos is null || productos.Count == 0)
+        {
+            productosPorCategoria = new List<ProductoCategoriaChartItem>();
+            return;
+        }
+
+        productosPorCategoria = productos
+            .Where(p => !string.IsNullOrWhiteSpace(p.NombreCategoria) && p.Estado)
+            .GroupBy(p => p.NombreCategoria!)
+            .Select(g => new ProductoCategoriaChartItem
+            {
+                Categoria = g.Key,
+                Total = g.Count()
+            })
+            .OrderByDescending(x => x.Total)
+            .Take(5)
+            .ToList();
+    }
+
+    private void ConstruirProductosPorEstado()
+    {
+        productosPorEstado = new List<EstadoChartItem>
+        {
+            new EstadoChartItem { Estado = "Activos", Total = TotalActivos },
+            new EstadoChartItem { Estado = "Inactivos", Total = TotalInactivos }
+        };
+    }
+
+    private void ConfigurarOpcionesChart()
+    {
+        if (opcionesChartConfiguradas)
+        {
+            return;
+        }
+
+        // Configuración del gráfico de barras
+        ProductosPorCategoriaChartOptions = new ApexChartOptions<ProductoCategoriaChartItem>
+        {
+            Chart = new()
+            {
+                Toolbar = new Toolbar
+                {
+                    Tools = new Tools
+                    {
+                        Zoom = false,
+                        Zoomin = false,
+                        Zoomout = false,
+                        Pan = false,
+                        Reset = false,
+                        Download = true
+                    }
+                }
+            },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar
+                {
+                    Horizontal = true,
+                    BorderRadius = 6,
+                    BarHeight = "65%"
+                }
+            },
+            Grid = new Grid
+            {
+                BorderColor = "#f2f5f7",
+                Padding = new Padding
+                {
+                    Top = 0,
+                    Right = 0,
+                    Bottom = 0,
+                    Left = 10
+                }
+            },
+            DataLabels = new DataLabels
+            {
+                Enabled = true,
+                Style = new DataLabelsStyle
+                {
+                    Colors = new List<string> { "#fff" }
+                }
+            },
+            Colors = new Color(new List<string> { "#667eea" }),
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels
+                {
+                    Show = true,
+                    Style = new()
+                    {
+                        Colors = "#8c9097",
+                        FontSize = "11px",
+                        FontWeight = 600,
+                        CssClass = "apexcharts-xaxis-label"
+                    }
+                }
+            },
+            Yaxis = new List<YAxis>
+            {
+                new YAxis
+                {
+                    Labels = new YAxisLabels
+                    {
+                        Show = true,
+                        Style = new()
+                        {
+                            Colors = "#8c9097",
+                            FontSize = "11px",
+                            FontWeight = 600,
+                            CssClass = "apexcharts-yaxis-label"
+                        }
+                    }
+                }
+            },
+            Tooltip = new Tooltip
+            {
+                Theme = isDarkMode ? Mode.Dark : Mode.Light
+            }
+        };
+
+        // Configuración del gráfico de donut
+        EstadoChartOptions = new ApexChartOptions<EstadoChartItem>
+        {
+            Chart = new()
+            {
+                Toolbar = new Toolbar
+                {
+                    Show = false
+                }
+            },
+            Colors = new Color(new List<string> { "#10b981", "#ef4444" }),
+            Labels = new List<string> { "Activos", "Inactivos" },
+            Legend = new Legend
+            {
+                Position = LegendPosition.Bottom,
+                HorizontalAlign = Align.Center,
+                FontSize = "13px",
+                FontWeight = "600",
+                Markers = new LegendMarkers
+                {
+                    Width = 10,
+                    Height = 10,
+                    Radius = 12
+                },
+                ItemMargin = new LegendItemMargin
+                {
+                    Horizontal = 10,
+                    Vertical = 5
+                }
+            },
+            PlotOptions = new PlotOptions
+            {
+                Pie = new PlotOptionsPie
+                {
+                    Donut = new PlotOptionsDonut
+                    {
+                        Size = "70%",
+                        Labels = new DonutLabels
+                        {
+                            Show = true,
+                            Name = new DonutLabelName
+                            {
+                                Show = true,
+                                FontSize = "14px",
+                                FontWeight = "600",
+                                Color = "#8c9097"
+                            },
+                            Value = new DonutLabelValue
+                            {
+                                Show = true,
+                                FontSize = "24px",
+                                FontWeight = "700",
+                                Color = "#1f2937"
+                            },
+                            Total = new DonutLabelTotal
+                            {
+                                Show = true,
+                                Label = "Total",
+                                FontSize = "14px",
+                                FontWeight = "600",
+                                Color = "#8c9097"
+                            }
+                        }
+                    }
+                }
+            },
+            DataLabels = new DataLabels
+            {
+                Enabled = true,
+                Formatter = "function(val) { return Math.round(val) + '%' }",
+                Style = new DataLabelsStyle
+                {
+                    FontSize = "14px",
+                    FontWeight = "600",
+                    Colors = new List<string> { "#fff" }
+                }
+            },
+            Tooltip = new Tooltip
+            {
+                Theme = isDarkMode ? Mode.Dark : Mode.Light,
+                Y = new TooltipY
+                {
+                    Formatter = "function(val) { return val + ' productos' }"
+                }
+            }
+        };
+
+        opcionesChartConfiguradas = true;
+    }
+
+    private void IrCrearLote(int id, string nombre)
+    {
+        var encoded = Uri.EscapeDataString(nombre ?? string.Empty);
+        Nav.NavigateTo($"/dashboards/lotes/crear/{id}?productName={encoded}");
+    }
+
+    // Clases para los gráficos
+    private sealed class ProductoCategoriaChartItem
+    {
+        public string? Categoria { get; set; }
+        public int Total { get; set; }
+    }
+
+    private sealed class EstadoChartItem
+    {
+        public string? Estado { get; set; }
+        public int Total { get; set; }
+    }
+}

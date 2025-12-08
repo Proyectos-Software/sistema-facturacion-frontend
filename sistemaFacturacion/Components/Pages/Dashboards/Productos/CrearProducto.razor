@@ -1,0 +1,351 @@
+﻿@page "/dashboards/productos/crear"
+
+@using System.ComponentModel.DataAnnotations
+@using CurrieTechnologies.Razor.SweetAlert2
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using sistemaFacturacion.Services
+@using sistemaFacturacion.Models
+
+@inject IProductosApiClient ProductosApi
+@inject ICategoriasApiClient CategoriasApi
+@inject ITipoTributarioApiClient TipoTributarioApi
+@inject SweetAlertService Swal
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Nav
+@attribute [Authorize]
+
+<div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary shadow-sm"
+                 style="width:3rem;height:3rem;">
+                <i class="ri-price-tag-3-line fs-4"></i>
+            </div>
+            <div>
+                <h1 class="page-title fw-semibold fs-20 mb-0">Crear producto</h1>
+                <p class="text-muted fs-13 mb-0">
+                    Registra un nuevo producto asignando su categoría y tipo tributario.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <EditForm Model="@producto"
+                  OnValidSubmit="@HandleValidSubmitAsync"
+                  OnInvalidSubmit="@HandleInvalidAsync">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <ValidationSummary />
+            </div>
+
+            <div class="row g-3">
+                <div class="col-lg-4 col-md-5">
+                    <div class="rounded-3 h-100 border p-3">
+                        <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                            <i class="ri-folder-2-line text-primary fs-5"></i>
+                            <span>Clasificación</span>
+                        </h6>
+
+                        <!-- CATEGORÍA -->
+                        <div class="mb-3">
+                            <label class="form-label" for="categoria">Categoría</label>
+                            <InputSelect id="categoria"
+                                         class="form-select"
+                                         @bind-Value="producto.IdCategoria">
+                                <option value="">-- Selecciona una categoría --</option>
+                                @foreach (var cat in categorias)
+                                {
+                                    <option value="@cat.Id">@cat.Nombre</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => producto.IdCategoria)" />
+                        </div>
+
+                        <!-- TIPO TRIBUTARIO -->
+                        <div>
+                            <label class="form-label" for="tipoTrib">Tipo tributario</label>
+                            <InputSelect id="tipoTrib"
+                                         class="form-select"
+                                         @bind-Value="producto.IdTipoTributario">
+                                <option value="">-- Selecciona un tipo tributario --</option>
+                                @foreach (var tt in tiposTributarios)
+                                {
+                                    <option value="@tt.Id">@tt.Nombre (@tt.CodigoSri)</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => producto.IdTipoTributario)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8 col-md-7">
+                    <div class="rounded-3 h-100 border p-3">
+                        <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                            <i class="ri-file-list-3-line text-primary fs-5"></i>
+                            <span>Datos del producto</span>
+                        </h6>
+
+                        <div class="row g-3">
+                            <!-- NOMBRE -->
+                            <div class="col-12">
+                                <label class="form-label" for="nombre">Nombre</label>
+                                <InputText id="nombre"
+                                           @bind-Value="producto.NomPro"
+                                           class="form-control" />
+                                <ValidationMessage For="@(() => producto.NomPro)" />
+                            </div>
+
+                            <!-- PRECIO DE VENTA -->
+                            <div class="col-12">
+                                <label class="form-label" for="precio">Precio de venta</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="ri-money-dollar-circle-line"></i>
+                                    </span>
+                                    <InputNumber @bind-Value="producto.PrecioVenta"
+                                                 id="precio"
+                                                 class="form-control" />
+                                </div>
+                                <small class="text-muted d-block mt-1">
+                                    Precio unitario de venta del producto.
+                                </small>
+                                <ValidationMessage For="@(() => producto.PrecioVenta)" />
+                            </div>
+
+                            <!-- DESCRIPCIÓN -->
+                            <div class="col-12">
+                                <label class="form-label" for="descripcion">Descripción</label>
+                                <InputTextArea id="descripcion"
+                                               @bind-Value="producto.DesPro"
+                                               class="form-control"
+                                               rows="3" />
+                                <ValidationMessage For="@(() => producto.DesPro)" />
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+                <span class="text-muted small">
+                    Los campos son validados antes de registrar el producto.
+                </span>
+
+                <div class="btn-list">
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-wave"
+                            @onclick="Cancelar"
+                            disabled="@isSubmitting">
+                        <i class="ri-eraser-line me-1 align-middle"></i>
+                        Limpiar
+                    </button>
+
+                    <a class="btn btn-light btn-wave"
+                       href="/dashboards/productos/listar">
+                        <i class="ri-arrow-go-back-line me-1 align-middle"></i>
+                        Volver
+                    </a>
+
+                    <button type="submit"
+                            class="btn btn-primary btn-wave"
+                            disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2 align-middle"
+                                  role="status" aria-hidden="true"></span>
+                            <span>Guardando...</span>
+                        }
+                        else
+                        {
+                            <i class="ri-save-3-line me-1 align-middle"></i>
+                            <span>Guardar</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private bool isSubmitting = false;
+    private ProductoModel producto = new();
+
+    private List<CategoriaProductoDto> categorias = new();
+    private List<TipoTributarioDto> tiposTributarios = new();
+
+    // ======================
+    // ViewModel de producto
+    // ======================
+    public class ProductoModel
+    {
+        [Required(ErrorMessage = "La categoría es obligatoria.")]
+        public int? IdCategoria { get; set; }
+
+        [Required(ErrorMessage = "El tipo tributario es obligatorio.")]
+        public int? IdTipoTributario { get; set; }
+
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [StringLength(100, ErrorMessage = "Máximo 100 caracteres.")]
+        public string? NomPro { get; set; }
+
+        [Required(ErrorMessage = "La descripción es obligatoria.")]
+        [StringLength(200, ErrorMessage = "Máximo 200 caracteres.")]
+        public string? DesPro { get; set; }
+
+        // ⭐ NUEVO: Precio de venta
+        [Required(ErrorMessage = "El precio de venta es obligatorio.")]
+        [Range(0.01, 999999.99, ErrorMessage = "El precio debe ser mayor a 0.")]
+        public decimal? PrecioVenta { get; set; }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var listaCat = await CategoriasApi.ListarAsync();
+            categorias = listaCat.Where(c => c.Estado).ToList();
+
+            var listaTt = await TipoTributarioApi.ListarAsync();
+            tiposTributarios = listaTt.Where(t => t.Estado).ToList();
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Error,
+                Title = "No se pudieron cargar los catálogos",
+                Text = Trunca(ex.Message, 200)
+            });
+        }
+    }
+
+    private void Cancelar() => producto = new();
+
+    // ======================
+    // Envío de formulario
+    // ======================
+    private async Task HandleValidSubmitAsync()
+    {
+        isSubmitting = true;
+        try
+        {
+            var req = new ProductoCreateRequest
+            {
+                IdCategoria = producto.IdCategoria!.Value,
+                IdTipoTributario = producto.IdTipoTributario!.Value,
+                Nombre = producto.NomPro!.Trim(),
+                Descripcion = producto.DesPro!.Trim(),
+                PrecioVenta = producto.PrecioVenta!.Value
+            };
+
+
+            var creado = await ProductosApi.CrearAsync(req);
+
+            bool isDark = false;
+            try { isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode"); } catch { }
+
+            var titleColor = isDark ? "var(--default-text-color)" : "#0f172a";
+            var subColor = isDark ? "var(--text-muted)" : "#64748b";
+            var boxBg = isDark ? "var(--form-control-bg)" : "#f8fafc";
+            var boxBrd = isDark ? "var(--default-border)" : "#e5e7eb";
+            var valColor = isDark ? "var(--default-text-color)" : "#0f172a";
+
+            // Mostrar siempre el CÓDIGO del producto en lugar del Id
+            var html =
+$@"<div style='text-align:left;font-size:14px;line-height:1.45'>
+    <div style='margin:0 0 .5rem'>
+        <div style='font-weight:700;font-size:1rem;color:{titleColor}'>{Escape(creado?.Nombre)}</div>
+        <div style='font-size:.85rem;color:{subColor}'>
+            Categoría: {Escape(creado?.NombreCategoria)}<br/>
+            Tipo tributario: {Escape(creado?.NombreTipoTributario)}
+        </div>
+    </div>
+    <div style='background:{boxBg};border:1px solid {boxBrd};border-radius:.5rem;padding:.6rem .75rem'>
+        <div style='font-size:.72rem;color:{subColor};letter-spacing:.04em;margin-bottom:.15rem'>CÓDIGO PRODUCTO</div>
+        <code style='font-size:1rem;color:{valColor};font-weight:600'>{Escape(creado?.Codigo)}</code>
+    </div>
+</div>";
+
+            var result = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Success,
+                Title = "Producto creado",
+                Html = html,
+                ShowCancelButton = true,
+                ConfirmButtonText = "Ver listado",
+                CancelButtonText = "Crear otro",
+                FocusConfirm = false
+            });
+
+            if (result.IsConfirmed)
+            {
+                Nav.NavigateTo("/dashboards/productos/listar");
+            }
+            else
+            {
+                producto = new();
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Toast = true,
+                    Position = SweetAlertPosition.TopEnd,
+                    Icon = SweetAlertIcon.Success,
+                    Title = "Listo, puedes crear otro",
+                    ShowConfirmButton = false,
+                    Timer = 1800,
+                    TimerProgressBar = true,
+                    Background = isDark ? "var(--form-control-bg)" : null,
+                    Color = isDark ? "var(--default-text-color)" : null
+                });
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Error,
+                Title = "No se pudo crear el producto",
+                Text = Trunca(ex.Message, 300),
+                Footer = "<small>Revisa los datos o inténtalo más tarde.</small>"
+            });
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Error,
+                Title = "Error inesperado",
+                Text = Trunca(ex.Message, 300)
+            });
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleInvalidAsync(EditContext ctx)
+    {
+        var errores = ctx.GetValidationMessages().Take(4).Select(Escape);
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Icon = SweetAlertIcon.Warning,
+            Title = "Completa los campos",
+            Html = string.Join("<br/>", errores)
+        });
+    }
+
+    private static string Trunca(string? s, int max) =>
+        string.IsNullOrWhiteSpace(s) ? "" : (s.Length <= max ? s : s[..max] + "…");
+
+    private static string Escape(string? s) =>
+        string.IsNullOrEmpty(s) ? "" : s.Replace("<", "&lt;").Replace(">", "&gt;");
+}

@@ -1,0 +1,79 @@
+﻿/* ============================================
+   ESCALADO OPTIMIZADO DE LOGOS - VERSIÓN MEJORADA
+   ============================================ */
+
+/* --- LOGO HEADER HORIZONTAL (Desktop) --- */
+.header-element .horizontal-logo .header-logo {
+    overflow: visible;
+    display: inline-block;
+    margin-right: 30px;
+}
+
+    .header-element .horizontal-logo .header-logo .desktop-logo,
+    .header-element .horizontal-logo .header-logo .desktop-dark,
+     {
+        /* Usa width/height en lugar de transform para mejor calidad */
+        width: auto;
+        height: 150px; /* Ajusta este valor según necesites */
+        max-width: none; /* Evita restricciones */
+        object-fit: contain; /* Mantiene proporciones sin distorsión */
+        image-rendering: -webkit-optimize-contrast; /* Mejora nitidez en Chrome */
+        image-rendering: crisp-edges; /* Mejora nitidez en otros navegadores */
+        display: block;
+    }
+
+}
+
+
+/* ============================================
+   RESPONSIVE: AJUSTE PARA TABLETS Y MÓVILES
+   ============================================ */
+
+/* Tablets (768px - 1024px) */
+@media screen and (max-width: 1024px) {
+    .header-element .horizontal-logo .header-logo .desktop-logo,
+    .header-element .horizontal-logo .header-logo .desktop-dark,
+    {
+        height: 50px; /* Reduce en tablets */
+    }
+
+}
+
+/* Móviles (hasta 767px) */
+@media screen and (max-width: 767px) {
+    .header-element .horizontal-logo .header-logo .desktop-logo,
+    .header-element .horizontal-logo .header-logo .desktop-dark,
+    {
+        height: 40px; /* Más pequeño en móviles */
+    }
+
+}
+
+/* ============================================
+   ALTERNATIVA: Si prefieres mantener transform
+   (pero con mejoras de rendimiento)
+   ============================================ */
+
+.header-element .horizontal-logo .header-logo .desktop-logo,
+.header-element .horizontal-logo .header-logo .desktop-dark {
+    transform: scale(3.6); // Reducido de 2.6
+    transform-origin: left center;
+    will-change: transform;
+    backface-visibility: hidden; // Mejora rendimiento
+    -webkit-font-smoothing: subpixel-antialiased; // Mejora nitidez
+}
+
+@media screen and (max-width: 1024px) {
+    .header-element .horizontal-logo .header-logo .desktop-logo,
+    .header-element .horizontal-logo .header-logo .desktop-dark {
+        transform: scale(1.6); // Ajuste responsive
+    }
+}
+
+@media screen and (max-width: 767px) {
+    .header-element .horizontal-logo .header-logo .desktop-logo,
+    .header-element .horizontal-logo .header-logo .desktop-dark {
+        transform: scale(1.2);
+    }
+}
+

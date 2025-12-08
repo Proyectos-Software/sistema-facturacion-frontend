@@ -1,0 +1,650 @@
+﻿@page "/dashboards/auditorias/productos"
+@using ApexCharts
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize]
+
+<div class="d-flex align-items-center justify-content-between page-header-breadcrumb mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="page-title fw-medium fs-20 mb-0">Auditoría de Productos & Precios</h1>
+        <div class="text-muted fs-12">
+            Monitoreo de cambios de precio, stock y lotes asociados a cada producto (datos de ejemplo).
+        </div>
+    </div>
+
+    <!-- Filtros visuales (mock, listos para conectar a backend) -->
+    <div class="d-flex align-items-center flex-wrap gap-2">
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Desde</label>
+            <input type="date" class="form-control" @bind="FromDate" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Hasta</label>
+            <input type="date" class="form-control" @bind="ToDate" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Producto</label>
+            <select class="form-select" @bind="SelectedProductCode">
+                <option value="Todos">Todos</option>
+                @foreach (var p in ProductFilters)
+                {
+                    <option value="@p.Code">@p.DisplayName</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Tipo de cambio</label>
+            <select class="form-select" @bind="SelectedChangeType">
+                <option value="Todos">Todos</option>
+                <option value="Precio">Precio</option>
+                <option value="Stock">Stock</option>
+                <option value="Lote">Lote</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label d-block mb-1">Usuario</label>
+            <select class="form-select" @bind="SelectedUser">
+                <option value="Todos">Todos</option>
+                @foreach (var u in UserFilters)
+                {
+                    <option value="@u">@u</option>
+                }
+            </select>
+        </div>
+
+        <div class="btn-list ms-2 mt-4">
+            <button class="btn btn-primary btn-wave" @onclick="OnApplyFilters">
+                <i class="ri-search-line me-1"></i> Aplicar filtros
+            </button>
+            <button class="btn btn-outline-secondary btn-wave" @onclick="OnClearFilters">
+                <i class="ri-filter-off-line me-1"></i> Limpiar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- FILA SUPERIOR: KPIs + GRAFICOS + TOP CAMBIOS -->
+<div class="row">
+    <!-- Columna izquierda: KPIs -->
+    <div class="col-xxl-3">
+        <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+            <div class="card-body d-flex align-items-start gap-3">
+                <div class="flex-fill">
+                    <span class="fs-13 fw-medium">Productos con cambio de precio</span>
+                    <h4 class="fw-semibold my-2">@KpiProductsWithPriceChanges</h4>
+                    <span class="text-muted fs-11">Últimos 30 días (mock).</span>
+                </div>
+                <span class="avatar avatar-md bg-primary-transparent svg-primary">
+                    <i class="ri-price-tag-3-line fs-20"></i>
+                </span>
+            </div>
+        </div>
+
+        <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+            <div class="card-body d-flex align-items-start gap-3">
+                <div class="flex-fill">
+                    <span class="fs-13 fw-medium">Variación promedio de precio</span>
+                    <h4 class="fw-semibold my-2 @(KpiAvgPriceVariation >= 0 ? "text-success" : "text-danger")">
+                        @KpiAvgPriceVariation.ToString("+#0.0%;-#0.0%")
+                    </h4>
+                    <span class="text-muted fs-11">Sobre el último mes (mock).</span>
+                </div>
+                <span class="avatar avatar-md bg-success-transparent svg-success">
+                    <i class="ri-line-chart-line fs-20"></i>
+                </span>
+            </div>
+        </div>
+
+        <div class="card custom-card dashboard-main-card overflow-hidden mb-3">
+            <div class="card-body d-flex align-items-start gap-3">
+                <div class="flex-fill">
+                    <span class="fs-13 fw-medium">Productos en stock crítico</span>
+                    <h4 class="fw-semibold my-2 text-warning">@KpiCriticalStockProducts</h4>
+                    <span class="text-muted fs-11">Por debajo del mínimo sugerido.</span>
+                </div>
+                <span class="avatar avatar-md bg-warning-transparent svg-warning">
+                    <i class="ri-alert-line fs-20"></i>
+                </span>
+            </div>
+        </div>
+
+        <div class="card custom-card dashboard-main-card overflow-hidden">
+            <div class="card-body d-flex align-items-start gap-3">
+                <div class="flex-fill">
+                    <span class="fs-13 fw-medium">Lotes próximos a vencer</span>
+                    <h4 class="fw-semibold my-2 text-danger">@KpiExpiringLots</h4>
+                    <span class="text-muted fs-11">Dentro de los próximos 30 días.</span>
+                </div>
+                <span class="avatar avatar-md bg-danger-transparent svg-danger">
+                    <i class="ri-timer-2-line fs-20"></i>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna central: gráficos -->
+    <div class="col-xxl-6 mt-3 mt-xxl-0">
+        <div class="card custom-card mb-3">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Evolución de precios</div>
+                <span class="text-muted fs-11">
+                    @PriceChartSubtitle
+                </span>
+            </div>
+            <div class="card-body pt-3 pb-0">
+                <ApexChart TItem="PriceHistoryPoint" Height="260" Options="PriceChartOptions">
+                    <ApexPointSeries TItem="PriceHistoryPoint"
+                                     Items="PriceHistory"
+                                     SeriesType="@SeriesType.Line"
+                                     Name="Precio de venta"
+                                     XValue="@(p => p.Label)"
+                                     YValue="@(p => p.Price)" />
+                </ApexChart>
+            </div>
+        </div>
+
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Movimientos de stock por tipo</div>
+                <span class="text-muted fs-11">Entradas, salidas y ajustes en el período.</span>
+            </div>
+            <div class="card-body pt-3 pb-1">
+                <ApexChart TItem="StockMovementSummary" Height="260" Options="StockChartOptions">
+                    <ApexPointSeries TItem="StockMovementSummary"
+                                     Items="StockMovements"
+                                     SeriesType="@SeriesType.Bar"
+                                     Name="Cantidad"
+                                     XValue="@(m => m.MovementType)"
+                                     YValue="@(m => m.TotalQuantity)" />
+                </ApexChart>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna derecha: ranking & lotes -->
+    <div class="col-xxl-3 mt-3 mt-xxl-0">
+        <div class="card custom-card mb-3">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Productos con más cambios de precio</div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    @foreach (var item in TopPriceChanges)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold">@item.ProductName</div>
+                                <small class="text-muted">
+                                    @item.ChangeCount cambio(s) • Último: @item.LastChangeDate.ToString("dd/MM/yyyy")
+                                </small>
+                            </div>
+                            <span class="badge @GetPriceChangeBadgeClass(item.LastVariation)">
+                                @item.LastVariation.ToString("+#0.0%;-#0.0%")
+                            </span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Lotes próximos a vencer</div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 fs-12">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Lote</th>
+                                <th>F. Expira</th>
+                                <th>Cant.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var lot in ExpiringLots)
+                            {
+                                <tr>
+                                    <td>@lot.ProductName</td>
+                                    <td>@lot.LotCode</td>
+                                    <td>@lot.ExpirationDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@lot.Quantity</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FILA INFERIOR: TABLAS DETALLADAS -->
+<div class="row mt-3">
+    <!-- Historial de cambios de precio -->
+    <div class="col-xl-7">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Historial de cambios de precio</div>
+                <span class="text-muted fs-11">Basado en la tabla HISTORIAL_PRECIO (mock).</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 fs-12">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Producto</th>
+                            <th>Precio ant.</th>
+                            <th>Precio nue.</th>
+                            <th>Variación</th>
+                            <th>Usuario</th>
+                            <th>Observación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in PriceChangeRows)
+                        {
+                            <tr>
+                                <td>@row.ChangeDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@row.ProductName</td>
+                                <td>@row.OldPrice.ToString("0.00")</td>
+                                <td>@row.NewPrice.ToString("0.00")</td>
+                                <td>
+                                    <span class="badge @GetPriceChangeBadgeClass(row.Variation)">
+                                        @row.Variation.ToString("+#0.0%;-#0.0%")
+                                    </span>
+                                </td>
+                                <td>@row.UserName</td>
+                                <td>@row.Notes</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movimientos de stock recientes -->
+    <div class="col-xl-5 mt-3 mt-xl-0">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">Movimientos de stock recientes</div>
+                <span class="text-muted fs-11">Basado en MOVIMIENTO_STOCK / LOTES (mock).</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 fs-12">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Producto</th>
+                            <th>Tipo</th>
+                            <th>Cant.</th>
+                            <th>Lote</th>
+                            <th>Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in StockMovementRows)
+                        {
+                            <tr>
+                                <td>@row.MovementDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@row.ProductName</td>
+                                <td>
+                                    <span class="badge bg-@row.BadgeClass">@row.MovementType</span>
+                                </td>
+                                <td>@row.Quantity</td>
+                                <td>@row.LotCode</td>
+                                <td>@row.UserName</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Filtros (solo visual por ahora)
+    private DateTime FromDate { get; set; } = DateTime.Today.AddDays(-30);
+    private DateTime ToDate { get; set; } = DateTime.Today;
+    private string SelectedProductCode { get; set; } = "Todos";
+    private string SelectedChangeType { get; set; } = "Todos";
+    private string SelectedUser { get; set; } = "Todos";
+
+    // Listas para combos (mock, pero pensadas para venir de PRODUCTOS/USUARIOS)
+    private List<ProductFilterItem> ProductFilters = new();
+    private List<string> UserFilters = new();
+
+    // KPIs (mock)
+    private int KpiProductsWithPriceChanges;
+    private decimal KpiAvgPriceVariation; // -0.12m = -12%, 0.08m = +8%
+    private int KpiCriticalStockProducts;
+    private int KpiExpiringLots;
+
+    // Gráficos
+    private List<PriceHistoryPoint> PriceHistory = new();
+    private List<StockMovementSummary> StockMovements = new();
+
+    private ApexChartOptions<PriceHistoryPoint> PriceChartOptions = new();
+    private ApexChartOptions<StockMovementSummary> StockChartOptions = new();
+
+    private string PriceChartSubtitle => SelectedProductCode == "Todos"
+        ? "Promedio de productos seleccionados (mock)."
+        : $"Producto: {ProductFilters.FirstOrDefault(p => p.Code == SelectedProductCode)?.DisplayName ?? SelectedProductCode}";
+
+    // Tablas
+    private List<ProductPriceChangeRow> PriceChangeRows = new();
+    private List<StockMovementRow> StockMovementRows = new();
+    private List<TopProductPriceChangeRow> TopPriceChanges = new();
+    private List<ExpiringLotRow> ExpiringLots = new();
+
+    protected override Task OnInitializedAsync()
+    {
+        // TODO: en producción, aquí llamarías a un servicio de auditoría, por ejemplo:
+        // await _auditoriaProductosService.CargarDashboardAsync(FromDate, ToDate, SelectedProductCode, SelectedChangeType, SelectedUser);
+        // y mapearías las respuestas a las propiedades de este componente.
+
+        LoadMockFilters();
+        LoadMockData();
+        ConfigureCharts();
+
+        return Task.CompletedTask;
+    }
+
+    private void OnApplyFilters()
+    {
+        // TODO: cuando conectes el backend, aquí harás la llamada al servicio
+        // usando los filtros seleccionados.
+        // Por ahora solo regeneramos los mocks para simular que reaccionan a filtros.
+        LoadMockData();
+    }
+
+    private void OnClearFilters()
+    {
+        FromDate = DateTime.Today.AddDays(-30);
+        ToDate = DateTime.Today;
+        SelectedProductCode = "Todos";
+        SelectedChangeType = "Todos";
+        SelectedUser = "Todos";
+
+        LoadMockData();
+    }
+
+    private void LoadMockFilters()
+    {
+        ProductFilters = new List<ProductFilterItem>
+        {
+            new() { Code = "PRO-0009", DisplayName = "PRO-0009 • Manzana (unidad)" },
+            new() { Code = "PRO-0010", DisplayName = "PRO-0010 • Tomates (libra)" },
+            new() { Code = "PRO-0011", DisplayName = "PRO-0011 • Cuaderno universitario" },
+        };
+
+        UserFilters = new List<string> { "admin", "jperez", "mcastro" };
+    }
+
+    private void LoadMockData()
+    {
+        // KPIs
+        KpiProductsWithPriceChanges = 3;
+        KpiAvgPriceVariation = 0.125m; // +12.5%
+        KpiCriticalStockProducts = 2;
+        KpiExpiringLots = 3;
+
+        // Historial de precios (simulando HISTORIAL_PRECIO para un producto)
+        PriceHistory = new List<PriceHistoryPoint>
+        {
+            new() { Label = "01 nov", Price = 0.50m },
+            new() { Label = "08 nov", Price = 0.55m },
+            new() { Label = "15 nov", Price = 0.60m },
+            new() { Label = "22 nov", Price = 0.69m },
+            new() { Label = "29 nov", Price = 0.72m },
+        };
+
+        // Resumen de movimientos de stock (MOVIMIENTO_STOCK)
+        StockMovements = new List<StockMovementSummary>
+        {
+            new() { MovementType = "Entradas", TotalQuantity = 340m },
+            new() { MovementType = "Salidas",  TotalQuantity = 295m },
+            new() { MovementType = "Ajustes",  TotalQuantity = 18m },
+        };
+
+        // Tabla: historial de cambios de precio (HISTORIAL_PRECIO)
+        PriceChangeRows = new List<ProductPriceChangeRow>
+        {
+            new()
+            {
+                ChangeDate = DateTime.Today.AddDays(-10),
+                ProductName = "PRO-0009 • Manzana (unidad)",
+                OldPrice = 0.50m,
+                NewPrice = 0.69m,
+                Variation = (0.69m / 0.50m) - 1m,
+                UserName = "admin",
+                Notes = "Actualización de precios por incremento de costos."
+            },
+            new()
+            {
+                ChangeDate = DateTime.Today.AddDays(-7),
+                ProductName = "PRO-0010 • Tomates (libra)",
+                OldPrice = 0.10m,
+                NewPrice = 0.14m,
+                Variation = (0.14m / 0.10m) - 1m,
+                UserName = "mcastro",
+                Notes = "Ajuste por temporada alta."
+            },
+            new()
+            {
+                ChangeDate = DateTime.Today.AddDays(-3),
+                ProductName = "PRO-0009 • Manzana (unidad)",
+                OldPrice = 0.69m,
+                NewPrice = 0.72m,
+                Variation = (0.72m / 0.69m) - 1m,
+                UserName = "jperez",
+                Notes = "Redondeo de precios."
+            },
+            new()
+            {
+                ChangeDate = DateTime.Today.AddDays(-1),
+                ProductName = "PRO-0011 • Cuaderno universitario",
+                OldPrice = 1.50m,
+                NewPrice = 1.60m,
+                Variation = (1.60m / 1.50m) - 1m,
+                UserName = "admin",
+                Notes = "Actualización de precios por proveedor."
+            },
+        };
+
+        // Tabla: movimientos de stock recientes (MOVIMIENTO_STOCK + LOTES)
+        StockMovementRows = new List<StockMovementRow>
+        {
+            new()
+            {
+                MovementDate = DateTime.Today.AddHours(-2),
+                ProductName = "PRO-0009 • Manzana (unidad)",
+                MovementType = "Entrada",
+                BadgeClass = "success",
+                Quantity = 50,
+                LotCode = "LOT-00020",
+                UserName = "jperez"
+            },
+            new()
+            {
+                MovementDate = DateTime.Today.AddHours(-4),
+                ProductName = "PRO-0010 • Tomates (libra)",
+                MovementType = "Salida",
+                BadgeClass = "primary",
+                Quantity = 30,
+                LotCode = "LOT-00021",
+                UserName = "mcastro"
+            },
+            new()
+            {
+                MovementDate = DateTime.Today.AddHours(-8),
+                ProductName = "PRO-0011 • Cuaderno universitario",
+                MovementType = "Entrada",
+                BadgeClass = "success",
+                Quantity = 200,
+                LotCode = "LOT-00024",
+                UserName = "admin"
+            },
+            new()
+            {
+                MovementDate = DateTime.Today.AddDays(-1),
+                ProductName = "PRO-0009 • Manzana (unidad)",
+                MovementType = "Ajuste",
+                BadgeClass = "warning",
+                Quantity = -5,
+                LotCode = "LOT-00025",
+                UserName = "jperez"
+            },
+        };
+
+        // Ranking de productos con más cambios de precio
+        TopPriceChanges = new List<TopProductPriceChangeRow>
+        {
+            new()
+            {
+                ProductName = "PRO-0009 • Manzana (unidad)",
+                ChangeCount = 2,
+                LastVariation = (0.72m / 0.69m) - 1m,
+                LastChangeDate = DateTime.Today.AddDays(-3)
+            },
+            new()
+            {
+                ProductName = "PRO-0010 • Tomates (libra)",
+                ChangeCount = 1,
+                LastVariation = (0.14m / 0.10m) - 1m,
+                LastChangeDate = DateTime.Today.AddDays(-7)
+            },
+            new()
+            {
+                ProductName = "PRO-0011 • Cuaderno universitario",
+                ChangeCount = 1,
+                LastVariation = (1.60m / 1.50m) - 1m,
+                LastChangeDate = DateTime.Today.AddDays(-1)
+            },
+        };
+
+        // Lotes próximos a vencer (LOTES)
+        ExpiringLots = new List<ExpiringLotRow>
+        {
+            new()
+            {
+                ProductName = "PRO-0009 • Manzana (unidad)",
+                LotCode = "LOT-00022",
+                ExpirationDate = DateTime.Today.AddDays(20),
+                Quantity = 50
+            },
+            new()
+            {
+                ProductName = "PRO-0010 • Tomates (libra)",
+                LotCode = "LOT-00021",
+                ExpirationDate = DateTime.Today.AddDays(15),
+                Quantity = 30
+            },
+            new()
+            {
+                ProductName = "PRO-0009 • Manzana (unidad)",
+                LotCode = "LOT-00025",
+                ExpirationDate = DateTime.Today.AddDays(28),
+                Quantity = 10
+            },
+        };
+    }
+
+    private void ConfigureCharts()
+    {
+        PriceChartOptions = new ApexChartOptions<PriceHistoryPoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            Stroke = new Stroke { Curve = Curve.Smooth, Width = new List<double> { 3 } },
+            DataLabels = new DataLabels { Enabled = false },
+            Yaxis = new List<YAxis>
+            {
+                new YAxis { Labels = new YAxisLabels { Formatter = "function(val){ return '$ ' + val.toFixed(2); }" } }
+            }
+        };
+
+        StockChartOptions = new ApexChartOptions<StockMovementSummary>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar { ColumnWidth = "45%" }
+            },
+            DataLabels = new DataLabels { Enabled = false }
+        };
+    }
+
+    private string GetPriceChangeBadgeClass(decimal variation) =>
+        variation switch
+        {
+            >= 0.15m => "bg-danger text-white",
+            >= 0.05m => "bg-warning text-body",
+            <= -0.05m => "bg-primary text-white",
+            _ => "bg-secondary text-white"
+        };
+
+    // DTOs internos
+
+    public class ProductFilterItem
+    {
+        public string Code { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+    }
+
+    public class PriceHistoryPoint
+    {
+        public string Label { get; set; } = "";
+        public decimal Price { get; set; }
+    }
+
+    public class StockMovementSummary
+    {
+        public string MovementType { get; set; } = "";
+        public decimal TotalQuantity { get; set; }
+    }
+
+    public class ProductPriceChangeRow
+    {
+        public DateTime ChangeDate { get; set; }
+        public string ProductName { get; set; } = "";
+        public decimal OldPrice { get; set; }
+        public decimal NewPrice { get; set; }
+        public decimal Variation { get; set; }
+        public string UserName { get; set; } = "";
+        public string Notes { get; set; } = "";
+    }
+
+    public class StockMovementRow
+    {
+        public DateTime MovementDate { get; set; }
+        public string ProductName { get; set; } = "";
+        public string MovementType { get; set; } = "";
+        public string BadgeClass { get; set; } = "secondary";
+        public int Quantity { get; set; }
+        public string LotCode { get; set; } = "";
+        public string UserName { get; set; } = "";
+    }
+
+    public class TopProductPriceChangeRow
+    {
+        public string ProductName { get; set; } = "";
+        public int ChangeCount { get; set; }
+        public decimal LastVariation { get; set; }
+        public DateTime LastChangeDate { get; set; }
+    }
+
+    public class ExpiringLotRow
+    {
+        public string ProductName { get; set; } = "";
+        public string LotCode { get; set; } = "";
+        public DateTime ExpirationDate { get; set; }
+        public int Quantity { get; set; }
+    }
+}

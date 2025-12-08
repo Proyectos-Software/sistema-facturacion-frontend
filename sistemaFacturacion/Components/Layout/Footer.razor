@@ -1,0 +1,21 @@
+<!-- Footer Start -->
+<footer class="footer mt-auto py-3 text-center">
+    <div class="container">
+        <span class="text-muted"> Copyright © @currentYear<span id="year"></span> <a
+                href="javascript:void(0);" class="text-dark fw-medium">Equipo de desarrollo</a>.
+            Designed with by All
+            rights
+            reserved
+        </span>
+    </div>
+</footer>
+<!-- Footer End -->
+
+@code {
+    private int currentYear;
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        currentYear = DateTime.Now.Year;
+    }
+}

@@ -1,0 +1,211 @@
+﻿@page "/"
+@page "/index"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components
+
+@layout Components.Layout.CustomLayout
+@attribute [AllowAnonymous]
+@inject IJSRuntime JS
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@implements IAsyncDisposable
+
+<div class="authentication-background">
+    @if (!_isCheckingAuth)
+    {
+        <div class="auth-bg-wrapper">
+            <div class="authentication-basic-background">
+                <img src="../assets/images/media/backgrounds/9.png" alt="">
+            </div>
+
+            <div id="login-bg"></div>
+            <div class="container">
+                <div class="row justify-content-center align-items-center authentication authentication-basic h-100">
+                    <div class="col-xxl-4 col-xl-5 col-lg-6 col-md-6 col-sm-8 col-12">
+                        <div class="card custom-card my-4 border-0">
+                            <div class="card-body p-sm-5 p-4">
+                                <div class="mb-4">
+                                    <a href="/index">
+                                        <img src="../assets/images/brand-logos/toggle-logo.png" alt="logo" class="desktop-dark">
+                                    </a>
+                                </div>
+                                <div>
+                                    <h4 class="fw-semibold mb-1">Hola, ¡bienvenido de nuevo!</h4>
+                                    <p class="text-muted fw-normal mb-4">Por favor, ingrese sus credenciales</p>
+                                </div>
+
+                                <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+                                    <DataAnnotationsValidator />
+                                    <div class="row gy-3">
+                                        <div class="col-xl-12">
+                                            <label for="signin-email" class="form-label text-default">Correo electrónico</label>
+                                            <InputText @bind-Value="loginModel.Username"
+                                                       type="text"
+                                                       class="form-control"
+                                                       id="signin-email"
+                                                       placeholder="Ingrese su correo electrónico" />
+                                            <ValidationMessage For="@(() => loginModel.Username)" />
+                                        </div>
+                                        <div class="col-xl-12 mb-2">
+                                            <label for="signin-password" class="form-label text-default d-block">Contraseña</label>
+                                            <div class="position-relative">
+                                                <PasswordToggle @bind-Password="loginModel.Password" />
+                                                <ValidationMessage For="@(() => loginModel.Password)" />
+                                            </div>
+                                            <div class="mt-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="" id="defaultCheck1" checked>
+                                                    <label class="form-check-label" for="defaultCheck1">
+                                                        Recordarme
+                                                    </label>
+                                                    <a href="/recovery-password" class="link-danger fw-medium fs-12 float-end">¿Olvidó su contraseña?</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(errorMessage))
+                                    {
+                                        <div class="alert alert-danger mt-2">@errorMessage</div>
+                                    }
+
+                                    <div class="d-grid mt-3">
+                                        <button type="submit" class="btn btn-primary" disabled="@_isLoggingIn">
+                                            @if (_isLoggingIn)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                <span>Iniciando sesión...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Iniciar sesión</span>
+                                            }
+                                        </button>
+                                    </div>
+                                </EditForm>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="text-muted mt-3">Verificando sesión...</p>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private LoginRequest loginModel = new() { Username = "", Password = "" };
+    private string? errorMessage;
+    private bool _isCheckingAuth = true;
+    private bool _isLoggingIn = false;
+    private bool _particlesInitialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            NavigationManager.NavigateTo("/dashboard/admin", replace: true);
+            return;
+        }
+
+        _isCheckingAuth = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_isCheckingAuth || _particlesInitialized) return;
+
+        for (int attempt = 1; attempt <= 10; attempt++)
+        {
+            try
+            {
+                await Task.Delay(attempt * 150);
+
+                var functionsReady = await JS.InvokeAsync<bool>("eval",
+                    "typeof window.particleFunctions?.mountParticlesBG === 'function'");
+
+                if (!functionsReady)
+                {
+                    if (attempt == 10)
+                    {
+                        var tsParticlesExists = await JS.InvokeAsync<bool>("eval", "typeof window.tsParticles !== 'undefined'");
+                        var pfExists = await JS.InvokeAsync<bool>("eval", "typeof window.particleFunctions !== 'undefined'");
+                    }
+                    continue;
+                }
+
+                var elementExists = await JS.InvokeAsync<bool>("eval",
+                    "document.getElementById('login-bg') !== null");
+
+                if (!elementExists)
+                {
+                    continue;
+                }
+                await JS.InvokeVoidAsync("particleFunctions.mountParticlesBG", "login-bg");
+
+                _particlesInitialized = true;
+                break;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error intento {attempt}/10: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        errorMessage = null;
+        _isLoggingIn = true;
+
+        try
+        {
+            bool success = await AuthService.LoginAsync(loginModel);
+
+            if (success)
+            {
+                NavigationManager.NavigateTo("/dashboard/admin", forceLoad: true);
+            }
+            else
+            {
+                errorMessage = "Usuario o contraseña incorrectos.";
+                _isLoggingIn = false;
+            }
+        }
+        catch
+        {
+            errorMessage = "Error de conexión. Inténtelo de nuevo.";
+            _isLoggingIn = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!_particlesInitialized) return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("window.particleFunctions.unmountParticlesBG", "login-bg");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error unmounting particles: {ex.Message}");
+        }
+    }
+}

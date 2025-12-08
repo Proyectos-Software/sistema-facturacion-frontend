@@ -1,0 +1,74 @@
+@inject LandingMenuDataService LandingMenuData
+@inject NavigationManager Navigation
+
+<li class="slide @(Item.Children?.Any() == true ? "has-sub" : "") @(Item.Active? "open" : "") @(Item.Selected? "active" : "")">
+    <a class="side-menu__item @(Item.Selected? "active" : "")" href="@GetLinkHref()" @onclick="HandleClick" @onclick:preventDefault>
+    
+        <span class="side-menu__label">@Item.Title</span>
+
+        @if (!string.IsNullOrWhiteSpace(Item.BadgeValue))
+        {
+            <span class="badge @Item.BadgeClass">@Item.BadgeValue</span>
+        }
+
+        @if (Item.Children?.Any() == true)
+        {
+            <i class="fe fe-chevron-right side-menu__angle"></i>
+        }
+    </a>
+
+    @if (Item.Children?.Any() == true)
+    {
+        <ul class="slide-menu @GetChildClass() @(Item.Active ? "active" : "")">
+           @foreach (var child in Item.Children)
+            {
+                <LandingSubNavMenu Item="child" Level="@(Level + 1)" OnToggleSubmenu="@OnToggleSubmenu" Siblings="Item.Children" />
+            }
+        </ul>
+    }
+</li>
+
+@code {
+
+    [Parameter]
+    public MainMenuItems[] Siblings { get; set; } = Array.Empty<MainMenuItems>();
+
+    [Parameter]
+    public MainMenuItems Item { get; set; } = default!;
+
+    [Parameter]
+    public int Level { get; set; } = 1;
+
+    [Parameter] public EventCallback<(MainMenuItems, MainMenuItems[])> OnToggleSubmenu { get; set; }
+
+    private string GetLinkHref() =>
+        string.IsNullOrWhiteSpace(Item.Path) || Item.Type == "sub" ? "javascript:void(0);" : Item.Path;
+
+    private string GetChildClass() => $"child{Level}";
+
+    private async Task HandleClick(MouseEventArgs e)
+    {
+        if (Item.Type == "sub")
+        {
+            await TriggerFunction(Item, Item.Children ?? new MainMenuItems[0]);
+        }
+        else if (Item.Type == "link")
+        {
+            // Set current item as selected
+            foreach (var sibling in Siblings)
+            {
+                sibling.Selected = false; // Unselect others
+            }
+            
+            Item.Selected = true; 
+            Navigation.NavigateTo(Item.Path);
+        }
+    }
+
+    private async Task TriggerFunction(MainMenuItems menu, MainMenuItems[] childmenuData)
+    {
+        var tuple = (menu, childmenuData);
+        await OnToggleSubmenu.InvokeAsync(tuple);
+    }
+
+}

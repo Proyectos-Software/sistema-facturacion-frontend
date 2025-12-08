@@ -1,0 +1,23 @@
+﻿@inherits ComponentBase
+
+@if (Visible)
+{
+    <div class="modal-backdrop">
+        <div class="modal-container">
+            <button class="close-btn" @onclick="Close">X</button>
+
+            <iframe src="@PdfUrl" width="100%" height="600px"></iframe>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string PdfUrl { get; set; }
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private Task Close()
+    {
+        return OnClose.InvokeAsync();
+    }
+}

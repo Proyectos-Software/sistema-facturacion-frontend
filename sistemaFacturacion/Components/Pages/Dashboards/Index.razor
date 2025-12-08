@@ -1,0 +1,734 @@
+﻿@page "/dashboard/admin"
+@using ApexCharts
+@using System.Globalization
+@using FlatpickrBlazor
+@using FlatpickrBlazor.Components
+@using Microsoft.AspNetCore.Authorization
+@using sistemaFacturacion.Services
+@using sistemaFacturacion.Models
+@inject NavigationManager Nav
+@inject IFacturasApiClient ApiClient
+@attribute [Authorize]
+
+<div class="d-flex align-items-center justify-content-between page-header-breadcrumb mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="page-title fw-medium fs-20 mb-0">Dashboard de Facturación</h1>
+        <div class="text-muted fs-12">Ventas, facturas SRI y stock (últimos 30 días por defecto)</div>
+    </div>
+
+    <div class="d-flex align-items-center flex-wrap gap-2">
+        <div class="form-group custom-main-page">
+            <Flatpickr class="form-control breadcrumb-input"
+                       @ref="_datepicker"
+                       Options="@calendarOpts"
+                       OnChange="OnDateRangeChanged" />
+        </div>
+
+        <div class="form-group">
+            <select class="form-select" @bind="Filters.SriStatus" @bind:after="OnFiltersChanged">
+                <option value="">Todos los estados SRI</option>
+                @foreach (var s in SriStates)
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <select class="form-select" @bind="Filters.SalesUserId" @bind:after="OnFiltersChanged">
+                <option value="">Todos los vendedores</option>
+                @foreach (var u in Sellers)
+                {
+                    <option value="@u.Id">@u.Name</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <select class="form-select" @bind="Filters.BranchId" @bind:after="OnFiltersChanged">
+                <option value="">Todas las sucursales</option>
+                @foreach (var b in Branches)
+                {
+                    <option value="@b.Id">@b.Name</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-check form-switch ms-2">
+            <input class="form-check-input" type="checkbox" role="switch" id="switchCompare"
+                   @bind="Filters.CompareWithPrevious" @bind:after="OnFiltersChanged" />
+            <label class="form-check-label" for="switchCompare">Comparar</label>
+        </div>
+
+        <div class="btn-list ms-2">
+            <button class="btn btn-icon btn-primary btn-wave" @onclick="ApplyFilters" title="Aplicar filtros" disabled="@_isLoading">
+                <i class="ri-refresh-line"></i>
+            </button>
+            <button class="btn btn-icon btn-secondary btn-wave me-0" @onclick="ResetFilters" title="Limpiar filtros" disabled="@_isLoading">
+                <i class="ri-filter-3-line"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+@if (_isLoading)
+{
+    <div class="py-5 text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+}
+else if (_errorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error:</strong> @_errorMessage
+        <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-xxl-9">
+            <div class="row">
+                <div class="col-xl-3">
+                    <div class="row">
+                        @foreach (var k in Kpis)
+                        {
+                            <div class="col-xl-12 col-md-6">
+                                <div class="card custom-card dashboard-main-card overflow-hidden">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <div class="flex-fill">
+                                                <span class="fs-13 fw-medium">@k.Title</span>
+                                                <h4 class="fw-semibold lh-1 my-2">@k.FormattedValue</h4>
+                                                <span class="badge bg-@k.BadgeClass">@k.ChangeText</span>
+                                            </div>
+                                            <div>
+                                                <!-- AQUI SE INVOCAN LOS METODOS PARA ICONOS Y COLORES -->
+                                                <span class="avatar avatar-md bg-@GetSvgColor(k.Type)-transparent svg-@GetSvgColor(k.Type)">
+                                                    @GetKpiIcon(k.Type)
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-xl-9">
+                    <div class="card custom-card">
+                        <div class="card-header justify-content-between">
+                            <div class="card-title">Ventas e Impuestos</div>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn @(_bucket == "day" ? "btn-primary" : "btn-primary-light")" @onclick='() => SetBucket("day")'>Día</button>
+                                <button class="btn @(_bucket == "week" ? "btn-primary" : "btn-primary-light")" @onclick='() => SetBucket("week")'>Semana</button>
+                                <button class="btn @(_bucket == "month" ? "btn-primary" : "btn-primary-light")" @onclick='() => SetBucket("month")'>Mes</button>
+                            </div>
+                        </div>
+
+                        <div class="card-body pt-4 pb-0">
+                            @if (Sales.Any())
+                            {
+                                <ApexChart TItem="SalesPointDto" Height="350" Options="SalesOptions">
+                                    <ApexPointSeries TItem="SalesPointDto" Items="Sales" SeriesType="@SeriesType.Bar" Name="Subtotal" XValue="@(e => e.BucketLabel)" YAggregate="@(e => e.Sum(x => x.Subtotal))" />
+                                    <ApexPointSeries TItem="SalesPointDto" Items="Sales" SeriesType="@SeriesType.Bar" Name="IVA" XValue="@(e => e.BucketLabel)" YAggregate="@(e => e.Sum(x => x.IVA))" />
+                                    <ApexPointSeries TItem="SalesPointDto" Items="Sales" SeriesType="@SeriesType.Line" Name="Total" XValue="@(e => e.BucketLabel)" YAggregate="@(e => e.Sum(x => x.Ventas))" ShowDataLabels />
+                                    <ApexPointSeries TItem="SalesPointDto" Items="Sales" SeriesType="@SeriesType.Area" Name="Facturas Aut." XValue="@(e => e.BucketLabel)" YAggregate="@(e => e.Sum(x => x.FacturasAut))" />
+                                </ApexChart>
+                            }
+                            else
+                            {
+                                <div class="text-muted py-5 text-center">No hay datos para mostrar</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xxl-3">
+            <div class="row">
+                <div class="col-xl-12">
+                    <div class="card custom-card">
+                        <div class="card-header justify-content-between">
+                            <div class="card-title">Top productos (por cantidad)</div>
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                @if (TopProductos.Any())
+                                {
+                                    @foreach (var p in TopProductos)
+                                    {
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>@p.Nombre</span>
+                                            <span class="badge bg-primary">@p.Cantidad</span>
+                                        </li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li class="list-group-item text-muted text-center">Sin datos</li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-12">
+                    <div class="card custom-card">
+                        <div class="card-header justify-content-between">
+                            <div class="card-title">Alertas de stock</div>
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                @if (AlertasStock.Any())
+                                {
+                                    @foreach (var a in AlertasStock)
+                                    {
+                                        var danger = a.Stock <= a.Minimo;
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="fw-semibold">@a.Nombre <span class="text-muted">(@a.Codigo)</span></div>
+                                                <small class="text-muted">Mínimo: @a.Minimo</small>
+                                            </div>
+                                            <span class="badge @(danger ? "bg-danger" : "bg-warning")">Stock: @a.Stock</span>
+                                        </li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li class="list-group-item text-muted text-center">Sin alertas</li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card custom-card">
+                <div class="card-header justify-content-between">
+                    <div class="card-title">Últimas facturas</div>
+                    <a class="fs-12 text-muted text-decoration-underline" href="/dasboards/facturas">Ver todas</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table-hover mb-0 table">
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Cliente</th>
+                                <th>Fecha</th>
+                                <th>Estado SRI</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (UltimasFacturas.Any())
+                            {
+                                @foreach (var f in UltimasFacturas)
+                                {
+                                    var cls = f.EstadoSRI switch
+                                    {
+                                        "AUTORIZADA" => "badge bg-success",
+                                        "DEVUELTA" => "badge bg-warning",
+                                        "RECHAZADA" => "badge bg-danger",
+                                        "ENVIADA" => "badge bg-info",
+                                        "ANULADA" => "badge bg-secondary",
+                                        _ => "badge bg-light text-dark"
+                                    };
+                                    <tr>
+                                        <td>@f.Numero</td>
+                                        <td>@f.Cliente</td>
+                                        <td>@f.Fecha.ToString("yyyy-MM-dd")</td>
+                                        <td><span class="@cls">@f.EstadoSRI</span></td>
+                                        <td class="text-end">@FormatMoney(f.Total)</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-muted text-center">No hay facturas recientes</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Inject] public IProductosApiClient ProductosApiClient { get; set; } = default!;
+    [Inject] public ILotesApiClient LotesApiClient { get; set; } = default!;
+
+    private bool _isLoading = true;
+    private string? _errorMessage = null;
+    private string _bucket = "day";
+
+    private DashboardFiltersRequest Filters { get; set; } = new()
+    {
+        From = DateTime.UtcNow.AddDays(-60).Date,
+        To = DateTime.UtcNow.Date,
+        Bucket = "day"
+    };
+
+    private List<string> SriStates { get; set; } = new() { "AUTORIZADO", "RECHAZADO_SRI", "FIRMADO" };
+    private List<IdNameDto> Sellers { get; set; } = new();
+    private List<IdNameDto> Branches { get; set; } = new();
+
+    private List<KpiDto> Kpis = new();
+    private List<SalesPointDto> Sales = new();
+    private List<TopProductDto> TopProductos = new();
+    private List<StockAlertDto> AlertasStock = new();
+    private List<InvoiceRowDto> UltimasFacturas = new();
+
+    private Flatpickr? _datepicker;
+    private FlatpickrOptions calendarOpts = new()
+    {
+        Inline = false,
+        Mode = FlatpickrOptionsMode.Range,
+        DateFormat = "Y-m-d",
+        DefaultDate = new List<string>
+        {
+            DateTime.UtcNow.AddDays(-60).ToString("yyyy-MM-dd"),
+            DateTime.UtcNow.ToString("yyyy-MM-dd")
+        }
+    };
+
+    private ApexChartOptions<SalesPointDto> SalesOptions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        BuildChartOptions();
+        await LoadAllAsync();
+    }
+
+    private async Task LoadAllAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var facturasRaw = await ApiClient.GetFacturasAsync();
+            if (facturasRaw != null && facturasRaw.Any())
+            {
+                var query = facturasRaw.AsEnumerable();
+
+                if (Filters.From.HasValue)
+                    query = query.Where(x => x.FecFac >= Filters.From.Value);
+
+                if (Filters.To.HasValue)
+                {
+                    var toDate = Filters.To.Value.AddDays(1).AddTicks(-1);
+                    query = query.Where(x => x.FecFac <= toDate);
+                }
+
+                if (!string.IsNullOrEmpty(Filters.SriStatus))
+                {
+                    query = query.Where(x =>
+                        (x.EstFac ?? "").Equals(Filters.SriStatus, StringComparison.OrdinalIgnoreCase)
+                    );
+                }
+
+                ProcesarFacturas(query.ToList());
+            }
+            else
+            {
+                LimpiarDatosFacturas();
+            }
+
+            try
+            {
+                var productosRaw = await ProductosApiClient.GetAllAsync();
+                var lotesRaw = await LotesApiClient.GetAllAsync();
+
+                if (productosRaw != null && productosRaw.Any())
+                    ProcesarProductosConStock(productosRaw.ToList(), lotesRaw ?? new List<LoteDto>());
+            }
+            catch { /* Ignorar error productos si falla */ }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ProcesarFacturas(List<FacturaDto> datos)
+    {
+        Kpis.Clear();
+
+        decimal ventasTotal = datos.Sum(x => x.TotFac);
+        int totalFacturas = datos.Count;
+        int rechazadas = datos.Count(x => (x.EstFac ?? "").Equals("RECHAZADO_SRI", StringComparison.OrdinalIgnoreCase));
+        decimal ivaTotal = datos.Sum(x => x.IvaFac);
+
+        // KPIs con tipos para iconos
+        Kpis.Add(new KpiDto
+        {
+            Title = "Ventas Totales",
+            Value = ventasTotal,
+            FormattedValue = FormatMoney(ventasTotal),
+            Type = "ventas",
+            ChangeText = "Total periodo"
+        });
+
+        Kpis.Add(new KpiDto
+        {
+            Title = "Facturas",
+            Value = totalFacturas,
+            FormattedValue = totalFacturas.ToString(),
+            Type = "facturas",
+            ChangeText = "Emitidas"
+        });
+
+        Kpis.Add(new KpiDto
+        {
+            Title = "Rechazadas",
+            Value = rechazadas,
+            FormattedValue = rechazadas.ToString(),
+            Type = "rechazadas",
+            BadgeClass = "danger",
+            ChangeText = "SRI"
+        });
+
+        Kpis.Add(new KpiDto
+        {
+            Title = "IVA Total",
+            Value = ivaTotal,
+            FormattedValue = FormatMoney(ivaTotal),
+            Type = "iva",
+            BadgeClass = "info",
+            ChangeText = "Impuesto"
+        });
+
+        Sales = datos
+            .GroupBy(x => x.FecFac.Date)
+            .Select(g => new SalesPointDto
+            {
+                BucketLabel = g.Key.ToString("yyyy-MM-dd"),
+                Ventas = g.Sum(x => x.TotFac),
+                Subtotal = g.Sum(x => x.SubFac),
+                IVA = g.Sum(x => x.IvaFac),
+                FacturasAut = g.Count(x => (x.EstFac ?? "").Equals("AUTORIZADO", StringComparison.OrdinalIgnoreCase))
+            })
+            .OrderBy(x => x.BucketLabel)
+            .ToList();
+
+        UltimasFacturas = datos
+            .OrderByDescending(x => x.FecFac)
+            .Take(10)
+            .Select(x => new InvoiceRowDto
+            {
+                Numero = x.NumFac ?? "N/A",
+                Cliente = GetNombreCliente(x),
+                Fecha = x.FecFac,
+                EstadoSRI = x.EstFac ?? "PENDIENTE",
+                Total = x.TotFac
+            })
+            .ToList();
+    }
+
+    private void ProcesarProductosConStock(List<ProductoDto> productos, List<LoteDto> lotes)
+    {
+        AlertasStock.Clear();
+        TopProductos.Clear();
+
+        // Calcular stock total por producto (suma de CanDis de todos los lotes activos)
+        var stockPorProducto = lotes
+            .Where(l => l.EstLot)
+            .GroupBy(l => l.IdPro)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(l => l.CanDis)
+            );
+
+        // Alertas de stock: productos con stock bajo (menor a 10 unidades)
+        var UMBRAL_STOCK_BAJO = 10;
+
+        foreach (var producto in productos.Where(p => p.Estado))
+        {
+            var stock = stockPorProducto.GetValueOrDefault(producto.Id, 0);
+
+            if (stock <= UMBRAL_STOCK_BAJO && stock > 0)
+            {
+                AlertasStock.Add(new StockAlertDto
+                {
+                    Codigo = producto.Codigo ?? "N/A",
+                    Nombre = producto.Nombre ?? "N/A",
+                    Stock = stock,
+                    Minimo = UMBRAL_STOCK_BAJO
+                });
+            }
+        }
+
+        AlertasStock = AlertasStock.OrderBy(x => x.Stock).Take(5).ToList();
+
+        // Top productos por cantidad en stock
+        TopProductos = productos
+            .Where(p => p.Estado && stockPorProducto.ContainsKey(p.Id))
+            .OrderByDescending(p => stockPorProducto[p.Id])
+            .Take(5)
+            .Select(p => new TopProductDto
+            {
+                Nombre = p.Nombre ?? "N/A",
+                Cantidad = stockPorProducto[p.Id],
+                MontoTotal = p.PrecioVenta * stockPorProducto[p.Id]
+            }).ToList();
+    }
+
+    private void LimpiarDatosFacturas()
+    {
+        Kpis.Clear(); Sales.Clear(); UltimasFacturas.Clear();
+    }
+
+    // --- Helper para nombre de cliente ---
+    private string GetNombreCliente(FacturaDto factura)
+    {
+        if (factura.Cliente != null)
+        {
+            var esEmpresa = factura.Cliente.ApeCli?.Contains("-") ?? false;
+            return esEmpresa
+                ? factura.Cliente.NomCli ?? "N/A"
+                : $"{factura.Cliente.NomCli} {factura.Cliente.ApeCli}".Trim();
+        }
+        return $"Cliente {factura.IdCli}";
+    }
+
+    private void OnDateRangeChanged(List<DateTimeOffset> selectedDatesOffsets)
+    {
+        if (selectedDatesOffsets.Count == 2)
+        {
+            Filters.From = selectedDatesOffsets[0].DateTime;
+            Filters.To = selectedDatesOffsets[1].DateTime;
+            ApplyFilters();
+        }
+    }
+
+    private void OnFiltersChanged() => ApplyFilters();
+    private async Task ApplyFilters() => await LoadAllAsync();
+    private async Task ResetFilters()
+    {
+        Filters.From = DateTime.UtcNow.AddDays(-60).Date;
+        Filters.To = DateTime.UtcNow.Date;
+        Filters.SriStatus = "";
+        await LoadAllAsync();
+    }
+    private async Task SetBucket(string bucket) { _bucket = bucket; await LoadAllAsync(); }
+
+    private string FormatMoney(decimal v)
+    {
+        if (v >= 1_000_000) return $"${Math.Round(v / 1_000_000M, 1)}M";
+        if (v >= 1_000) return $"${Math.Round(v / 1_000M, 1)}K";
+        return $"${v:N2}";
+    }
+
+    private void BuildChartOptions()
+    {
+        SalesOptions = new ApexChartOptions<SalesPointDto>
+        {
+            Chart = new Chart
+            {
+                Toolbar = new Toolbar
+                {
+                    Show = true,
+                    Tools = new Tools { Download = true, Zoom = true }
+                },
+                Animations = new Animations { Enabled = true, Speed = 800 },
+                Stacked = false
+            },
+            DataLabels = new DataLabels
+            {
+                Enabled = true,
+                EnabledOnSeries = new List<double> { 2 }
+            },
+            Stroke = new Stroke
+            {
+                Curve = Curve.Smooth,
+                Width = new List<double> { 0, 0, 4, 2 }
+            },
+            Grid = new Grid
+            {
+                BorderColor = "#f2f5f7",
+                StrokeDashArray = 4
+            },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar
+                {
+                    ColumnWidth = "60%"
+                }
+            },
+            Fill = new Fill
+            {
+                Type = new List<FillType>
+            {
+                FillType.Solid,   // Subtotal
+                FillType.Solid,   // IVA
+                FillType.Solid,   // Total
+                FillType.Gradient // Facturas Aut.
+            },
+                Opacity = new List<double> { 0.85, 0.85, 1, 0.35 },
+                Gradient = new FillGradient
+                {
+                    ShadeIntensity = 1,
+                    OpacityFrom = 0.4,
+                    OpacityTo = 0.1,
+                    Stops = new List<double> { 0, 90, 100 }
+                }
+            },
+            Legend = new Legend
+            {
+                Show = true,
+                Position = LegendPosition.Top,
+                HorizontalAlign = Align.Center,
+                FontSize = "12px",
+                Markers = new LegendMarkers { Width = 10, Height = 10 },
+                ItemMargin = new LegendItemMargin { Horizontal = 10, Vertical = 5 },
+                ContainerMargin = new LegendContainerMargin { Top = 0 }
+            },
+            Tooltip = new ApexCharts.Tooltip
+            {
+                Shared = true,
+                Intersect = false,
+                Y = new TooltipY
+                {
+                    Formatter = @"function(value, { seriesIndex }) {
+                    if (seriesIndex === 3) return value.toFixed(0) + ' facturas';
+                    return '$' + value.toFixed(2);
+                }"
+                }
+            },
+            Colors = new List<string> { "#10b981", "#f59e0b", "#3b82f6", "#8b5cf6" },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels
+                {
+                    Show = true,
+                    Rotate = -45,
+                    RotateAlways = false,
+                    Style = new AxisLabelStyle
+                    {
+                        Colors = "#8c9097",
+                        FontSize = "11px",
+                        // En el ejemplo del template usan int, no string
+                        FontWeight = 600
+                    }
+                },
+                AxisBorder = new AxisBorder
+                {
+                    Show = true,
+                    Color = "#e0e6ed"
+                }
+            },
+            Yaxis = new List<YAxis>
+        {
+            new YAxis
+            {
+                Title = new AxisTitle
+                {
+                    Text = "Monto ($)",
+                    Style = new AxisTitleStyle
+                    {
+                        Color = "#8c9097",
+                        FontSize = "12px",
+                        FontWeight = "600"
+                    }
+                },
+                Labels = new YAxisLabels
+                {
+                    Show = true,
+                    Formatter = @"function(value) { return '$' + value.toFixed(0); }",
+                    Style = new AxisLabelStyle
+                    {
+                        Colors = "#8c9097",
+                        FontSize = "11px",
+                        FontWeight = 600
+                    }
+                },
+                SeriesName = "Subtotal"
+            },
+            new YAxis
+            {
+                SeriesName = "Subtotal",
+                Show = false
+            },
+            new YAxis
+            {
+                SeriesName = "Subtotal",
+                Show = false
+            },
+            new YAxis
+            {
+                Opposite = true,
+                Title = new AxisTitle
+                {
+                    Text = "Facturas Autorizadas",
+                    Style = new AxisTitleStyle
+                    {
+                        Color = "#8b5cf6",
+                        FontSize = "12px",
+                        FontWeight = "600"
+                    }
+                },
+                Labels = new YAxisLabels
+                {
+                    Show = true,
+                    Formatter = @"function(value) { return value.toFixed(0); }",
+                    Style = new AxisLabelStyle
+                    {
+                        Colors = "#8b5cf6",
+                        FontSize = "11px"
+                    }
+                },
+                AxisBorder = new AxisBorder
+                {
+                    Show = true,
+                    Color = "#8b5cf6"
+                }
+            }
+        }
+        };
+    }
+
+    // -----------------------------------------------------------
+    //  AQUÍ ESTÁN LOS ICONOS Y COLORES QUE PEDISTE
+    // -----------------------------------------------------------
+    private string GetSvgColor(string type) => type switch
+    {
+        "ventas" => "success",      // Verde
+        "facturas" => "primary",    // Azul
+        "rechazadas" => "danger",   // Rojo
+        "iva" => "info",            // Cyan/Info
+        _ => "primary"
+    };
+
+    private MarkupString GetKpiIcon(string type) => type switch
+    {
+        "ventas" => (MarkupString)@"<svg xmlns='http://www.w3.org/2000/svg' class='action-btn' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'/></svg>",
+
+        "facturas" => (MarkupString)@"<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'></path><polyline points='14 2 14 8 20 8'></polyline><line x1='16' y1='13' x2='8' y2='13'></line><line x1='16' y1='17' x2='8' y2='17'></line><polyline points='10 9 9 9 8 9'></polyline></svg>",
+
+        "rechazadas" => (MarkupString)@"<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><line x1='15' y1='9' x2='9' y2='15'></line><line x1='9' y1='9' x2='15' y2='15'></line></svg>",
+
+        "iva" => (MarkupString)@"<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><path d='M12 6v6l4 2'></path></svg>",
+
+        _ => (MarkupString)""
+    };
+
+    public class IdNameDto { public string Id { get; set; } = ""; public string Name { get; set; } = ""; }
+}

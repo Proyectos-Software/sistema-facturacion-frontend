@@ -1,0 +1,77 @@
+﻿/* ===== Ajustes modo oscuro (mejor contraste) ===== */
+html[data-theme-mode="dark"] .productos-dashboard,
+body[data-theme-mode="dark"] .productos-dashboard,
+.dark .productos-dashboard {
+    /* Números y colores vivos para iconos */
+    --pd-number: #ffffff;
+    --pd-icon-primary: #60a5ff; /* azul brillante */
+    --pd-icon-warning: #ffd369; /* ámbar brillante */
+    --pd-icon-success: #4ade80; /* verde brillante */
+    --pd-success: #22c55e;
+    --pd-danger: #f87171;
+}
+
+/* (A) Si puedes: marca el número con .kpi-value */
+.productos-dashboard .kpi-value {
+    color: var(--pd-text); /* claro */
+    font-size: 1.875rem; /* ~ fs-3 */
+    font-weight: 600;
+}
+kpi-number {
+    color: inherit;
+}
+
+
+[data-theme-mode="dark"] .kpi-number {
+    color: #ffffff;
+}
+
+html[data-theme-mode="dark"] .productos-dashboard .kpi-value,
+body[data-theme-mode="dark"] .productos-dashboard .kpi-value,
+.dark .productos-dashboard .kpi-value {
+    color: var(--pd-number); /* blanco puro en oscuro */
+}
+
+/* (B) Si NO puedes tocar el HTML: fuerza el color del número grande dentro de la card */
+html[data-theme-mode="dark"] .productos-dashboard .card .fs-3.fw-semibold,
+body[data-theme-mode="dark"] .productos-dashboard .card .fs-3.fw-semibold,
+.dark .productos-dashboard .card .fs-3.fw-semibold {
+    color: var(--pd-number) !important;
+}
+
+/* Éxitos/errores más visibles en oscuro */
+html[data-theme-mode="dark"] .productos-dashboard .text-success,
+body[data-theme-mode="dark"] .productos-dashboard .text-success,
+.dark .productos-dashboard .text-success {
+    color: var(--pd-success) !important;
+}
+
+html[data-theme-mode="dark"] .productos-dashboard .text-danger,
+body[data-theme-mode="dark"] .productos-dashboard .text-danger,
+.dark .productos-dashboard .text-danger {
+    color: var(--pd-danger) !important;
+}
+
+/* Iconos de accesos rápidos más brillantes en oscuro */
+html[data-theme-mode="dark"] .productos-dashboard .bg-primary-subtle i,
+body[data-theme-mode="dark"] .productos-dashboard .bg-primary-subtle i,
+.dark .productos-dashboard .bg-primary-subtle i {
+    color: var(--pd-icon-primary) !important;
+}
+
+html[data-theme-mode="dark"] .productos-dashboard .bg-warning-subtle i,
+body[data-theme-mode="dark"] .productos-dashboard .bg-warning-subtle i,
+.dark .productos-dashboard .bg-warning-subtle i {
+    color: var(--pd-icon-warning) !important;
+}
+
+html[data-theme-mode="dark"] .productos-dashboard .bg-success-subtle i,
+body[data-theme-mode="dark"] .productos-dashboard .bg-success-subtle i,
+.dark .productos-dashboard .bg-success-subtle i {
+    color: var(--pd-icon-success) !important;
+}
+ 
+html[data-theme-mode="dark"] .productos-dashboard .table thead th {
+    color: #cbd5e1 !important; /* un gris claro legible */
+}
+ 

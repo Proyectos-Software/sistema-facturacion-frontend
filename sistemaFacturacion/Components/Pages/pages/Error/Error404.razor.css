@@ -1,0 +1,20 @@
+﻿.page.error-bg {
+    position: relative;
+    overflow: hidden;
+}
+
+#particles-js {
+    position: absolute;
+    width: 100%;
+    min-height: 100vh;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 0;
+}
+
+
+.page.error-bg .row {
+    position: relative;
+    z-index: 1;
+}

@@ -1,0 +1,171 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-toggled="double-menu-open">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+
+    <!-- TITLE -->
+    <title>FacturaPro</title>
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="assets/images/brand-logos/favicon.ico" />
+
+    <!-- Style Css -->
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="sistemaFacturacion.styles.css" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+
+    <!-- Icons Css -->
+    <link rel="stylesheet" href="assets/css/icons.css" />
+
+    <!-- Tom Select CSS -->
+    <link rel="stylesheet" href="assets/libs/tom-select/css/tom-select.bootstrap5.min.css" />
+
+    <!-- node waves CSS -->
+    <link rel="stylesheet" href="assets/libs/node-waves/waves.min.css" />
+
+    <!-- Auto Complete CSS -->
+    <link rel="stylesheet" href="assets/libs/@tarekraafat/autocomplete.js/css/autoComplete.css" />
+
+    <!-- Flatpickr Css -->
+    <link href="_content/FlatpickrBlazor/flatpickr.min.css" rel="stylesheet" />
+    <link href="_content/FlatpickrBlazor/plugins/monthSelect/style.css" rel="stylesheet" />
+
+    <!-- ColorPicker CSS -->
+    <link href="_content/BlazorColorPicker/colorpicker.css" rel="stylesheet" />
+    <link href="_content/BlazorColorPicker/BlazorColorPicker.bundle.scp.css" rel="stylesheet" />
+
+    <!-- Simplebar Css -->
+    <link rel="stylesheet" href="assets/libs/simplebar/simplebar.min.css" />
+
+    <!-- Prism CSS -->
+    <link rel="stylesheet" href="assets/libs/prismjs/themes/prism-coy.min.css" />
+
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" href="assets/libs/toastify-js/src/toastify.css" />
+
+    <!-- Quill Editor CSS -->
+    <link rel="stylesheet" href="assets/libs/quill/quill.snow.css" />
+    <link rel="stylesheet" href="assets/libs/quill/quill.bubble.css" />
+</head>
+
+<body>
+    <div id="app">
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- AUTO COMPLETE JS -->
+    <script src="assets/libs/@tarekraafat/autocomplete.js/autoComplete.min.js"></script>
+
+    <!-- Node Waves JS -->
+    <script src="assets/libs/node-waves/waves.min.js"></script>
+
+    <!-- Isotope-layout JS -->
+    <script src="assets/libs/isotope-layout/isotope.pkgd.min.js"></script>
+
+    <!-- Popper JS -->
+    <script src="assets/libs/@popperjs/core/umd/popper.min.js"></script>
+
+    <!-- Vanilla-Wizard JS -->
+    <script src="assets/libs/vanilla-wizard/js/wizard.min.js"></script>
+
+    <!-- Flatpickr Blazor JS -->
+    <script src="_content/FlatpickrBlazor/flatpickr.min.js"></script>
+    <script src="_content/FlatpickrBlazor/flatpickr.blazor.js"></script>
+    <script src="_content/FlatpickrBlazor/plugins/monthSelect/index.js"></script>
+
+    <!-- Cleave.js -->
+    <script src="_content/BlazorCleave/BlazorCleave.js"></script>
+    <script src="_content/BlazorCleave/cleave-phone.i18n.js"></script>
+
+    <!-- Quill Editor JS -->
+    <script src="_content/Blazored.TextEditor/quill-blot-formatter.min.js"></script>
+    <script src="_content/Blazored.TextEditor/Blazored-BlazorQuill.js"></script>
+    <script src="assets/libs/quill/quill.js"></script>
+
+    <!-- SweetAlert JS -->
+    <script src="_content/CurrieTechnologies.Razor.SweetAlert2/sweetAlert2.min.js"></script>
+
+    <!-- Simplebar JS -->
+    <script src="assets/libs/simplebar/simplebar.min.js"></script>
+
+    <!-- CUSTOM JS -->
+    <script src="assets/js/custom.js"></script>
+
+
+
+    <!-- tsParticles Manager -->
+    <script src="assets/libs/tsparticles-engine/tsparticles.engine.min.js"></script>
+    <script src="assets/libs/tsparticles-slim/tsparticles.slim.min.js"></script>
+    <script src="assets/libs/tsparticles-slim/tsparticles.slim.bundle.min.js"></script>
+    <script type="module" src="assets/js/ui/effects/particles/index.js"></script>
+
+
+
+    <!-- Lottie Player -->
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+
+    <!-- Blazor WebAssembly JS -->
+    <script src="_framework/blazor.webassembly.js"></script>
+
+    <!-- Custom JavaScript Interop -->
+    <script src="js/javaScriptInterop.js"></script>
+    <script src="js/resizeInterop.js"></script>
+    <script src="js/scrollHandler.js"></script>
+    <script src="assets/js/interop.js"></script>
+    <script src="js/reports.js"></script>
+
+
+    <script>
+        window.isAppInDarkMode = () => {
+
+            const theme = document.documentElement.getAttribute('data-theme-mode');
+
+            return theme === 'dark';
+        }
+    </script>
+
+    <script>
+        (function () {
+            try {
+                var raw = localStorage.getItem('app:state:v1');
+                if (!raw) return;
+                var s = JSON.parse(raw) || {};
+                var html = document.documentElement, st = html.style;
+                var setAttr = (k, v) => { if (v) html.setAttribute(k, v); };
+
+                setAttr('dir', s.Direction);
+                setAttr('data-nav-layout', s.NavigationStyles);
+                setAttr('data-vertical-style', s.LayoutStyles);
+                setAttr('data-nav-style', s.MenuStyles);
+                setAttr('data-theme-mode', s.ColorTheme);
+                setAttr('data-header-styles', s.HeaderColor);
+                setAttr('data-menu-styles', s.MenuColor);
+                setAttr('data-page-style', s.PageStyles);
+                setAttr('data-width', s.WidthStyles);
+                setAttr('data-menu-position', s.MenuPosition);
+                setAttr('data-header-position', s.HeaderPosition);
+                setAttr('data-bg-img', s.BackgroundImage);
+
+                if (s.ThemePrimary) st.setProperty('--primary-rgb', s.ThemePrimary);
+                if (s.ThemeBackground) st.setProperty('--body-bg-rgb', s.ThemeBackground);
+                if (s.ThemeBackground1) {
+                    st.setProperty('--body-bg-rgb2', s.ThemeBackground1);
+                    st.setProperty('--form-control-bg', 'rgb(' + s.ThemeBackground1 + ')');
+                    st.setProperty('--gray-3', 'rgb(' + s.ThemeBackground1 + ')');
+                }
+            } catch { }
+        })();
+    </script>
+</body>
+
+</html>
+

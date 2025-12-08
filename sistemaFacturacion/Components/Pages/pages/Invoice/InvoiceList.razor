@@ -1,0 +1,365 @@
+@page "/invoice/invoicelist"
+@using System.Globalization
+
+<!-- Start::page-header -->
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap">
+        <h1 class="page-title fw-medium fs-18 mb-0">Invoice List</h1>
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+                <a href="javascript:void(0);">
+                    Pages
+                </a>
+            </li>
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Invoice</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Invoice List</li>
+        </ol>
+    </div>
+</div>
+<!-- End::page-header -->
+
+<!-- Start::row-1 -->
+<div class="row">
+    @foreach (var card in cards)
+    {
+        <div class="col-xxl-3 col-xl-6">
+            <div class="card custom-card dashboard-main-card @card.BackgroundClass">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="flex-fill">
+                            <h6 class="mb-2 fs-12">@card.Title</h6>
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <h4 class="fw-medium mb-0">@(card.Title == "Pending Invoices"? "" : "$")<span class="count-up" data-count="@card.Amount">@card.Amount</span>@(card.Title == "Pending Invoices"? "" : "k ")</h4> 
+                                    <span class="badge bg-@card.BadgeBgColor">@card.Badge</span>
+                                </div>
+                                <p class="text-muted fs-11 mb-0 lh-1">
+                                    <span class="text-@card.TextColor me-1 fw-medium">
+                                        <i class="ri-arrow-@card.ArrowDir-s-line me-1 align-middle"></i>@card.Percentage
+                                    </span>
+                                    <span>this month</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="avatar avatar-lg bg-@card.BackgroundClass-transparent svg-@card.BackgroundClass">
+                            @card.SvgIcon
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    <div class="col-xl-12">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">
+                    Manage Invoices
+                </div>
+                <div class="d-flex">
+                    <a href="/invoice/createinvoice" class="btn btn-sm btn-primary btn-wave waves-light"><i
+                            class="ri-add-line fw-medium align-middle me-1"></i> Create Invoice</a>
+                    <div class="dropdown ms-2">
+                        <button class="btn btn-icon btn-secondary-light btn-sm btn-wave waves-light" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="ti ti-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="javascript:void(0);">All Invoices</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0);">Paid Invoices</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0);">Pending Invoices</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0);">Overdue Invoices</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table text-nowrap">
+                        <thead>
+                            <tr>
+                                <th scope="col">Client</th>
+                                <th scope="col">Invoice ID</th>
+                                <th scope="col">Issued Date</th>
+                                <th scope="col">Amount</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Due Date</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var invoice in invoicesData)
+                                {
+                                    <tr class="invoice-list">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-2 lh-1">
+                                                    <span class="avatar avatar-sm avatar-rounded">
+                                                        <img src="@invoice.AvatarUrl" alt="" />
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <p class="mb-0 fw-medium">@invoice.Name</p>
+                                                    <p class="mb-0 fs-11 text-muted">@invoice.Email</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a href="javascript:void(0);" class="fw-medium text-primary">
+                                                @invoice.InvoiceNumber
+                                            </a>
+                                        </td>
+                                        <td>@invoice.InvoiceDate.ToString("MMM dd, yyyy")</td>
+                                        <td>@invoice.Amount.ToString("C", CultureInfo.CreateSpecificCulture("en-US"))</td>
+                                        <td>
+                                            <span class="badge @invoice.StatusBadgeClass">@invoice.Status</span>
+                                        </td>
+                                        <td>@invoice.DueDate.ToString("MMM dd, yyyy")</td>
+                                        <td>
+                                            <button class="btn btn-primary-light btn-icon btn-sm"><i class="ri-printer-line"></i></button>
+                                            <button class="btn btn-danger-light btn-icon ms-1 btn-sm invoice-btn" @onclick="@(() => DeleteInvoice(invoice.InvoiceId))"><i class="ri-delete-bin-5-line"></i></button>
+                                        </td>
+                                    </tr>
+                                }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer border-top-0">
+                <div class="ms-auto">
+                    <nav aria-label="Page navigation" class="pagination-style-2">
+                        <ul class="pagination mb-0 flex-wrap justify-content-end">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="javascript:void(0);">
+                                    Prev
+                                </a>
+                            </li>
+                            <li class="page-item"><a class="page-link" href="javascript:void(0);">1</a></li>
+                            <li class="page-item active"><a class="page-link" href="javascript:void(0);">2</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="javascript:void(0);">
+                                    <i class="bi bi-three-dots"></i>
+                                </a>
+                            </li>
+                            <li class="page-item"><a class="page-link" href="javascript:void(0);">17</a></li>
+                            <li class="page-item">
+                                <a class="page-link text-primary" href="javascript:void(0);">
+                                    next
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--End::row-1 -->
+
+@code{
+
+    public class Invoice
+    {
+        public string? AvatarUrl { get; set; }
+        public decimal InvoiceId { get; set; }
+        public string? Name { get; set; }
+        public string? Email { get; set; }
+        public string? InvoiceNumber { get; set; }
+        public DateTime InvoiceDate { get; set; }
+        public decimal Amount { get; set; }
+        public string? Status { get; set; }
+        public string? StatusBadgeClass { get; set; }
+        public DateTime DueDate { get; set; }
+    }
+    List<Invoice> invoicesData = new List<Invoice>
+    {
+        new Invoice {
+            InvoiceId = 1,
+            AvatarUrl = "../assets/images/faces/11.jpg",
+            Name = "John Doe",
+            Email = "jhondoe32@gmail.com",
+            InvoiceNumber = "SPK-1001",
+            InvoiceDate = new DateTime(2025, 3, 1),
+            Amount = 1250.00m,
+            Status = "Paid",
+            StatusBadgeClass = "bg-success-transparent",
+            DueDate = new DateTime(2025, 3, 10)
+        },
+        new Invoice {
+            InvoiceId = 2,
+            AvatarUrl = "../assets/images/faces/1.jpg",
+            Name = "Sarah Smith",
+            Email = "sarahsmith99@gmail.com",
+            InvoiceNumber = "SPK - 1002",
+            InvoiceDate = new DateTime(2025, 3, 5),
+            Amount = 3499.50m,
+            Status = "Pending",
+            StatusBadgeClass = "bg-warning-transparent",
+            DueDate = new DateTime(2025, 3, 15)
+        },
+        new Invoice {
+            InvoiceId = 3,
+            AvatarUrl = "../assets/images/faces/12.jpg",
+            Name = "Robert Brown",
+            Email = "robertbrown865@gmail.com",
+            InvoiceNumber = "SPK - 1003",
+            InvoiceDate = new DateTime(2025, 3, 8),
+            Amount = 2875.00m,
+            Status = "Overdue",
+            StatusBadgeClass = "bg-danger-transparent",
+            DueDate = new DateTime(2025, 3, 18)
+        },
+        new Invoice {
+            InvoiceId = 4,
+            AvatarUrl = "../assets/images/faces/2.jpg",
+            Name = "Emma Wilson",
+            Email = "emmawilson04@gmail.com",
+            InvoiceNumber = "SPK - 1004",
+            InvoiceDate = new DateTime(2025, 3, 10),
+            Amount = 4150.75m,
+            Status = "Paid",
+            StatusBadgeClass = "bg-success-transparent",
+            DueDate = new DateTime(2025, 3, 20)
+        },
+        new Invoice {
+            InvoiceId = 5,
+            AvatarUrl = "../assets/images/faces/13.jpg",
+            Name = "David Johnson",
+            Email = "davidjohnson444@gmail.com",
+            InvoiceNumber = "SPK - 1005",
+            InvoiceDate = new DateTime(2025, 3, 12),
+            Amount = 1999.99m,
+            Status = "Pending",
+            StatusBadgeClass = "bg-primary-transparent",
+            DueDate = new DateTime(2025, 3, 22)
+        },
+        new Invoice {
+            InvoiceId = 6,
+            AvatarUrl = "../assets/images/faces/3.jpg",
+            Name = "Olivia Martin",
+            Email = "oliviamartin97@gmail.com",
+            InvoiceNumber = "SPK - 1006",
+            InvoiceDate = new DateTime(2025, 3, 15),
+            Amount = 3750.00m,
+            Status = "Paid",
+            StatusBadgeClass = "bg-success-transparent",
+            DueDate = new DateTime(2025, 3, 25)
+        },
+        new Invoice {
+            InvoiceId = 7,
+            AvatarUrl = "../assets/images/faces/14.jpg",
+            Name = "James White",
+            Email = "jameswhite123@gmail.com",
+            InvoiceNumber = "SPK - 1007",
+            InvoiceDate = new DateTime(2025, 3, 18),
+            Amount = 2250.00m,
+            Status = "Overdue",
+            StatusBadgeClass = "bg-success-transparent",  
+            DueDate = new DateTime(2025, 3, 28)
+        },
+        new Invoice {
+            InvoiceId = 8,
+            AvatarUrl = "../assets/images/faces/4.jpg",
+            Name = "Sophia Lewis",
+            Email = "sophialewis97@gmail.com",
+            InvoiceNumber = "SPK - 1008",
+            InvoiceDate = new DateTime(2025, 3, 20),
+            Amount = 5100.25m,
+            Status = "Pending",
+            StatusBadgeClass = "bg-warning-transparent",
+            DueDate = new DateTime(2025, 3, 30)
+        },
+        new Invoice {
+            InvoiceId = 9,
+            AvatarUrl = "../assets/images/faces/15.jpg",
+            Name = "Michael Green",
+            Email = "michaelgreen15@gmail.com",
+            InvoiceNumber = "SPK - 1009",
+            InvoiceDate = new DateTime(2025, 3, 22),
+            Amount = 3600.00m,
+            Status = "Paid",
+            StatusBadgeClass = "bg-success-transparent",
+            DueDate = new DateTime(2025, 4, 1)
+        },
+        new Invoice {
+            InvoiceId = 10,
+            AvatarUrl = "../assets/images/faces/5.jpg",
+            Name = "Emily Harris",
+            Email = "emileyharris@gmail.com",
+            InvoiceNumber = "SPK - 1010",
+            InvoiceDate = new DateTime(2025, 3, 25),
+            Amount = 2980.40m,
+            Status = "Pending",
+            StatusBadgeClass = "bg-success-transparent",  
+            DueDate = new DateTime(2025, 4, 5)
+        }
+    };
+    protected void DeleteInvoice(decimal InvoiceId)
+    {
+        var InvoiceToRemove = invoicesData.FirstOrDefault(o => o.InvoiceId == InvoiceId);
+        if (InvoiceToRemove != null)
+        {
+            invoicesData.Remove(InvoiceToRemove);
+        }
+    }
+
+    //Dashboard Cards
+    public class DashboardCard
+    {
+        public string? Title { get; set; }
+        public int Amount { get; set; }
+        public string? Badge { get; set; }
+        public string? Percentage { get; set; }
+        public string? ArrowDir { get; set; }
+        public string? TextColor { get; set; }
+        public string? BackgroundClass { get; set; }
+        public string? BadgeBgColor { get; set; }
+        public MarkupString SvgIcon { get; set; }
+    }
+    private List<DashboardCard> cards = new()
+    {
+        new DashboardCard {
+            Title = "Total Amount",
+            Amount = 471,
+            Badge = "12,345",
+            Percentage = "3.25%",
+            ArrowDir = "up",
+            TextColor = "success",
+            BackgroundClass = "primary",
+            BadgeBgColor = "primary",
+            SvgIcon = (MarkupString)@"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none' /><path d='M216,40H40A16,16,0,0,0,24,56V208a8,8,0,0,0,11.58,7.15L64,200.94l28.42,14.21a8,8,0,0,0,7.16,0L128,200.94l28.42,14.21a8,8,0,0,0,7.16,0L192,200.94l28.42,14.21A8,8,0,0,0,232,208V56A16,16,0,0,0,216,40ZM176,144H80a8,8,0,0,1,0-16h96a8,8,0,0,1,0,16Zm0-32H80a8,8,0,0,1,0-16h96a8,8,0,0,1,0,16Z' /></svg>"
+        },
+        new DashboardCard {
+            Title = "Total Paid",
+            Amount = 320,
+            Badge = "4,176",
+            Percentage = "1.16%",
+            ArrowDir = "down",
+            TextColor = "danger",
+            BackgroundClass = "secondary",
+            BadgeBgColor = "secondary",
+            SvgIcon = (MarkupString)@"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none' /><path d='M28,128a8,8,0,0,1,0-16H56a8,8,0,0,0,0-16H40a24,24,0,0,1,0-48,8,8,0,0,1,16,0h8a8,8,0,0,1,0,16H40a8,8,0,0,0,0,16H56a24,24,0,0,1,0,48,8,8,0,0,1-16,0ZM224,48H96a8,8,0,0,0,0,16H216V96H104a8,8,0,0,0,0,16h56v32H80a8,8,0,0,0,0,16h80v32H40V152a8,8,0,0,0-16,0v40a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48Z' /></svg>"
+        },
+        new DashboardCard {
+            Title = "Pending Invoices",
+            Amount = 81,
+            Badge = "7,064",
+            Percentage = "0.25%",
+            ArrowDir = "up",
+            TextColor = "success",
+            BackgroundClass = "success",
+            BadgeBgColor = "success",
+            SvgIcon = (MarkupString)@"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none' /><path d='M100,116.43a8,8,0,0,0,4-6.93v-72A8,8,0,0,0,93.34,30,104.06,104.06,0,0,0,25.73,147a8,8,0,0,0,4.52,5.81,7.86,7.86,0,0,0,3.35.74,8,8,0,0,0,4-1.07ZM88,49.62v55.26L40.12,132.51C40,131,40,129.48,40,128A88.12,88.12,0,0,1,88,49.62ZM232,128A104,104,0,0,1,38.32,180.7a8,8,0,0,1,2.87-11L120,123.83V32a8,8,0,0,1,8-8,104.05,104.05,0,0,1,89.74,51.48c.11.16.21.32.31.49s.2.37.29.55A103.34,103.34,0,0,1,232,128Z' /></svg>"
+        },
+        new DashboardCard {
+            Title = "Overdue Invoices",
+            Amount = 33,
+            Badge = "1,105",
+            Percentage = "0.46%",
+            ArrowDir = "down",
+            TextColor = "danger",
+            BackgroundClass = "warning",
+            BadgeBgColor = "orange border",
+            SvgIcon = (MarkupString)@"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none' /><path d='M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm-8,56a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm8,104a12,12,0,1,1,12-12A12,12,0,0,1,128,184Z' /></svg>"
+        }
+    };
+}

@@ -1,0 +1,760 @@
+﻿@page "/dashboards/clientes/crear"
+@using System.Collections.Generic
+@using System.ComponentModel.DataAnnotations
+@using System.Linq
+@using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using CurrieTechnologies.Razor.SweetAlert2
+@using sistemaFacturacion
+@using sistemaFacturacion.Models
+@inject IClientesApiClient ClientesApi
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Nav
+@inject SweetAlertService Swal
+@attribute [Authorize]
+
+<div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary shadow-sm"
+                 style="width:3rem;height:3rem;">
+                <i class="ri-user-add-line fs-4"></i>
+            </div>
+            <div>
+                <h1 class="page-title fw-semibold fs-20 mb-0">Crear cliente</h1>
+                <p class="text-muted fs-13 mb-0">
+                    Registra un nuevo cliente con validaciones de cédula/RUC y datos de contacto.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <EditForm Model="@form" OnValidSubmit="@HandleValidSubmitAsync" OnInvalidSubmit="@HandleInvalidAsync">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <ValidationSummary />
+            </div>
+
+            <div class="row g-3">
+                <div class="col-xl-5 col-lg-6">
+                    <div class="rounded-3 h-100 border p-3">
+                        <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                            <i class="ri-id-card-line text-primary fs-5"></i>
+                            <span>Datos de identificación</span>
+                        </h6>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Tipo de identificación</label>
+                                <InputSelect class="form-select" @bind-Value="form.TipoIdentificacion" @onchange="OnTipoChanged">
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="Cedula">Cédula</option>
+                                    <option value="RUC">RUC</option>
+                                    <option value="Pasaporte">Pasaporte</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => form.TipoIdentificacion)" />
+                            </div>
+
+                            @if (form.TipoIdentificacion == "RUC")
+                            {
+                                <div class="col-12">
+                                    <label class="form-label">Tipo de RUC</label>
+                                    <InputSelect class="form-select" @bind-Value="form.TipoRucPersona">
+                                        <option value="">-- Selecciona --</option>
+                                        <option value="NATURAL">Persona natural</option>
+                                        <option value="JURIDICA">Persona jurídica (empresa)</option>
+                                    </InputSelect>
+                                    <small class="text-muted d-block mt-1">
+                                        Define si el RUC pertenece a una persona natural o a una empresa.
+                                    </small>
+                                    <ValidationMessage For="@(() => form.TipoRucPersona)" />
+                                </div>
+                            }
+
+                            <div class="col-12">
+                                <label class="form-label">Identificación / RUC</label>
+                                <InputText id="ident-input"
+                                           class="form-control"
+                                           @bind-Value="form.Identificacion"
+                                           placeholder="@IdentPlaceholder"
+                                           inputmode="@(form.TipoIdentificacion == "Pasaporte" ? "text" : "numeric")"
+                                           maxlength="@MaxDocLenStr"
+                                           autocomplete="off"
+                                           @oninput="e =>
+                                           {
+                                               form.Identificacion = CleanInputByType(e.Value?.ToString());
+                                               CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Identificacion));
+                                           }" />
+                                <small class="text-muted d-block mt-1">@IdentHelpText</small>
+                                <ValidationMessage For="@(() => form.Identificacion)" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-7 col-lg-6">
+                    <div class="rounded-3 h-100 border p-3">
+                        <h6 class="fw-semibold fs-14 d-flex align-items-center mb-3 gap-2">
+                            <i class="ri-user-3-line text-primary fs-5"></i>
+                            <span>Datos personales y de contacto</span>
+                        </h6>
+
+                        <div class="row g-3">
+                            @if (EsRucJuridico)
+                            {
+                                <div class="col-12">
+                                    <label class="form-label">Nombre / Razón social</label>
+                                    <InputText id="nom-input"
+                                               class="form-control"
+                                               @bind-Value="form.Nombre"
+                                               placeholder="Nombre comercial o razón social"
+                                               maxlength="100"
+                                               autocomplete="off"
+                                               @oninput="e =>
+                                               {
+                                                   form.Nombre = CleanSoloLetras(e.Value?.ToString(), 100);
+                                                   CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Nombre));
+                                               }" />
+                                      <ValidationMessage For="@(() => form.Nombre)" />
+                                  </div>
+                            }
+                            else
+                            {
+                                <div class="col-md-6 col-12">
+                                    <label class="form-label">Nombre</label>
+                                    <InputText id="nom-input"
+                                               class="form-control"
+                                               @bind-Value="form.Nombre"
+                                               placeholder="Nombres"
+                                               maxlength="100"
+                                               autocomplete="off"
+                                               @oninput="e =>
+                                               {
+                                                   form.Nombre = CleanSoloLetras(e.Value?.ToString(), 100);
+                                                   CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Nombre));
+                                               }" />
+                                      <ValidationMessage For="@(() => form.Nombre)" />
+                                  </div>
+                                  <div class="col-md-6 col-12">
+                                      <label class="form-label">Apellido</label>
+                                      <InputText id="ape-input"
+                                                 class="form-control"
+                                                 @bind-Value="form.Apellido"
+                                                 placeholder="Apellidos"
+                                                 maxlength="100"
+                                                 autocomplete="off"
+                                                 @oninput="e =>
+                                               {
+                                                   form.Apellido = CleanSoloLetras(e.Value?.ToString(), 100);
+                                                   CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Apellido));
+                                               }" />
+                                      <ValidationMessage For="@(() => form.Apellido)" />
+                                  </div>
+                            }
+                        </div>
+
+                        <div class="row g-3 mt-1">
+                            <div class="col-12">
+                                <label class="form-label">Dirección</label>
+                                <InputText id="dir-input"
+                                           class="form-control"
+                                           @bind-Value="form.Direccion"
+                                           placeholder="Dirección"
+                                           maxlength="200"
+                                           autocomplete="off"
+                                           @oninput="e =>
+                                           {
+                                               form.Direccion = CleanSoloLetras(e.Value?.ToString(), 200);
+                                               CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Direccion));
+                                           }" />
+                                  <ValidationMessage For="@(() => form.Direccion)" />
+                              </div>
+
+                            <div class="col-md-6 col-12">
+                                <label class="form-label">Teléfono</label>
+                                <InputText id="tel-input"
+                                           class="form-control"
+                                           @bind-Value="form.Telefono"
+                                           inputmode="numeric"
+                                           placeholder="Ej: 0999999999"
+                                           maxlength="10"
+                                           autocomplete="off"
+                                           @oninput="e =>
+                                           {
+                                               form.Telefono = CleanTelefono(e.Value?.ToString());
+                                               CurrentEditContext?.NotifyFieldChanged(FieldIdentifier.Create(() => form.Telefono));
+                                           }" />
+                                <ValidationMessage For="@(() => form.Telefono)" />
+                            </div>
+
+                            <div class="col-md-6 col-12">
+                                <label class="form-label">Correo electrónico</label>
+                                <InputText class="form-control"
+                                           @bind-Value="form.Correo"
+                                           type="email"
+                                           placeholder="usuario@dominio.com" />
+                                <ValidationMessage For="@(() => form.Correo)" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+                <span class="text-muted small">
+                    Los campos son validados en tiempo real según el tipo de identificación y el formato ingresado.
+                </span>
+                <div class="btn-list">
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-wave"
+                            @onclick="ResetForm"
+                            disabled="@isSubmitting">
+                        <i class="ri-eraser-line me-1 align-middle"></i>
+                        Limpiar
+                    </button>
+
+                    <a class="btn btn-light btn-wave"
+                       href="/dashboards/clientes/listar">
+                        <i class="ri-arrow-go-back-line me-1 align-middle"></i>
+                        Volver
+                    </a>
+
+                    <button type="submit"
+                            class="btn btn-primary btn-wave"
+                            disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2 align-middle"
+                                  role="status" aria-hidden="true"></span>
+                            <span>Guardando...</span>
+                        }
+                        else
+                        {
+                            <i class="ri-save-3-line me-1 align-middle"></i>
+                            <span>Guardar</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+<script>
+    (function () {
+      const g = {};
+      function attachDigitsOnly(el, max) {
+        if (!el || el.dataset.guardDigits === "1") return;
+        el.dataset.guardDigits = "1";
+        function filter() {
+          let v = el.value.replace(/\D+/g, "");
+          if (max && max > 0) v = v.slice(0, max);
+          if (v !== el.value) {
+            el.value = v;
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+        }
+        el.addEventListener("input", filter);
+        el.addEventListener("paste", () => setTimeout(filter, 0));
+        el.addEventListener("keypress", (e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); });
+      }
+      function attachLettersOnly(el, max) {
+        if (!el || el.dataset.guardLetters === "1") return;
+        el.dataset.guardLetters = "1";
+        const re = /[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g;
+        function filter() {
+          let v = el.value.replace(re, "");
+          if (max && max > 0) v = v.slice(0, max);
+          if (v !== el.value) {
+            el.value = v;
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+        }
+        el.addEventListener("input", filter);
+        el.addEventListener("paste", () => setTimeout(filter, 0));
+        el.addEventListener("keypress", (e) => { if (!/[A-Za-zÁÉÍÓÚáéíóúÑñ\s]/.test(e.key)) e.preventDefault(); });
+      }
+      window.initClientFormGuards = function (cfg) {
+        g.ident = document.getElementById(cfg.identId);
+        g.tel = document.getElementById(cfg.telId);
+        g.nom = document.getElementById(cfg.nomId);
+        g.ape = document.getElementById(cfg.apeId);
+        g.dir = document.getElementById(cfg.dirId);
+        g.state = { identMode: cfg.identMode, identMax: cfg.identMax || 0 };
+        attachDigitsOnly(g.tel, 10);
+        attachLettersOnly(g.nom, 100);
+        attachLettersOnly(g.ape, 100);
+        attachLettersOnly(g.dir, 200);
+        function filterIdent() {
+          if (!g.ident) return;
+          if (g.state.identMode === "digits") {
+            let v = g.ident.value.replace(/\D+/g, "");
+            if (g.state.identMax && g.state.identMax > 0) v = v.slice(0, g.state.identMax);
+            if (v !== g.ident.value) {
+              g.ident.value = v;
+              g.ident.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+          } else {
+            let v = g.ident.value.replace(/[^A-Za-z0-9]/g, "");
+            if (g.state.identMax && g.state.identMax > 0) v = v.slice(0, g.state.identMax);
+            if (v !== g.ident.value) {
+              g.ident.value = v;
+              g.ident.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+          }
+        }
+        if (!g.ident.dataset.guardIdent) {
+          g.ident.dataset.guardIdent = "1";
+          g.ident.addEventListener("input", filterIdent);
+          g.ident.addEventListener("paste", () => setTimeout(filterIdent, 0));
+          g.ident.addEventListener("keypress", (e) => {
+            if (g.state.identMode === "digits") {
+              if (!/[0-9]/.test(e.key)) e.preventDefault();
+            } else {
+              if (!/[A-Za-z0-9]/.test(e.key)) e.preventDefault();
+            }
+          });
+        }
+        filterIdent();
+      };
+      window.setIdentMode = function (mode, max) {
+        if (!g.state) return;
+        g.state.identMode = mode;
+        g.state.identMax = max || 0;
+        const ev = new Event("input", { bubbles: true });
+        g.ident && g.ident.dispatchEvent(ev);
+      };
+    })();
+</script>
+
+@code {
+    [CascadingParameter] private EditContext? CurrentEditContext { get; set; }
+
+    private static readonly Regex _regexSoloLetras = new Regex(@"[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]", RegexOptions.Compiled);
+
+    private int? MaxDocLen => (form.TipoIdentificacion ?? "").ToUpperInvariant() switch
+    {
+        "CEDULA" => 10,
+        "RUC" => 13,
+        "PASAPORTE" => 12,
+        _ => null
+    };
+    private string? MaxDocLenStr => MaxDocLen?.ToString();
+
+    private static string DigitsOnly(string? s) => new string((s ?? "").Where(char.IsDigit).ToArray());
+
+    private string CleanInputByType(string? s)
+    {
+        var val = s ?? "";
+        var tipo = (form.TipoIdentificacion ?? "").ToUpperInvariant();
+        string cleanedVal;
+        if (tipo == "CEDULA" || tipo == "RUC")
+        {
+            cleanedVal = DigitsOnly(val);
+        }
+        else if (tipo == "PASAPORTE")
+        {
+            cleanedVal = new string(val.Where(char.IsLetterOrDigit).ToArray());
+        }
+        else
+        {
+            cleanedVal = val;
+        }
+        if (MaxDocLen is int m && cleanedVal.Length > m)
+        {
+            cleanedVal = cleanedVal[..m];
+        }
+        return cleanedVal;
+    }
+
+    private string CleanTelefono(string? s)
+    {
+        var digits = DigitsOnly(s);
+        if (digits.Length > 10) digits = digits[..10];
+        return digits;
+    }
+
+    private string CleanSoloLetras(string? s, int maxLen)
+    {
+        var cleaned = _regexSoloLetras.Replace(s ?? "", "");
+        if (cleaned.Length > maxLen) cleaned = cleaned[..maxLen];
+        return cleaned;
+    }
+
+    private bool EsRucJuridico =>
+        (form.TipoIdentificacion ?? "").Trim().Equals("RUC", StringComparison.OrdinalIgnoreCase) &&
+        (form.TipoRucPersona ?? "").Trim().Equals("JURIDICA", StringComparison.OrdinalIgnoreCase);
+
+    public class ClienteCreateVM : IValidatableObject
+    {
+        [Required(ErrorMessage = "Seleccione el tipo de identificación.")]
+        public string? TipoIdentificacion { get; set; }
+
+        public string? TipoRucPersona { get; set; }
+
+        [Required(ErrorMessage = "La identificación es obligatoria.")]
+        public string? Identificacion { get; set; }
+
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [RegularExpression(@"^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$", ErrorMessage = "El nombre solo debe contener letras.")]
+        [StringLength(100, ErrorMessage = "Máximo 100 caracteres.")]
+        public string? Nombre { get; set; }
+
+        [StringLength(100, ErrorMessage = "Máximo 100 caracteres.")]
+        public string? Apellido { get; set; }
+
+        [Required(ErrorMessage = "La dirección es obligatoria.")]
+        [RegularExpression(@"^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$", ErrorMessage = "La dirección solo debe contener letras.")]
+        [StringLength(200, ErrorMessage = "Máximo 200 caracteres.")]
+        public string? Direccion { get; set; }
+
+        [Required(ErrorMessage = "El teléfono es obligatorio.")]
+        [RegularExpression(@"^\d{10}$", ErrorMessage = "El teléfono debe tener 10 dígitos.")]
+        public string? Telefono { get; set; }
+
+        [Required(ErrorMessage = "El correo es obligatorio.")]
+        [EmailAddress(ErrorMessage = "Correo inválido.")]
+        public string? Correo { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            var tipo = (TipoIdentificacion ?? "").Trim().ToUpperInvariant();
+            var id = (Identificacion ?? "").Trim();
+            var tipoRuc = (TipoRucPersona ?? "").Trim().ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(tipo) || string.IsNullOrWhiteSpace(id))
+                yield break;
+
+            var esRuc = tipo == "RUC";
+            var esRucJuridico = esRuc && tipoRuc == "JURIDICA";
+
+            if (tipo is "CEDULA" or "RUC")
+            {
+                if (!id.All(char.IsDigit))
+                    yield return new ValidationResult("Solo se permiten dígitos.", new[] { nameof(Identificacion) });
+            }
+
+            if (esRuc && string.IsNullOrWhiteSpace(TipoRucPersona))
+            {
+                yield return new ValidationResult(
+                    "Seleccione si el RUC es de persona natural o jurídica.",
+                    new[] { nameof(TipoRucPersona) });
+            }
+
+            if (tipo == "CEDULA")
+            {
+                if (!EcuadorIdValidator.IsValidCedula(id))
+                    yield return new ValidationResult("Cédula inválida.", new[] { nameof(Identificacion) });
+            }
+            else if (esRuc)
+            {
+                if (tipoRuc == "NATURAL")
+                {
+                    if (!EcuadorIdValidator.IsLikelyValidRucNatural(id))
+                        yield return new ValidationResult(
+                            "RUC de persona natural inválido. Debe tener 13 dígitos, terminar en 001 y contener una cédula válida en los 10 primeros.",
+                            new[] { nameof(Identificacion) });
+                }
+                else if (tipoRuc == "JURIDICA")
+                {
+                    if (!Regex.IsMatch(id, @"^\d{13}$"))
+                        yield return new ValidationResult(
+                            "El RUC de persona jurídica debe tener 13 dígitos.",
+                            new[] { nameof(Identificacion) });
+                }
+            }
+            else if (tipo == "PASAPORTE")
+            {
+                if (!Regex.IsMatch(id, @"^[A-Za-z0-9]{6,12}$"))
+                    yield return new ValidationResult("Pasaporte inválido (6 a 12 caracteres alfanuméricos).", new[] { nameof(Identificacion) });
+            }
+
+            if (!esRucJuridico)
+            {
+                if (string.IsNullOrWhiteSpace(Apellido))
+                {
+                    yield return new ValidationResult(
+                        "El apellido es obligatorio para personas naturales.",
+                        new[] { nameof(Apellido) });
+                }
+                else
+                {
+                    if (Apellido.Length > 100)
+                        yield return new ValidationResult("Máximo 100 caracteres.", new[] { nameof(Apellido) });
+
+                    if (!Regex.IsMatch(Apellido, @"^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$"))
+                        yield return new ValidationResult("El apellido solo debe contener letras.", new[] { nameof(Apellido) });
+                }
+            }
+        }
+    }
+
+    static class EcuadorIdValidator
+    {
+        public static bool IsValidCedula(string cedula)
+        {
+            if (string.IsNullOrWhiteSpace(cedula) || cedula.Length != 10 || !cedula.All(char.IsDigit)) return false;
+            if (!int.TryParse(cedula[..2], out int provincia) || (provincia < 1 || (provincia > 24 && provincia != 30))) return false;
+            if (cedula[2] < '0' || cedula[2] > '5') return false;
+            int[] coef = { 2, 1, 2, 1, 2, 1, 2, 1, 2 };
+            int suma = 0;
+            for (int i = 0; i < 9; i++)
+            {
+                int prod = (cedula[i] - '0') * coef[i];
+                if (prod >= 10) prod -= 9;
+                suma += prod;
+            }
+            int decenaSuperior = ((suma + 9) / 10) * 10;
+            int digitoVerificador = decenaSuperior - suma;
+            if (digitoVerificador == 10) digitoVerificador = 0;
+            return digitoVerificador == (cedula[9] - '0');
+        }
+
+        public static bool IsLikelyValidRucNatural(string ruc)
+        {
+            if (string.IsNullOrWhiteSpace(ruc) || ruc.Length != 13 || !ruc.All(char.IsDigit)) return false;
+            if (!ruc.EndsWith("001")) return false;
+            var cedula = ruc[..10];
+            return IsValidCedula(cedula);
+        }
+    }
+
+    private ClienteCreateVM form = new();
+    private bool isSubmitting = false;
+    private bool _guardsReady = false;
+
+    private string IdentPlaceholder =>
+        form.TipoIdentificacion switch
+        {
+            "Cedula" => "10 dígitos",
+            "RUC" => "13 dígitos",
+            "Pasaporte" => "6-12 caracteres alfanuméricos",
+            _ => "Ingrese identificación"
+        };
+
+    private string IdentHelpText
+    {
+        get
+        {
+            var tipo = form.TipoIdentificacion ?? "";
+            var tipoRuc = form.TipoRucPersona ?? "";
+
+            if (tipo == "Cedula")
+                return "Se validará provincia, tercer dígito (<6) y dígito verificador.";
+
+            if (tipo == "RUC")
+            {
+                if (string.Equals(tipoRuc, "NATURAL", StringComparison.OrdinalIgnoreCase))
+                    return "RUC de persona natural: primeros 10 = cédula válida y termina en 001.";
+                if (string.Equals(tipoRuc, "JURIDICA", StringComparison.OrdinalIgnoreCase))
+                    return "RUC de persona jurídica: 13 dígitos numéricos.";
+                return "Seleccione si el RUC es de persona natural o jurídica.";
+            }
+
+            if (tipo == "Pasaporte")
+                return "Se permiten letras y números (6 a 12).";
+
+            return "Seleccione un tipo para ver las reglas.";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_guardsReady)
+        {
+            var tipo = (form.TipoIdentificacion ?? "").ToUpperInvariant();
+            var mode = tipo is "CEDULA" or "RUC" ? "digits" : "alnum";
+            var max = MaxDocLen ?? 0;
+            await JSRuntime.InvokeVoidAsync("initClientFormGuards", new
+            {
+                identId = "ident-input",
+                telId = "tel-input",
+                nomId = "nom-input",
+                apeId = "ape-input",
+                dirId = "dir-input",
+                identMode = mode,
+                identMax = max
+            });
+            _guardsReady = true;
+        }
+    }
+
+    private async Task OnTipoChanged(ChangeEventArgs e)
+    {
+        form.TipoIdentificacion = e?.Value?.ToString();
+        if (form.TipoIdentificacion != "RUC")
+        {
+            form.TipoRucPersona = null;
+        }
+
+        var tipo = (form.TipoIdentificacion ?? "").ToUpperInvariant();
+        var mode = tipo is "CEDULA" or "RUC" ? "digits" : "alnum";
+        var max = MaxDocLen ?? 0;
+        await JSRuntime.InvokeVoidAsync("setIdentMode", mode, max);
+        StateHasChanged();
+    }
+
+    private void ResetForm() => form = new();
+
+    private async Task HandleValidSubmitAsync()
+    {
+        isSubmitting = true;
+        try
+        {
+            var esRucJuridico = EsRucJuridico;
+
+            var req = new ClienteCreateRequest
+            {
+                Nombre = form.Nombre?.Trim() ?? "",
+                Apellido = esRucJuridico ? "-" : (form.Apellido?.Trim() ?? ""),
+                Identificacion = form.Identificacion?.Trim() ?? "",
+                TipoIdentificacion = (form.TipoIdentificacion ?? "").ToUpperInvariant(),
+                Direccion = form.Direccion?.Trim() ?? "",
+                Telefono = form.Telefono?.Trim() ?? "",
+                CorreoElectronico = form.Correo?.Trim() ?? ""
+            };
+
+            ClienteDto creado = await ClientesApi.CreateAsync(req);
+
+            var idValue = creado.IdCli;
+            var nom = creado.NomCli ?? form.Nombre ?? "";
+            var ape = creado.ApeCli ?? (esRucJuridico ? "-" : form.Apellido ?? "");
+            var ide = creado.IdeCli ?? form.Identificacion ?? "";
+            var tip = creado.TipCli ?? form.TipoIdentificacion ?? "";
+
+            var esEmpresaCreada = string.Equals((ape ?? "").Trim(), "-", StringComparison.Ordinal);
+            var displayNombreCompleto = Escape(esEmpresaCreada ? nom : $"{nom} {ape}");
+            var idText = idValue > 0 ? idValue.ToString() : "pendiente";
+            var subInfo = $"{Escape(ide)} · {Escape(tip)}";
+
+            bool isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+
+            string idBoxStyle, idLabelStyle, idValueStyle;
+
+            if (isDark)
+            {
+                idBoxStyle = "background:var(--form-control-bg);border:1px solid var(--default-border);border-radius:.5rem;padding:.6rem .75rem";
+                idLabelStyle = "font-size:.72rem;color:var(--text-muted);letter-spacing:.04em;margin-bottom:.15rem";
+                idValueStyle = "font-size:1rem;color:var(--default-text-color);font-weight:500;";
+            }
+            else
+            {
+                idBoxStyle = "background:#f8fafc;border:1px solid #e5e7eb;border-radius:.5rem;padding:.6rem .75rem";
+                idLabelStyle = "font-size:.72rem;color:#64748b;letter-spacing:.04em;margin-bottom:.15rem";
+                idValueStyle = "font-size:1rem;color:#1e293b;font-weight:500;";
+            }
+
+            var result = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Success,
+                Title = "Cliente creado",
+                Html = $@"
+                    <div style='text-align:left;font-size:14px;line-height:1.45'>
+                        <div style='display:flex;align-items:center;gap:.6rem;margin:0 0 .65rem'>
+                            <svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor' style='width:1.5rem;height:1.5rem;color:#22c55e;flex-shrink:0'>
+                                <path stroke-linecap='round' stroke-linejoin='round' d='M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z' />
+                            </svg>
+                            <div>
+                                <div style='font-weight:700;font-size:1rem'>{displayNombreCompleto}</div>
+                                <div style='font-size:.83rem;color:var(--text-muted)'>{subInfo}</div>
+                            </div>
+                        </div>
+                        <div style='{idBoxStyle}'>
+                            <div style='{idLabelStyle}'>ID CLIENTE</div>
+                            <code style='{idValueStyle}'>{Escape(idText)}</code>
+                        </div>
+                    </div>",
+                ShowCancelButton = true,
+                ConfirmButtonText = "Ver listado",
+                CancelButtonText = "Crear otro",
+                FocusConfirm = false
+            });
+
+            if (result.IsConfirmed)
+            {
+                Nav.NavigateTo("/dashboards/clientes/listar");
+            }
+            else
+            {
+                ResetForm();
+
+                if (isDark)
+                {
+                    await Swal.FireAsync(new SweetAlertOptions
+                    {
+                        Toast = true,
+                        Position = SweetAlertPosition.TopEnd,
+                        Icon = SweetAlertIcon.Success,
+                        Title = "Listo, puedes crear otro",
+                        ShowConfirmButton = false,
+                        Timer = 1800,
+                        TimerProgressBar = true,
+                        Background = "var(--form-control-bg)",
+                        Color = "var(--default-text-color)"
+                    });
+                }
+                else
+                {
+                    await Swal.FireAsync(new SweetAlertOptions
+                    {
+                        Toast = true,
+                        Position = SweetAlertPosition.TopEnd,
+                        Icon = SweetAlertIcon.Success,
+                        Title = "Listo, puedes crear otro",
+                        ShowConfirmButton = false,
+                        Timer = 1800,
+                        TimerProgressBar = true,
+                        Background = isDark ? "var(--form-control-bg)" : null,
+                        Color = isDark ? "var(--default-text-color)" : null
+                    });
+                }
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Error,
+                Title = "No se pudo crear el cliente",
+                Text = Trunca(ex.Message, 300),
+                Footer = "<small>Revisa los datos o inténtalo más tarde.</small>"
+            });
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Error,
+                Title = "Error inesperado",
+                Text = Trunca(ex.Message, 300)
+            });
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleInvalidAsync(EditContext ctx)
+    {
+        var errores = ctx.GetValidationMessages().Take(3);
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Icon = SweetAlertIcon.Warning,
+            Title = "Completa los campos",
+            Html = string.Join("<br/>", errores.Select(Escape))
+        });
+    }
+
+    private static string Trunca(string? s, int max)
+        => string.IsNullOrWhiteSpace(s) ? "" : (s.Length <= max ? s : s[..max] + "…");
+
+    private static string Escape(string? s) =>
+        string.IsNullOrEmpty(s) ? "" : s.Replace("<", "&lt;").Replace(">", "&gt;");
+}

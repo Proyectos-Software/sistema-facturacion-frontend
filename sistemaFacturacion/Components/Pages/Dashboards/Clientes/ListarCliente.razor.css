@@ -1,0 +1,130 @@
+﻿.metrics .card {
+    height: 100%;
+}
+
+.table td.text-end {
+    white-space: nowrap;
+}
+
+    .table td.text-end .btn {
+        vertical-align: middle;
+    }
+
+/* ===== Dark mode: métricas y números ===== */
+[data-theme-mode="dark"] .metrics .card .fs-3,
+[data-theme-mode="dark"] .metrics .card .fw-semibold {
+    color: #ffffff !important;
+}
+
+[data-theme-mode="dark"] .metrics .card .text-muted {
+    color: #c7cbd3 !important;
+}
+
+/* Identificación (code) en tabla: mejor contraste en oscuro */
+[data-theme-mode="dark"] .table code {
+    color: #f5f7fb !important;
+    background: transparent !important;
+    padding: 0;
+}
+
+/* ===== Dark mode: badges legibles ===== */
+/* Tipo (usa bg-*-subtle text-*) */
+[data-theme-mode="dark"] .badge.bg-primary-subtle {
+    background: rgba(13,110,253,.18) !important;
+    color: #dbe8ff !important;
+    border: 1px solid rgba(13,110,253,.35);
+}
+
+[data-theme-mode="dark"] .badge.bg-success-subtle {
+    background: rgba(25,135,84,.20) !important;
+    color: #d9ffe9 !important;
+    border: 1px solid rgba(25,135,84,.35);
+}
+
+[data-theme-mode="dark"] .badge.bg-info-subtle {
+    background: rgba(13,202,240,.18) !important;
+    color: #d9f7ff !important;
+    border: 1px solid rgba(13,202,240,.35);
+}
+
+[data-theme-mode="dark"] .badge.bg-danger-subtle {
+    background: rgba(220,53,69,.20) !important;
+    color: #ffd9de !important;
+    border: 1px solid rgba(220,53,69,.40);
+}
+
+[data-theme-mode="dark"] .badge.bg-secondary-subtle {
+    background: rgba(108,117,125,.22) !important;
+    color: #f0f2f4 !important;
+    border: 1px solid rgba(108,117,125,.40);
+}
+
+/* Estado: Activo/Inactivo (ya usas bg-success-subtle / bg-danger-subtle) */
+/* Las reglas anteriores ya los cubren */
+
+/* ===== Dark mode: botones outline (acciones) ===== */
+[data-theme-mode="dark"] .btn-outline-primary {
+    color: #9ec1ff;
+    border-color: #3b82f6;
+}
+
+    [data-theme-mode="dark"] .btn-outline-primary:hover,
+    [data-theme-mode="dark"] .btn-outline-primary:focus {
+        background: rgba(59,130,246,.15);
+        color: #cfe1ff;
+        border-color: #60a5fa;
+    }
+
+[data-theme-mode="dark"] .btn-outline-info {
+    color: #7fe3ff;
+    border-color: #22d3ee;
+}
+
+    [data-theme-mode="dark"] .btn-outline-info:hover,
+    [data-theme-mode="dark"] .btn-outline-info:focus {
+        background: rgba(34,211,238,.15);
+        color: #c8f7ff;
+        border-color: #67e8f9;
+    }
+
+[data-theme-mode="dark"] .btn-outline-danger {
+    color: #ff9fb0;
+    border-color: #ef4444;
+}
+
+    [data-theme-mode="dark"] .btn-outline-danger:hover,
+    [data-theme-mode="dark"] .btn-outline-danger:focus {
+        background: rgba(239,68,68,.16);
+        color: #ffd7dd;
+        border-color: #f87171;
+    }
+
+/* Alineación consistente de iconos en celda acciones */
+.table td.text-end .btn {
+    vertical-align: middle;
+}
+
+/* ===== SweetAlert2 toast: apariencia en oscuro (igual a paneles) ===== */
+[data-theme-mode="dark"] .swal2-toast.swal2-toast-app {
+    background: #121720 !important; /* tono del resto de alertas/paneles */
+    color: #e7ebf2 !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04) !important;
+}
+
+    [data-theme-mode="dark"] .swal2-toast.swal2-toast-app .swal2-title {
+        color: inherit !important;
+    }
+
+    [data-theme-mode="dark"] .swal2-toast.swal2-toast-app .swal2-timer-progress-bar {
+        background: rgba(255,255,255,.25) !important;
+    }
+
+/* ===== Ajustes menores de tabla en oscuro ===== */
+[data-theme-mode="dark"] .table thead,
+[data-theme-mode="dark"] .table th {
+    color: #c9ced6 !important;
+}
+
+[data-theme-mode="dark"] .table td small {
+    color: #cfd6df;
+}

@@ -1,0 +1,73 @@
+﻿@page "/authentication/signup/basic"
+@using Microsoft.AspNetCore.Authorization
+@layout Components.Layout.CustomLayout
+@attribute [AllowAnonymous]
+
+
+<div class="authentication-background">
+    <div class="authentication-basic-background">
+        <img src="../assets/images/media/backgrounds/9.png" alt="">
+    </div>
+
+    <div class="container">
+        <div class="row justify-content-center align-items-center authentication authentication-basic h-100">
+            <div class="col-xxl-4 col-xl-5 col-lg-6 col-md-6 col-sm-8 col-12">
+                <div class="card custom-card my-4 border-0">
+                    <div class="card-body p-5">
+                        <div class="mb-4">
+                            <a href="/index">
+                                <img src="../assets/images/brand-logos/toggle-logo.png" alt="logo" class="desktop-dark">
+                            </a>
+                        </div>
+                        <div>
+                            <h4 class="fw-semibold mb-1">Sign Up</h4>
+                            <p class="text-muted fw-normal mb-4">Join us by creating a free account !</p>
+                        </div>
+                        <div class="row gy-3">
+                            <div class="col-xl-12">
+                                <label for="signin-email" class="form-label text-default">Email</label>
+                                <input type="text" class="form-control" id="signin-email" placeholder="Enter Email"
+                                    value="tomphillip21@gmail.com">
+                            </div>
+                            <div class="col-xl-12 mb-2">
+                                <label for="signin-password" class="form-label text-default d-block">Password</label>
+                                <div class="position-relative">
+                                    <PasswordToggle @bind-Password="password" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-grid mt-3">
+                            <a href="" class="btn btn-primary">Sign In</a>
+                        </div>
+                        <div class="authentication-barrier my-3 text-center">
+                            <span class="op-4 fs-13">OR</span>
+                        </div>
+                        <div class="d-grid mb-3">
+                            <button
+                                class="btn btn-white btn-w-lg d-flex align-items-center justify-content-center flex-fill mb-3 border">
+                                <span class="avatar avatar-xs">
+                                    <img src="../assets/images/media/apps/google.png" alt="">
+                                </span>
+                                <span class="lh-1 fs-13 text-default fw-medium ms-2">Signup with Google</span>
+                            </button>
+                            <button
+                                class="btn btn-white btn-w-lg d-flex align-items-center justify-content-center flex-fill border">
+                                <span class="avatar avatar-xs flex-shrink-0">
+                                    <img src="../assets/images/media/apps/facebook.png" alt="">
+                                </span>
+                                <span class="lh-1 fs-13 text-default fw-medium ms-2">Signup with Facebook</span>
+                            </button>
+                        </div>
+                        <div class="fw-medium mt-3 text-center">
+                            Already have a account? <a href="/signin/basic" class="text-primary custom-login">  Sign In</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string password = "12345678";
+}

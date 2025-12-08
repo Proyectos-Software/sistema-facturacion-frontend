@@ -1,0 +1,25 @@
+// form-wizard-init.js
+window.initWizards = function () {
+    "use strict";
+
+    /* Form Wizard 1 */
+    let args = {
+        "wz_class": ".wizard-tab",
+        highlight: true,
+        highlight_time: 1000,
+    };
+    const wizard = new Wizard1(args);
+    wizard.init();
+    /* Form Wizard 1 */
+
+    /* Form Wizard with validation */
+    new Wizard('#basicwizard', {
+        validate: true,
+    });
+
+    /* Wizard with Progress */
+    new Wizard("#progresswizard", {
+        validate: true,
+        progress: true
+    });
+};

@@ -46,6 +46,46 @@ src/
 ├── WebAPI/               # Endpoints y controladores .NET Core
 └── BlazorApp/            # Frontend en Blazor Server
 ```
+## 🚢 Despliegue / Instalación
+Requisitos previos
+- **.NET SDK 9.x**
+- **Node.js 18+ y npm**
+- **SQL Server en ejecución (si aplica para tu entorno)**
+
+Pasos
+1) Ubicate en la carpeta del proyecto
+
+    ```cmd
+    cd sistemaFacturacion
+    ```
+2) Instala dependencias de Node:
+
+    ```cmd
+    npm install
+    ```
+3) Construye los assets js/css con esbuild:
+
+    ```cmd
+    npm run vyzor
+    ```
+4) Reemplaza style.css por el del gist:
+    - Descarga el style.css desde [aqui.](https://gist.github.com/ErickGuerron/3ce4f45b7166357c72d29c419b05e741/7740b316ff9d81090c640637f3ba746a81d983c2)
+    - Sustituye tu archivo local style.css (ej.: wwwroot/assets/css/style.css; ajusta la ruta según tu estructura).
+    - Importante si usas style.scss: si tu build genera style.css a partir de style.scss, copia también los cambios del gist dentro de style.scss y vuelve a ejecutar:
+
+        ```cmd
+        npm run vyzor
+        ```
+De lo contrario, un build futuro podría sobrescribir tu style.css.
+
+5) Levanta la aplicación (backend/Blazor):
+
+    ```cmd
+    dotnet restore
+    dotnet build
+    dotnet run
+    ```
+
 ## 👨‍💻 Equipo de desarrollo
 - **Anthony** – Fullstack Developer
 - **Mabe** – Fullstack Developer

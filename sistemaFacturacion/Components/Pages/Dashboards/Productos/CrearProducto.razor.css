@@ -1,0 +1,249 @@
+﻿:root {
+    --bg-dark: #1e1e2f;
+    --bg-card: #2b2b3c;
+    --text-light: #f1f1f1;
+    --accent: #0ea5e9;
+    --accent-hover: #38bdf8;
+    --error: #ef4444;
+    --success: #22c55e;
+}
+
+/* Estructura general */
+body,
+.titulo-form,
+.descripcion-form {
+    color: var(--text-light);
+}
+
+.titulo-form {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.descripcion-form {
+    font-size: 0.9rem;
+    color: #b0b0b0;
+    margin-bottom: 1.5rem;
+}
+
+/* --- Contenedor del componente (Blazor CSS isolation) --- */
+:host {
+    display: block;
+    padding-bottom: 4rem; /* separa el contenido del borde inferior */
+}
+
+/* Formulario */
+.form-grid {
+    display: grid;
+    /* antes: repeat(3, 1fr) -> ahora responsivo */
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-auto-rows: auto;
+    gap: 1.2rem;
+    background-color: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    margin-bottom: 1.5rem; /* aire extra antes de acciones/footer */
+}
+
+/* Hace que la descripción ocupe toda la fila disponible */
+.descripcion {
+    grid-column: 1 / -1; /* ocupa todas las columnas de la grilla */
+}
+
+.campo label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    background-color: #1c1c2b;
+    color: var(--text-light);
+    border: 1px solid #3a3a4a;
+    border-radius: 8px;
+    padding: 0.6rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.3);
+    }
+
+/* Validaciones */
+.validation-message,
+.text-danger {
+    color: var(--error);
+    font-size: 0.8rem;
+    margin-top: 0.2rem;
+}
+
+/* Botones (bloque simple de acciones del form) */
+.acciones {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem; /* extra gap antes del borde */
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-guardar,
+.btn-cancelar {
+    padding: 0.7rem 1.3rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s, transform .06s ease, box-shadow .2s ease;
+}
+
+.btn-guardar {
+    background-color: var(--accent);
+    color: #fff;
+}
+
+    .btn-guardar:hover {
+        background-color: var(--accent-hover);
+    }
+
+.btn-cancelar {
+    background-color: #444;
+    color: #ddd;
+}
+
+    .btn-cancelar:hover {
+        background-color: #555;
+    }
+
+/* Mensaje de éxito */
+.alerta-exito {
+    margin-top: 1rem;
+    background-color: rgba(34, 197, 94, 0.15);
+    color: var(--success);
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    font-size: 0.9rem;
+}
+
+/* Fila de acciones “estilo botones bootstrap” (si la usas) */
+.form-actions {
+    margin-top: 1.25rem;
+    gap: .6rem;
+    flex-wrap: wrap;
+}
+
+    .form-actions > .btn {
+        --btn-radius: .6rem;
+        --btn-padding-y: .55rem;
+        --btn-padding-x: 1rem;
+        --btn-font: 500;
+        border-radius: var(--btn-radius);
+        padding: var(--btn-padding-y) var(--btn-padding-x);
+        font-weight: var(--btn-font);
+        transition: transform .06s ease, box-shadow .2s ease, background-color .2s ease, color .2s ease, border-color .2s ease;
+        box-shadow: 0 0 0 0 rgba(0,0,0,0);
+    }
+
+        .form-actions > .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .form-actions > .btn:focus-visible {
+            outline: 0;
+            box-shadow: 0 0 0 .2rem rgba(14,165,233,.25);
+        }
+
+        .form-actions > .btn:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Primario (Guardar) */
+        .form-actions > .btn.btn-primary {
+            background: var(--primary-bg, #0ea5e9);
+            border-color: var(--primary-bg, #0ea5e9);
+            color: var(--on-primary, #fff);
+        }
+
+            .form-actions > .btn.btn-primary:hover:not(:disabled) {
+                background: color-mix(in srgb, var(--primary-bg, #0ea5e9) 92%, #000);
+                border-color: color-mix(in srgb, var(--primary-bg, #0ea5e9) 92%, #000);
+            }
+
+        /* Contorno (Limpiar) */
+        .form-actions > .btn.btn-outline-secondary {
+            --b: var(--default-border, #2b2f36);
+            --t: var(--default-text-color, #e5e7eb);
+            background: transparent;
+            border-color: var(--b);
+            color: var(--t);
+        }
+
+            .form-actions > .btn.btn-outline-secondary:hover:not(:disabled) {
+                background: color-mix(in srgb, var(--b) 14%, transparent);
+                border-color: color-mix(in srgb, var(--b) 80%, #888);
+            }
+
+        /* Ligero (Volver) */
+        .form-actions > .btn.btn-light {
+            --bg: var(--form-control-bg, #0f1115);
+            --tx: var(--default-text-color, #e5e7eb);
+            --bd: var(--default-border, #2b2f36);
+            background: var(--bg);
+            color: var(--tx);
+            border: 1px solid var(--bd);
+        }
+
+            .form-actions > .btn.btn-light:hover {
+                background: color-mix(in srgb, var(--bg) 85%, #fff);
+                border-color: color-mix(in srgb, var(--bd) 80%, #888);
+            }
+
+/* === Separación inferior para el layout general (si usas wrapper) === */
+.productos-dashboard {
+    padding-bottom: 3rem;
+}
+/* espacio adicional inferior */
+.main-content.app-content .productos-dashboard {
+    padding-bottom: 4rem !important;
+}
+
+/* También puedes aplicar margen inferior al bloque de botones o al form */
+.productos-dashboard .acciones,
+.productos-dashboard form {
+    margin-bottom: 2.5rem; /* aire antes del fin del contenido */
+}
+/* --- Forzar espacio inferior en el contenedor del layout --- */
+:global(.app-content .main-body-container),
+:global(#MainLayoutContainer.container-fluid.page-container.main-body-container) {
+    padding-block-end: 2.75rem !important; /* respeta writing-mode */
+    padding-bottom: 2.75rem !important; /* fallback directo */
+}
+
+/* Si el footer todavía queda pegado, da aire extra al footer */
+:global(footer.footer) {
+    margin-top: 1rem !important;
+}
+.bottom-spacer {
+    height: 3rem;
+}
+
+
+/* Móvil: apilar botones al 100% si usas .form-actions */
+@media (max-width: 576px) {
+    .form-actions > .btn {
+        width: 100%;
+    }
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+    .form-actions > .btn {
+        transition: none;
+    }
+}

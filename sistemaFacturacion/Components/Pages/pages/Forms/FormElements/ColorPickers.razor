@@ -1,0 +1,118 @@
+@page "/formelements/colorpickers"
+@using BlazorColorPicker
+@inject IColorPickerService ColorPickerService
+@inject Microsoft.AspNetCore.Components.NavigationManager NavigationManager 
+
+<!-- Prism CSS -->
+<link rel="stylesheet" href="@($"{NavigationManager.BaseUri}assets/libs/prismjs/themes/prism-coy.min.css")">
+
+
+<!-- Start::page-header -->
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap">
+        <h1 class="page-title fw-medium fs-18 mb-0">Color Pickers</h1>
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Forms</a></li>
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Form Elements</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Color Pickers</li>
+        </ol>
+    </div>
+</div>
+<!-- End::page-header -->
+
+<!-- Start::row-1 -->
+<div class="row">
+    <div class="col-xl-12">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="card-title">
+                    Bootstrap Color Picker
+                </div>
+                <div class="prism-toggle">
+                    <button class="btn btn-sm btn-primary-light">Show Code<i
+                            class="ri-code-line ms-2 d-inline-block align-middle"></i></button>
+                </div>
+            </div>
+            <div class="card-body">
+                <input type="color" class="form-control form-control-color border-0" id="exampleColorInput"
+                    value="#136ad0" title="Choose your color">
+            </div>
+            <div class="card-footer d-none border-top-0">
+                <!-- Prism Code -->
+                <pre class="language-html"><code class="language-html">&lt;input type="color" class="form-control form-control-color border-0"
+    id="exampleColorInput" value="#136ad0" title="Choose your color"&gt;</code></pre>
+                <!-- Prism Code -->
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-12">
+        <div class="card custom-card">
+            <div class="card-header">
+                <div class="card-title">
+                    Classic
+                </div>
+            </div>
+            <div class="card-body d-flex justify-content-between">
+                <a href="javascript:void(0);" @onclick="OpenModal">
+                        <div style="background-color:@color" class="buttonColor m-0"></div>
+                    </a>
+
+                    <a href="javascript:void(0);" @onclick="OpenModalCustom">
+                        <div style="background-color:@customColor" class="buttonColor m-0"></div>
+                    </a>
+
+                    <a href="javascript:void(0);" @onclick="OpenModalCustomSizes">
+                        <div style="background-color:@customColorSize" class="buttonColor m-0"></div>
+                    </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Prism JS -->
+<script src="@($"{NavigationManager.BaseUri}assets/libs/prismjs/prism.js")"></script>
+<script src="@($"{NavigationManager.BaseUri}assets/js/prism-custom.js")"></script>
+
+
+@code {
+    string[] colors = new string[] { "#FFFFFF", "#000000", "#999999","#8b7eff" };
+    string color = "#8b7eff";
+    string customColor = "rgb(35, 183, 229)";
+    string customColorSize = "#8b7eff";
+
+	private async Task OpenModal()
+	{
+		var parameters = new ColorPickerParameters
+		{
+			ColorSelected = color,
+		};
+		color = await ColorPickerService.ShowColorPicker(parameters);
+	}
+
+	private async Task OpenModalCustom()
+	{
+		string[] colors = new string[] { "#FFFFFF", "#000000", "#999999", "#03A97E", "#04B573",
+			"#05BF69", "#06CA5F", "#06D554", "#07E148", "#08EC3E" };
+
+		var parameters = new ColorPickerParameters
+		{
+			ColorSelected = customColor,
+			MyColorPallet = colors,
+			OverwriteBackgroundColor = "#CCCCCC",
+			Title = "Custom Colors",
+		};
+		customColor = await ColorPickerService.ShowColorPicker(parameters);
+    }
+
+	private async Task OpenModalCustomSizes()
+	{
+		var parameters = new ColorPickerParameters
+		{
+			ColorSelected = customColorSize,
+			Style = "width: 304px; height: 304px",
+		};
+		customColorSize = await ColorPickerService.ShowColorPicker(parameters);
+	} 
+}
+
+

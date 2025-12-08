@@ -1,0 +1,548 @@
+﻿@page "/ecommerce/products"
+@using Microsoft.AspNetCore.Authorization
+@using Soenneker.Blazor.TomSelect
+@using Soenneker.Blazor.TomSelect.Configuration
+@using Soenneker.Blazor.TomSelect.Enums
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject SweetAlertService Swal
+@attribute [Authorize]
+
+
+<div class="page-header-breadcrumb mb-3">
+    <div class="d-flex align-center justify-content-between flex-wrap">
+        <h1 class="page-title fw-medium fs-18 mb-0">Products</h1>
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Dashboards</a></li>
+            <li class="breadcrumb-item"><a href="javascript:void(0);">Ecommerce</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Products</li>
+        </ol>
+    </div>
+</div>
+<div class="row row-cols-xxl-5 row-cols-md-3 row-cols-1">
+    @foreach (var card in productStatsCards)
+    {
+        <div class="col">
+            <div class="card custom-card dashboard-main-card @card.CardClass">
+                <div class="card-body">
+                    <div class="d-flex align-items-start flex-wrap gap-3">
+                        <div class="flex-fill">
+                            <span class="fs-13 fw-medium">@card.Title</span>
+                            <h4 class="fw-semibold lh-1 my-2">@card.Value</h4>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="d-block text-muted">
+                                    <span class="fs-12 badge @card.BadgeClass me-1">@card.BadgeSign@card.BadgeText</span>
+                                    this month
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="avatar avatar-md @card.AvatarClass">
+                                @((MarkupString)(card.SvgPath ?? ""))
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<div class="row">
+    <div class="col-xl-12">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between border-bottom-0 custom-products">
+                <div class="w-sm-25">
+                    <input class="form-control" type="search" id="search-input" placeholder="Search Product"
+                        aria-label="search-product" @bind-value="SearchTerm" @oninput="OnSearchInput">
+                </div>
+
+                <div class="row gy-2 w-sm-50 products-filter">
+                    <div class="col">
+                        @if (isRendered)
+                        {
+                            <TomSelect TItem="SelectItem"
+                                       Items="_selectedCategoryItems"
+                                       TType="string"
+                                       Multiple="false"
+                                       @bind-Value="_selectedCategoryValue"
+                                       OnChange="OnCategorySelectionChanged"
+                                       Data="_categoryOptions"
+                                       TextField="@(item => item.Name)"
+                                       ValueField="@(item => item.Id)"
+                                       Placeholder="Search"
+                                       Configuration="_configuration" />
+                        }
+                    </div>
+
+                    <div class="col">
+                        @if (isRendered)
+                        {
+                            <TomSelect TItem="SelectItem"
+                                       Items="_selectedStatusItems"
+                                       TType="string"
+                                       Multiple="false"
+                                       @bind-Value="_selectedStatusValue"
+                                       OnChange="OnProductStatusSelectionChanged"
+                                       Data="_productStatusOptions"
+                                       TextField="@(item => item.Name)"
+                                       ValueField="@(item => item.Id)"
+                                       Placeholder="Search"
+                                       Configuration="_configuration" />
+                        }
+                    </div>
+
+                    <div class="col">
+                        @if (isRendered)
+                        {
+                            <TomSelect TItem="SelectItem"
+                                       Items="_selectedStockItems"
+                                       TType="string"
+                                       Multiple="false"
+                                       @bind-Value="_selectedStockValue"
+                                       OnChange="OnStockStatusSelectionChanged"
+                                       Data="_stockStatusOptions"
+                                       TextField="@(item => item.Name)"
+                                       ValueField="@(item => item.Id)"
+                                       Placeholder="Search"
+                                       Configuration="_configuration" />
+                        }
+                    </div>
+
+                    <div class="col">
+                        @if (isRendered)
+                        {
+                            <TomSelect TItem="SelectItem"
+                                       Items="_selectedSortItems"
+                                       TType="string"
+                                       Multiple="false"
+                                       @bind-Value="_selectedSortValue"
+                                       OnChange="OnSortSelectionChanged"
+                                       Data="_sortOptions"
+                                       TextField="@(item => item.Name)"
+                                       ValueField="@(item => item.Id)"
+                                       Placeholder="Search"
+                                       Configuration="_configuration" />
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive" id="product-table">
+                    <QuickGrid TItem="Product" Items="@FilteredItems.AsQueryable()" Pagination="pagination">
+                        <TemplateColumn Title="#" SortBy="@sortByName">
+                            <span><input class="form-check-input" type="checkbox" value="" aria-label="..."></span>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Product ID" SortBy="@sortById">
+                            <ChildContent Context="p">
+                                <span><a href="javascript:void(0);">@p.ProductId</a></span>
+                            </ChildContent>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Product Name" SortBy="@sortByName" class="product-name">
+                            <ChildContent Context="p">
+                                <span>
+                                    <a href="/ecommerce/productdetails">
+                                        <div class="d-flex align-items-center position-relative gap-3">
+                                            <div class="lh-1">
+                                                <span class="avatar avatar-lg bg-light">
+                                                    <img src="@p.ProductImg" alt="Product Image">
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span class="d-block fw-semibold">@p.ProductName</span>
+                                                <span class="text-muted fs-13">@p.ProductSubtitle</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </span>
+                            </ChildContent>
+                        </TemplateColumn>
+                        <PropertyColumn Property="@(p => p.Price)" Sortable="true" Title="Price" />
+                        <TemplateColumn Title="Stock Status" SortBy="@sortByStock">
+                            <ChildContent Context="p">
+                                <span class="badge bg-@(p.StockStatus == "In Stock" ? "success" : "danger")-transparent">@p.StockStatus</span>
+                            </ChildContent>
+                        </TemplateColumn>
+                        <PropertyColumn Property="@(p => p.Quantity)" Sortable="true" Title="Quantity" />
+
+                        <TemplateColumn Title="Status" SortBy="@sortByStatus">
+                            <ChildContent Context="p">
+                                <span class="text-@(p.Status == "Published" ? "primary" :p.Status == "Draft" ? "danger" : "success")">@p.Status</span>
+                            </ChildContent>
+                        </TemplateColumn>
+                        <PropertyColumn Property="@(p => p.DateAdded)" Sortable="true" Title="DateAdded" />
+                        <TemplateColumn Title="Actions">
+                            <ChildContent Context="p">
+                                <div class="dropdown">
+                                    <a href="javascript:void(0);" class="btn btn-icon btn-sm btn-primary-light border" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fe fe-more-vertical"></i>
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="/ecommerce/productdetails"><i class="ri-eye-line me-2"></i>View</a></li>
+                                        <li><a class="dropdown-item btn-delete" href="javascript:void(0);" @onclick="() => ConfirmAndDelete(p)"><i class="ri-delete-bin-line me-2"></i>Delete</a></li>
+                                    </ul>
+                                </div>
+                            </ChildContent>
+                        </TemplateColumn>
+                    </QuickGrid>
+                    @if (FilteredItems == null || !FilteredItems.Any())
+                    {
+                        <div class="custom-table-page py-4 text-center">No matching records found</div>
+                    }
+                </div>
+                <Paginator State="pagination" />
+            </div>
+        </div>
+    </div>
+</div>
+<script src="_content/CurrieTechnologies.Razor.SweetAlert2/sweetAlert2.min.js"></script>
+
+@code {
+    PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+    record Product(string ProductId, string ProductImg, string ProductName, string ProductSubtitle, string Price, string StockStatus, int Quantity, string Status, string DateAdded);
+
+    GridSort<Product> sortByName = GridSort<Product>.ByAscending(p => p.ProductName).ThenAscending(p => p.ProductName);
+    GridSort<Product> sortById = GridSort<Product>.ByAscending(p => p.ProductId).ThenAscending(p => p.ProductId);
+    GridSort<Product> sortByPrice = GridSort<Product>.ByAscending(p => p.Price).ThenAscending(p => p.Price);
+    GridSort<Product> sortByStock = GridSort<Product>.ByAscending(p => p.StockStatus).ThenAscending(p => p.StockStatus);
+    GridSort<Product> sortByStatus = GridSort<Product>.ByAscending(p => p.Status).ThenAscending(p => p.Status);
+
+    // Master list of all products
+    List<Product> AllProducts = new();
+
+    // List to hold the filtered data for the grid
+    private List<Product> FilteredItems = new();
+
+    // Search Term property
+    private string SearchTerm { get; set; } = string.Empty;
+
+    void Delete(Product p)
+    {
+        AllProducts.Remove(p);
+        FilteredItems.Remove(p); // Also remove from FilteredItems to update the display immediately
+        pagination.ItemsPerPage = Math.Max(1, Math.Min(10, FilteredItems.Count));
+        StateHasChanged(); // Triggers UI refresh
+    }
+
+
+
+
+    private async System.Threading.Tasks.Task ConfirmAndDelete(Product p)
+    {
+        var confirmResult = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Are you sure?",
+                Text = "You won't be able to revert this!",
+                Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true,
+                ConfirmButtonColor = "#3085d6",
+                CancelButtonColor = "#d33",
+                ConfirmButtonText = "Yes, delete it!"
+            });
+
+        if (confirmResult.IsConfirmed)
+        {
+            Delete(p); // Call delete logic
+
+            await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Deleted!",
+                    Text = "Your Product has been deleted.",
+                    Icon = SweetAlertIcon.Success
+                });
+        }
+    }
+
+}
+
+@code {
+    // Properties for TomSelect dropdowns
+    private bool isRendered = false;
+
+    private string _selectedCategoryValue = "0"; // Default to "All Categories"
+    private string _selectedStatusValue = "0";   // Default to "All Status"
+    private string _selectedStockValue = "0";    // Default to "Stocks"
+    private string _selectedSortValue = "0";     // Default to "Sort By"
+
+    private List<SelectItem>? _categoryOptions;
+    private List<SelectItem>? _productStatusOptions;
+    private List<SelectItem>? _stockStatusOptions;
+    private List<SelectItem>? _sortOptions;
+
+    // Selected items for TomSelect (usually a single item for single select)
+    private List<SelectItem> _selectedCategoryItems = new();
+    private List<SelectItem> _selectedStatusItems = new();
+    private List<SelectItem> _selectedStockItems = new();
+    private List<SelectItem> _selectedSortItems = new();
+
+
+    public class SelectItem
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        // The 'Selected' property is generally not needed for single-select TomSelect with @bind-Value
+        // public bool Selected { get; set; }
+    }
+
+
+    private readonly TomSelectConfiguration _configuration = new()
+    {
+        Plugins = new List<TomSelectPluginType> { TomSelectPluginType.DropdownInput, TomSelectPluginType.NoBackspaceDelete }
+    };
+ 
+    private readonly TomSelectConfiguration _configuration2 = new()
+    {
+        Plugins = new List<TomSelectPluginType> { TomSelectPluginType.RemoveButton, TomSelectPluginType.NoBackspaceDelete }
+    };
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isRendered = true;
+            StateHasChanged();
+        }
+
+        return Task.CompletedTask;
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize AllProducts list
+        AllProducts = new List<Product>
+        {
+            new Product("SPK001", "../assets/images/ecommerce/png/1.png","Smart TV 50","electronics", "$699.99", "In Stock", 120, "Published", "Mar 12, 2025"),
+            new Product("SPK002", "../assets/images/ecommerce/png/2.png", "Running Shoes","fashion", "$59.99", "In Stock", 60, "Published", "Feb 15, 2025"),
+            new Product("SPK003", "../assets/images/ecommerce/png/3.png","Wooden Dining Table", "home","$39.99", "Out of Stock", 0, "Archived", "Feb 10, 2025"),
+            new Product("SPK004", "../assets/images/ecommerce/png/4.png","Wireless Earbuds", "electronics","$89.99", "Out of Stock" ,0, "Draft", "Mar 10, 2025"),
+            new Product("SPK005", "../assets/images/ecommerce/png/5.png","Leather Jacket","fashion","$399.99", "In Stock", 45, "Published", "Mar 12, 2025"),
+            new Product("SPK006", "../assets/images/ecommerce/png/7.png","Office Desk Chair", "home","$129.99", "In Stock", 250, "Published", "Mar 12, 2025"),
+            new Product("SPK007", "../assets/images/ecommerce/png/8.png","Portable Speaker",  "electronics","$199.99", "In Stock", 75, "Archived", "Mar 12, 2025"),
+            new Product("SPK008", "../assets/images/ecommerce/png/9.png","Summer Dress","fashion", "$149.99", "Out of Stock", 0, "Draft", "Mar 12, 2025"),
+            new Product("SPK009", "../assets/images/ecommerce/png/10.png","Coffee Maker", "home","$79.99", "In Stock", 300, "Published", "Mar 12, 2025"),
+            new Product("SPK010", "../assets/images/ecommerce/png/16.png","Electric Kettle", "electronics","$59.99", "In Stock", 150, "Published", "Mar 12, 2025"),
+        };
+
+        // Initialize dropdown options
+        _categoryOptions = new List<SelectItem>
+        {
+            new SelectItem { Id = "0", Name = "All Categories" },
+            new SelectItem { Id = "1", Name = "Electronics" },
+            new SelectItem { Id = "2", Name = "Fashion" },
+            new SelectItem { Id = "3", Name = "Home" },
+        };
+        _selectedCategoryItems = _categoryOptions.Where(o => o.Id == _selectedCategoryValue).ToList();
+
+        _productStatusOptions = new List<SelectItem>
+        {
+            new SelectItem { Id = "0", Name = "All Status" },
+            new SelectItem { Id = "1", Name = "Published" },
+            new SelectItem { Id = "2", Name = "Draft" },
+            new SelectItem { Id = "3", Name = "Archived" },
+        };
+        _selectedStatusItems = _productStatusOptions.Where(o => o.Id == _selectedStatusValue).ToList();
+
+        _stockStatusOptions = new List<SelectItem>
+        {
+            new SelectItem { Id = "0", Name = "Stocks" },
+            new SelectItem { Id = "1", Name = "In Stock" },
+            new SelectItem { Id = "2", Name = "Out of Stock" },
+        };
+        _selectedStockItems = _stockStatusOptions.Where(o => o.Id == _selectedStockValue).ToList();
+
+        _sortOptions = new List<SelectItem>
+        {
+            new SelectItem { Id = "0", Name = "Sort By" },
+            new SelectItem { Id = "1", Name = "Date Added" },
+            new SelectItem { Id = "2", Name = "Price" },
+            new SelectItem { Id = "3", Name = "Product Name" },
+        };
+        _selectedSortItems = _sortOptions.Where(o => o.Id == _selectedSortValue).ToList();
+
+        // Apply initial filter
+        await ApplyFilter();
+    }
+
+    // Event handlers for filtering
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        // Wrap state-changing logic in InvokeAsync
+        await InvokeAsync(async () =>
+        {
+            SearchTerm = e.Value?.ToString() ?? string.Empty;
+            await ApplyFilter();
+        });
+    }
+
+    private async Task OnCategorySelectionChanged(List<string> selectedValues)
+    {
+        // Wrap state-changing logic in InvokeAsync
+        await InvokeAsync(async () =>
+        {
+            _selectedCategoryValue = selectedValues.FirstOrDefault() ?? "0";
+            await ApplyFilter();
+        });
+    }
+
+    private async Task OnProductStatusSelectionChanged(List<string> selectedValues)
+    {
+        // Wrap state-changing logic in InvokeAsync
+        await InvokeAsync(async () =>
+        {
+            _selectedStatusValue = selectedValues.FirstOrDefault() ?? "0";
+            await ApplyFilter();
+        });
+    }
+
+    private async Task OnStockStatusSelectionChanged(List<string> selectedValues)
+    {
+        // Wrap state-changing logic in InvokeAsync
+        await InvokeAsync(async () =>
+        {
+            _selectedStockValue = selectedValues.FirstOrDefault() ?? "0";
+            await ApplyFilter();
+        });
+    }
+
+    private async Task OnSortSelectionChanged(List<string> selectedValues)
+    {
+        // Wrap state-changing logic in InvokeAsync
+        await InvokeAsync(async () =>
+        {
+            _selectedSortValue = selectedValues.FirstOrDefault() ?? "0";
+            await ApplyFilter();
+        });
+    }
+
+
+    private async Task ApplyFilter()
+    {
+        IEnumerable<Product> query = AllProducts;
+
+        // Apply Category filter
+        var selectedCategoryName = _categoryOptions?.FirstOrDefault(o => o.Id == _selectedCategoryValue)?.Name;
+        if (!string.IsNullOrEmpty(selectedCategoryName) && selectedCategoryName != "All Categories")
+        {
+            query = query.Where(p => p.ProductSubtitle.Equals(selectedCategoryName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply Product Status filter
+        var selectedStatusName = _productStatusOptions?.FirstOrDefault(o => o.Id == _selectedStatusValue)?.Name;
+        if (!string.IsNullOrEmpty(selectedStatusName) && selectedStatusName != "All Status")
+        {
+            query = query.Where(p => p.Status.Equals(selectedStatusName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply Stock Status filter
+        var selectedStockName = _stockStatusOptions?.FirstOrDefault(o => o.Id == _selectedStockValue)?.Name;
+        if (!string.IsNullOrEmpty(selectedStockName) && selectedStockName != "Stocks") // "Stocks" is like "All" for stock
+        {
+            query = query.Where(p => p.StockStatus.Equals(selectedStockName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply Search Term filter
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            query = query.Where(p =>
+                p.ProductId.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                p.ProductName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                p.ProductSubtitle.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply custom sorting if a sort option is selected
+        switch (_selectedSortValue)
+        {
+            case "1": // Date Added
+                query = query.OrderBy(p => p.DateAdded);
+                break;
+            case "2": // Price
+                query = query.OrderBy(p => decimal.Parse(p.Price.Replace("$", ""))); // Assuming Price is "$X.YY"
+                break;
+            case "3": // Product Name
+                query = query.OrderBy(p => p.ProductName);
+                break;
+            default:
+                // No specific sort selected, QuickGrid's default sort will apply (or no initial sort)
+                break;
+        }
+
+        FilteredItems = query.ToList();
+        pagination.ItemsPerPage = Math.Max(1, Math.Min(10, FilteredItems.Count)); // Adjust items per page based on current count
+        await pagination.SetCurrentPageIndexAsync(0); // Reset to first page on filter change
+
+        StateHasChanged();
+    }
+}
+
+@code{
+
+    public class ProductStatCard
+    {
+        public string? Title { get; set; }
+        public string? Value { get; set; }
+        public string? BadgeText { get; set; }
+        public string? BadgeClass { get; set; }
+        public string? BadgeSign { get; set; }
+        public string? CardClass { get; set; }
+        public string? AvatarClass { get; set; }
+        public string? SvgPath { get; set; }
+    }
+    List<ProductStatCard> productStatsCards = new List<ProductStatCard>
+    {
+        new ProductStatCard
+        {
+            Title = "Total Products",
+            Value = "12,350",
+            BadgeText = "15%",
+            BadgeClass = "bg-success-transparent",
+            BadgeSign = "+",
+            CardClass = "primary",
+            AvatarClass = "bg-primary-transparent svg-primary",
+            SvgPath = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM192,184H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Zm0-48H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Zm0-48H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Z'/></svg>"
+        },
+        new ProductStatCard
+        {
+            Title = "Products in Stock",
+            Value = "7,890",
+            BadgeText = "10%",
+            BadgeClass = "bg-success-transparent",
+            BadgeSign = "+",
+            CardClass = "success",
+            AvatarClass = "bg-success-transparent svg-success",
+            SvgPath = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M223.68,66.15,135.68,18a15.88,15.88,0,0,0-15.36,0l-88,48.17a16,16,0,0,0-8.32,14v95.64a16,16,0,0,0,8.32,14l88,48.17a15.88,15.88,0,0,0,15.36,0l88-48.17a16,16,0,0,0,8.32-14V80.18A16,16,0,0,0,223.68,66.15ZM128,32l80.35,44L178.57,92.29l-80.35-44Zm0,88L47.65,76,81.56,57.43l80.35,44Zm88,55.85h0l-80,43.79V133.83l32-17.51V152a8,8,0,0,0,16,0V107.56l32-17.51v85.76Z'/></svg>"
+        },
+        new ProductStatCard
+        {
+            Title = "Out of Stock Products",
+            Value = "2,430",
+            BadgeText = "8%",
+            BadgeClass = "bg-danger-transparent",
+            BadgeSign = "-",
+            CardClass = "warning",
+            AvatarClass = "bg-warning-transparent svg-warning",
+            SvgPath = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm37.66,130.34a8,8,0,0,1-11.32,11.32L128,139.31l-26.34,26.35a8,8,0,0,1-11.32-11.32L116.69,128,90.34,101.66a8,8,0,0,1,11.32-11.32L128,116.69l26.34-26.35a8,8,0,0,1,11.32,11.32L139.31,128Z'/></svg>"
+        },
+        new ProductStatCard
+        {
+            Title = "Recently Added",
+            Value = "550",
+            BadgeText = "30%",
+            BadgeClass = "bg-success-transparent",
+            BadgeSign = "+",
+            CardClass = "secondary",
+            AvatarClass = "bg-secondary-transparent svg-secondary",
+            SvgPath = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M128,24A104,104,0,1,0,232,128,104.13,104.13,0,0,0,128,24Zm40,112H136v32a8,8,0,0,1-16,0V136H88a8,8,0,0,1,0-16h32V88a8,8,0,0,1,16,0v32h32a8,8,0,0,1,0,16Z'/></svg>"
+        },
+        new ProductStatCard
+        {
+            Title = "Total Revenue",
+            Value = "$1,250,450",
+            BadgeText = "25%",
+            BadgeClass = "bg-success-transparent",
+            BadgeSign = "+",
+            CardClass = "info",
+            AvatarClass = "bg-info-transparent svg-info",
+            SvgPath = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><rect width='256' height='256' fill='none'/><path d='M168,128a40,40,0,1,1-40-40A40,40,0,0,1,168,128Zm80-64V192a8,8,0,0,1-8,8H16a8,8,0,0,1-8-8V64a8,8,0,0,1,8-8H240A8,8,0,0,1,248,64Zm-16,46.35A56.78,56.78,0,0,1,193.65,72H62.35A56.78,56.78,0,0,1,24,110.35v35.3A56.78,56.78,0,0,1,62.35,184h131.3A56.78,56.78,0,0,1,232,145.65Z'/></svg>"
+        }
+    };
+}

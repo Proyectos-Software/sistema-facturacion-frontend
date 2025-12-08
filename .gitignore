@@ -1,0 +1,54 @@
+
+
+# .NET / Build Artifacts
+# Carpetas de compilación de .NET
+bin/
+obj/
+publish/
+out/
+
+# IDE / Editor
+# Archivos de configuración de Visual Studio, VS Code, etc.
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+
+# OS
+# Archivos del sistema operativo (macOS, Windows)
+.DS_Store
+Thumbs.db
+
+# Logs y Temporal
+*.log
+logs/
+*.tmp
+*.bak
+
+# Archivos de Entorno
+# NUNCA subas tus 'secrets' o variables de entorno a Git
+.env
+.env.local
+.env.development
+.env.production
+
+# Dependencias de Frontend
+# Esta carpeta puede contener miles de archivos y se restaura con 'npm install'
+node_modules/
+
+# Archivos generados (Frontend)
+# Esta es la corrección clave.
+# NO ignores 'wwwroot/' por completo.
+# En su lugar, ignora las carpetas *generadas* DENTRO de wwwroot.
+# (Ej. si 'npm run vyzor' crea una carpeta 'dist' en wwwroot)
+# 1. Librerías copiadas por esbuild (desde node_modules)
+sistemafacturacion/wwwroot/assets/libs/
+
+# 2. CSS compilado por esbuild (desde scss)
+sistemafacturacion/wwwroot/assets/css/
+
+# 3. CSS de aislamiento de Blazor (generado por .NET)
+sistemafacturacion/wwwroot/*.styles.css
+# También ignoramos 'dist/' en la raíz, por si acaso
+dist/

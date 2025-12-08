@@ -1,0 +1,8 @@
+﻿kpi-number {
+    color: inherit;
+}
+
+
+[data-theme-mode="dark"] .kpi-number {
+    color: #ffffff; 
+}
