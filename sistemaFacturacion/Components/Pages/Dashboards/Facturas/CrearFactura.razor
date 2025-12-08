@@ -95,7 +95,6 @@ else
                                     </button>
                                 </div>
 
-                                <!-- ESTE botón es el correcto -->
                                 <button class="btn btn-sm btn-outline-primary w-100"
                                         type="button"
                                         @onclick="AbrirModalCrearCliente">
@@ -106,9 +105,10 @@ else
                             {
                                 <div class="alert alert-info mt-3">
                                     <i class="ri-information-line me-2"></i>
-                                    Consumidor Final seleccionado automáticamente.
+                                    Consumidor Final seleccionado automáticamente. No es necesario buscar un cliente.
                                 </div>
-                            }  
+                            }
+
 
                             @if (_mostrarSugerencias && _sugerenciasClientes.Any())
                             {
@@ -841,6 +841,7 @@ else
     private bool _mostrarModalProductos = false;
     private bool _mostrarModalCrearCliente = false;
     private bool _isSavingCliente = false;
+    private bool _mostrarBusquedaCliente = true;
 
     // Variables para la búsqueda dinámica con autocompletado
     private bool _mostrarSugerencias = false;
@@ -1383,6 +1384,18 @@ else
             .Where(i => i.ProductoId.HasValue && i.Cantidad > 0)
             .ToList();
 
+        if (_clienteSeleccionado?.TipCli == "07") // Consumidor Final
+        {
+            var totalFactura = detallesValidos.Sum(i => i.Subtotal);
+
+            if (totalFactura > 50)
+            {
+                await Swal.FireAsync("Advertencia", "El total de la factura no puede superar los 50 dólares para un Consumidor Final.", "warning");
+                _isSaving = false;
+                return; // Cancela la operación si excede el límite
+            }
+        }
+
         var request = new FacturaCreateRequest
         {
             IdCli = _clienteSeleccionado!.IdCli,
@@ -1398,6 +1411,22 @@ else
                 .ToList()
         };
 
+        // Mostrar SweetAlert de carga
+        await Swal.FireAsync(new SweetAlertOptions
+        {
+            Icon = SweetAlertIcon.Info,
+            Title = "Procesando",
+            Text = "Estamos creando y enviando la factura, por favor espere...",
+            ShowConfirmButton = false,
+            AllowOutsideClick = false,
+            // Usamos SweetAlertCallback para poder invocar métodos asíncronos
+            DidOpen = new SweetAlertCallback(async () =>
+            {
+                await Swal.ShowLoadingAsync();
+            })
+        });
+
+
         try
         {
             var facturaCreada = await FacturasApi.CrearFacturaAsync(request);
@@ -1405,6 +1434,8 @@ else
             _isSaving = false;
             _mostrarModal = false;
 
+            // Cerrar el SweetAlert de carga y mostrar el de éxito
+            await Swal.CloseAsync();
             await Swal.FireAsync(
                 "¡Éxito!",
                 $"Factura #{facturaCreada.NumFac} creada, firmada y enviada correctamente.",
@@ -1416,9 +1447,12 @@ else
         catch (Exception ex)
         {
             _isSaving = false;
+            // Cerrar el SweetAlert de carga y mostrar el de error
+            await Swal.CloseAsync();
             await Swal.FireAsync("Error", $"Error al crear la factura: {ex.Message}", "error");
         }
     }
+
 
     private void Cancelar()
     {
@@ -1557,22 +1591,28 @@ else
     }
     private void OnTipoDocumentoChanged(ChangeEventArgs e)
     {
-        var tipo = e.Value?.ToString() ?? "";
+        // 1. ACTUALIZAR LA VARIABLE VINCULADA A LA VISTA
+        _tipoDocumentoSeleccionado = e.Value?.ToString() ?? "CEDULA";
 
-        // Si eligió Consumidor Final (07)
-        if (tipo == "07")
+        // 2. Lógica según selección
+        if (_tipoDocumentoSeleccionado == "07") // Consumidor Final
         {
-            // Obtener de la lista de todos los clientes
-            _clienteSeleccionado = _todosLosClientes.FirstOrDefault(c => c.IdCli == 1);
+            // Asignar cliente fijo (ID 1 o el que corresponda en tu BD)
+            // Asegúrate de usar FirstOrDefault para evitar errores si no se ha cargado la lista
+            _clienteSeleccionado = _todosLosClientes.FirstOrDefault(c => c.IdeCli == "9999999999999" || c.NomCli.Contains("CONSUMIDOR FINAL"))
+                                   ?? _todosLosClientes.FirstOrDefault(c => c.IdCli == 1);
 
-            // Ocultar buscador y botón de crear cliente
+            // Limpiar y ocultar el buscador visualmente
             _busquedaDocumento = "";
             _mostrarSugerencias = false;
+            _mostrarBusquedaCliente = false;
         }
         else
         {
-            // Si cambia a otro tipo, reactivar todo
+            // Si cambia a Cédula/RUC, limpiamos el cliente seleccionado para obligar a buscar
             _clienteSeleccionado = null;
+            _busquedaDocumento = "";
+            _mostrarBusquedaCliente = true;
         }
     }
 
