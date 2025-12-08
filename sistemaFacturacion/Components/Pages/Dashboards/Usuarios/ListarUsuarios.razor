@@ -4,6 +4,7 @@
 @using sistemaFacturacion.Services
 @using sistemaFacturacion.Models
 @attribute [Authorize(Roles = "Admin")]
+@implements IDisposable
 
 @inject IJSRuntime JSRuntime
 @inject IEmpleadosApiClient EmpleadosApi
@@ -394,6 +395,9 @@ else
     private bool cargando = true;
     private string? error;
 
+    // CancellationTokenSource para cancelar operaciones async cuando el componente se destruye
+    private CancellationTokenSource _cts = new();
+
     private string? _filtroTexto;
     private string? _filtroEstado;
 
@@ -557,8 +561,20 @@ else
             cargando = true;
             error = null;
 
-            var usuarios = await UsuariosApi.GetAllAsync();
-            var empleados = await EmpleadosApi.GetAllAsync();
+            var ct = _cts.Token;
+
+            // Carga paralela de usuarios y empleados usando Task.WhenAll
+            // Esto mejora significativamente el tiempo de carga al ejecutar ambas llamadas API simultaneamente
+            var usuariosTask = UsuariosApi.GetAllAsync(ct);
+            var empleadosTask = EmpleadosApi.GetAllAsync(ct);
+
+            await Task.WhenAll(usuariosTask, empleadosTask);
+
+            // Verificar cancelacion antes de actualizar estado
+            if (ct.IsCancellationRequested) return;
+
+            var usuarios = await usuariosTask;
+            var empleados = await empleadosTask;
             var empByUsu = empleados.ToDictionary(e => e.IdUsu, e => e);
 
             items = usuarios
@@ -584,13 +600,16 @@ else
                 .OrderBy(r => r.NomUsu)
                 .ToList();
 
-            var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode");
+            var isDark = await JSRuntime.InvokeAsync<bool>("isAppInDarkMode", ct);
+
+            if (ct.IsCancellationRequested) return;
+
             await Swal.FireAsync(new SweetAlertOptions
             {
                 Toast = true,
                 Position = SweetAlertPosition.TopEnd,
                 Icon = SweetAlertIcon.Success,
-                Title = $"✓ {items.Count} empleados cargados",
+                Title = $"{items.Count} empleados cargados",
                 ShowConfirmButton = false,
                 Timer = 2000,
                 TimerProgressBar = true,
@@ -598,8 +617,14 @@ else
                 Color = isDark ? "#e6e6e6" : null
             });
         }
+        catch (OperationCanceledException)
+        {
+            // Operacion cancelada por disposal del componente - comportamiento esperado
+        }
         catch (HttpRequestException ex)
         {
+            if (_cts.Token.IsCancellationRequested) return;
+
             error = "Error al cargar empleados: " + ex.Message;
             await Swal.FireAsync(new SweetAlertOptions
             {
@@ -1110,5 +1135,12 @@ else
         public DateTimeOffset? FecIngreso { get; init; }
         public bool Est { get; set; }
         public string? CodEmp { get; init; } = string.Empty;
+    }
+
+    // Libera recursos y cancela operaciones pendientes cuando el componente se destruye
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
     }
 }

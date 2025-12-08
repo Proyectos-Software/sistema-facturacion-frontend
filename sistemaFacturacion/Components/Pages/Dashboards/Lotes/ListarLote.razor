@@ -3,6 +3,7 @@
 @using sistemaFacturacion.Models
 @using sistemaFacturacion.Services
 @attribute [Authorize]
+@implements IDisposable
 
 @inject ILotesApiClient LotesApi
 @inject NavigationManager Navigation
@@ -494,7 +495,10 @@ else
     private bool cargando = true;
     private string? error;
 
-    // Filtros rápidos
+    // CancellationTokenSource para cancelar operaciones async cuando el componente se destruye
+    private CancellationTokenSource _cts = new();
+
+    // Filtros rapidos
     private string? _filtroTexto;
     private string? _filtroEstado;
 
@@ -779,7 +783,13 @@ else
             cargando = true;
             error = null;
 
-            var lotes = await LotesApi.GetAllAsync();
+            var ct = _cts.Token;
+
+            var lotes = await LotesApi.GetAllAsync(ct);
+
+            // Verificar cancelacion antes de actualizar estado
+            if (ct.IsCancellationRequested) return;
+
             items = lotes
                .Select(l => new RowVM
                {
@@ -821,8 +831,14 @@ else
                 categoriaSeleccionada = null;
             }
         }
+        catch (OperationCanceledException)
+        {
+            // Operacion cancelada por disposal del componente - comportamiento esperado
+        }
         catch (HttpRequestException ex)
         {
+            if (_cts.Token.IsCancellationRequested) return;
+
             error = "Error al cargar lotes: " + ex.Message;
         }
         finally
@@ -1201,4 +1217,10 @@ else
         public bool EstLot { get; set; }
     }
 
+    // Libera recursos y cancela operaciones pendientes cuando el componente se destruye
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
 }

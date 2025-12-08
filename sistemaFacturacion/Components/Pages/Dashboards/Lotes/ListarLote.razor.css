@@ -1,0 +1,5 @@
+﻿/* Oculta la columna de precio de venta sin modificar el markup ni la logica. */
+.table.align-middle thead th:nth-child(9),
+.table.align-middle tbody td:nth-child(9) {
+    display: none;
+}

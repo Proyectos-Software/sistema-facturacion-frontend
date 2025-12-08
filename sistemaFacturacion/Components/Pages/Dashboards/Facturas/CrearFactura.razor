@@ -19,7 +19,7 @@
             <i class="ri-file-add-line me-2"></i>Crear Nueva Factura
         </h1>
         <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="javascript:void(0);">Ventas</a></li>
+            <li class="breadcrumb-item"><a href="/dashboards/facturas">Ventas</a></li>
             <li class="breadcrumb-item active" aria-current="page">Nueva Factura</li>
         </ol>
     </div>
@@ -843,15 +843,12 @@ else
     private bool _isSavingCliente = false;
     private bool _mostrarBusquedaCliente = true;
 
-    // Variables para la búsqueda dinámica con autocompletado
     private bool _mostrarSugerencias = false;
-    private List<ClienteDto> _todosLosClientes = new(); // Carga local para filtrado rápido
+    private List<ClienteDto> _todosLosClientes = new(); 
     private List<ClienteDto> _sugerenciasClientes = new();
 
-    // Variables para el modal de crear cliente
     private ClienteCreateVM _formCliente = new();
 
-    // Variables para el modal de productos
     private string _busquedaModalProductos = string.Empty;
     private string _categoriaFiltroModal = string.Empty;
     private List<ProductoDto> _productosFiltradosModal = new();
@@ -865,7 +862,7 @@ else
     private string _nombreUsuario = string.Empty;
     private DateTime _fechaEmision = DateTime.Now;
 
-    private string _tipoDocumentoSeleccionado = "CEDULA"; // Valor por defecto
+    private string _tipoDocumentoSeleccionado = "CEDULA"; 
     private string _busquedaDocumento = string.Empty;
     private ClienteDto? _clienteSeleccionado;
 
@@ -1097,14 +1094,12 @@ else
             return;
         }
 
-        // Utilizar el método auxiliar compartido para configurar el producto
         ConfigurarProductoEnItem(item, producto);
 
         _mostrarSugerenciasProducto[item] = false;
         _sugerenciasProductos[item] = new List<ProductoDto>();
     }
 
-    // Método auxiliar compartido para configurar un producto en un item
     private void ConfigurarProductoEnItem(FacturaItemModel item, ProductoDto producto)
     {
         item.ProductoId = producto.Id;
@@ -1113,8 +1108,8 @@ else
         item.Cantidad = 1;
         item.TarifaTributaria = producto.IdTipoTributario switch
         {
-            1 => 0,   // IVA 0%
-            2 => 15,  // IVA 15%
+            1 => 0,   
+            2 => 15,  
             _ => 0
         };
     }
@@ -1229,7 +1224,7 @@ else
 
         var productosAgregar = _productosConStock
             .Where(p => _productosSeleccionados.Contains(p.Id))
-            .Where(p => GetStockProducto(p.Id) > 0) // seguridad adicional
+            .Where(p => GetStockProducto(p.Id) > 0) 
             .ToList();
 
         var filasVacias = _items.Where(i => !i.ProductoId.HasValue).ToList();

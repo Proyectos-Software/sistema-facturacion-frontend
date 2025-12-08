@@ -92,6 +92,9 @@ namespace sistemaFacturacion.Models
 
         [JsonPropertyName("nomEmp")]
         public string NomEmp { get; set; } = string.Empty;
+
+        [JsonPropertyName("codEmp")]
+        public string CodEmp { get; set; }
     }
 
     public class EmpresaFacturaDto
