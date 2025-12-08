@@ -112,31 +112,12 @@ new MainMenuItems(
             roles: new[] { "Admin", "Empleado" }
         ),
         new MainMenuItems(
-            path: "",
-            type: "link",
-            title: "KPI & Métricas",
-            roles: new[] { "Admin", "Empleado" }
-        ),
-
-        // ✨ NUEVOS 3 DASHBOARDS DE AUDITORÍA
-        new MainMenuItems(
             path: "/dashboards/auditorias",
             type: "link",
             title: "Auditorías - General",
-            roles: new[] { "Admin", "Empleado" }
+            roles: new[] { "Admin" }
         ),
-        new MainMenuItems(
-            path: "/dashboards/auditorias/cambios-criticos",
-            type: "link",
-           title: "Auditoría - Cambios Críticos",
-            roles: new[] { "Admin", "Empleado" }
-        ),
-        new MainMenuItems(
-            path: "/dashboards/auditorias/historial-tablas",
-            type: "link",
-            title: "Auditoría - Historial por Tabla",
-            roles: new[] { "Admin", "Empleado" }
-        ),
+        
     }
 ),
 
