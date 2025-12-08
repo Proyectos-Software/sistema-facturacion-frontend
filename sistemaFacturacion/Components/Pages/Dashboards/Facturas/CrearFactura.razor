@@ -57,43 +57,58 @@ else
                                 <span class="input-group-text bg-light">
                                     <i class="ri-id-card-line"></i>
                                 </span>
-
-                                <select class="form-select" @bind="_tipoDocumentoSeleccionado">
+                                <select class="form-select"
+                                        value="@_tipoDocumentoSeleccionado"
+                                        @onchange="OnTipoDocumentoChanged">
                                     <option value="CEDULA">Cédula</option>
                                     <option value="RUC">RUC</option>
                                     <option value="PASAPORTE">Pasaporte</option>
+                                    <option value="07">Consumidor Final</option>
                                 </select>
+
+
                             </div>
 
-                            <label class="form-label fw-medium mt-2">
-                                Buscar Cliente (Identificación o Nombre) <span class="text-danger">*</span>
-                            </label>
+                            @if (_tipoDocumentoSeleccionado != "07")
+                            {
+                                <label class="form-label fw-medium mt-2">
+                                    Buscar Cliente (Identificación o Nombre) <span class="text-danger">*</span>
+                                </label>
 
-                            <div class="input-group mb-2">
-                                <span class="input-group-text bg-light">
-                                    <i class="ri-search-line"></i>
-                                </span>
+                                <div class="input-group mb-2">
+                                    <span class="input-group-text bg-light">
+                                        <i class="ri-search-line"></i>
+                                    </span>
 
-                                <input type="text"
-                                       class="form-control"
-                                       placeholder="Escriba identificación o nombre..."
-                                       @bind="_busquedaDocumento"
-                                       @oninput="OnInputBusqueda"
-                                       @onfocusout="OcultarSugerenciasDelay"
-                                       autocomplete="off" />
+                                    <input type="text"
+                                           class="form-control"
+                                           placeholder="Escriba identificación o nombre..."
+                                           @bind="_busquedaDocumento"
+                                           @oninput="OnInputBusqueda"
+                                           @onfocusout="OcultarSugerenciasDelay"
+                                           autocomplete="off" />
 
-                                <button class="btn btn-primary"
+                                    <button class="btn btn-primary"
+                                            type="button"
+                                            @onclick="BuscarClienteAsync">
+                                        <i class="ri-check-line me-1"></i> Cargar
+                                    </button>
+                                </div>
+
+                                <!-- ESTE botón es el correcto -->
+                                <button class="btn btn-sm btn-outline-primary w-100"
                                         type="button"
-                                        @onclick="BuscarClienteAsync">
-                                    <i class="ri-check-line me-1"></i> Cargar
+                                        @onclick="AbrirModalCrearCliente">
+                                    <i class="ri-user-add-line me-1"></i>Crear Nuevo Cliente
                                 </button>
-                            </div>
-
-                            <button class="btn btn-sm btn-outline-primary w-100"
-                                    type="button"
-                                    @onclick="AbrirModalCrearCliente">
-                                <i class="ri-user-add-line me-1"></i>Crear Nuevo Cliente
-                            </button>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info mt-3">
+                                    <i class="ri-information-line me-2"></i>
+                                    Consumidor Final seleccionado automáticamente.
+                                </div>
+                            }  
 
                             @if (_mostrarSugerencias && _sugerenciasClientes.Any())
                             {
@@ -485,10 +500,19 @@ else
                     <button type="button" class="btn btn-light" @onclick="CerrarModal" disabled="@_isSaving">
                         <i class="ri-close-line me-1"></i>Cancelar
                     </button>
-                    <button type="button" class="btn btn-success" @onclick="ConfirmarYGuardarAsync" disabled="@_isSaving">
-                        <i class="ri-check-line me-1"></i>
-                        @(_isSaving ? "Procesando..." : "Confirmar y Guardar")
+                    <button type="button" class="btn btn-success" @onclick="ConfirmarYGuardarAsync">
+                        @if (_isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            <span>Procesando...</span>
+                        }
+                        else
+                        {
+                            <i class="ri-check-line me-1"></i>
+                            <span>Confirmar y Guardar</span>
+                        }
                     </button>
+
                 </div>
             </div>
         </div>
@@ -878,6 +902,7 @@ else
             ? _productosConStock
             : _productos;
     }
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -1346,6 +1371,9 @@ else
 
     private async Task ConfirmarYGuardarAsync()
     {
+        _isSaving = true;
+        StateHasChanged(); // ← fuerza refresco inmediato del botón con spinner
+
         var detallesValidos = _items
             .Where(i => i.ProductoId.HasValue && i.Cantidad > 0)
             .ToList();
@@ -1367,8 +1395,8 @@ else
 
         try
         {
-            _isSaving = true;
             var facturaCreada = await FacturasApi.CrearFacturaAsync(request);
+
             _isSaving = false;
             _mostrarModal = false;
 
@@ -1522,6 +1550,27 @@ else
 
         return "Seleccione un tipo para ver las reglas.";
     }
+    private void OnTipoDocumentoChanged(ChangeEventArgs e)
+    {
+        var tipo = e.Value?.ToString() ?? "";
+
+        // Si eligió Consumidor Final (07)
+        if (tipo == "07")
+        {
+            // Obtener de la lista de todos los clientes
+            _clienteSeleccionado = _todosLosClientes.FirstOrDefault(c => c.IdCli == 1);
+
+            // Ocultar buscador y botón de crear cliente
+            _busquedaDocumento = "";
+            _mostrarSugerencias = false;
+        }
+        else
+        {
+            // Si cambia a otro tipo, reactivar todo
+            _clienteSeleccionado = null;
+        }
+    }
+
 
     // ============================================
     // MODELOS Y CLASES AUXILIARES

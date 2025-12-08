@@ -5,6 +5,8 @@
 @using System.Net
 @using sistemaFacturacion.Models
 @using sistemaFacturacion.Services
+@using System.Globalization
+
 @inject NavigationManager Nav
 @inject ILotesApiClient LotesApi
 @inject IProductosApiClient ProductosApi
@@ -280,6 +282,8 @@ else
                                 <div class="col-12">
                                     <label class="form-label lote-form-label">
                                         Precio de venta (referencial)
+                                    <p>Precio actual recibido: @productoInfo?.PrecioVenta</p>
+
                                     </label>
                                     <div class="input-group">
                                         <span class="input-group-text lote-input-icon">
@@ -423,6 +427,50 @@ else
 
     private async Task<bool> ValidarCamposVisual()
     {
+        // =======================
+        // VALIDACIONES BÁSICAS
+        // =======================
+
+        // 1. Cantidad total > 0
+        if (lote.CanLot <= 0)
+        {
+            await Swal.FireAsync(new()
+            {
+                Icon = SweetAlertIcon.Warning,
+                Title = "Cantidad inválida",
+                Html = "<small>La cantidad total del lote debe ser mayor que 0.</small>",
+                ConfirmButtonColor = "#0ea5e9"
+            });
+            return false;
+        }
+
+        // 2. Cantidad disponible >= 0
+        if (lote.CanDis < 0)
+        {
+            await Swal.FireAsync(new()
+            {
+                Icon = SweetAlertIcon.Warning,
+                Title = "Cantidad disponible inválida",
+                Html = "<small>La cantidad disponible no puede ser negativa.</small>",
+                ConfirmButtonColor = "#0ea5e9"
+            });
+            return false;
+        }
+
+        // 3. Fecha de expiración > HOY
+        if (lote.FecExp.Date <= DateTime.Today)
+        {
+            await Swal.FireAsync(new()
+            {
+                Icon = SweetAlertIcon.Warning,
+                Title = "Fecha de expiración inválida",
+                Html = "<small>La fecha de expiración debe ser posterior a la fecha actual.</small>",
+                ConfirmButtonColor = "#0ea5e9"
+            });
+            return false;
+        }
+
+        // 4. Producto válido
         if (lote.IdPro <= 0)
         {
             await Swal.FireAsync(new()
@@ -435,6 +483,7 @@ else
             return false;
         }
 
+        // 5. Fecha compra <= fecha expiración
         if (lote.FecCom > lote.FecExp)
         {
             await Swal.FireAsync(new()
@@ -447,18 +496,20 @@ else
             return false;
         }
 
+        // 6. Disponible <= total
         if (lote.CanDis > lote.CanLot)
         {
             await Swal.FireAsync(new()
             {
                 Icon = SweetAlertIcon.Warning,
                 Title = "Cantidad inválida",
-                Html = "<small>La cantidad disponible no puede ser mayor a la cantidad del lote.</small>",
+                Html = "<small>La cantidad disponible no puede ser mayor a la cantidad total del lote.</small>",
                 ConfirmButtonColor = "#0ea5e9"
             });
             return false;
         }
 
+        // 7. Precio de compra > 0
         if (lote.PreCom <= 0)
         {
             await Swal.FireAsync(new()
@@ -469,9 +520,161 @@ else
                 ConfirmButtonColor = "#0ea5e9"
             });
             return false;
-        } 
+        }
+
+        // =======================
+        // VALIDACIÓN ESPECIAL: COSTO > PRECIO DE VENTA
+        // =======================
+        if (productoInfo != null && lote.PreCom > productoInfo.PrecioVenta)
+        {
+            var decision = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Warning,
+                Title = "Costo mayor al precio de venta",
+                Html =
+                    $"<small>El costo del lote (<strong>$ {lote.PreCom}</strong>) " +
+                    $"es mayor que el precio de venta actual del producto (<strong>$ {productoInfo.PrecioVenta}</strong>).<br/><br/>" +
+                    $"Debes corregir el precio del producto antes de continuar.</small>",
+
+                ShowCancelButton = true,
+                ConfirmButtonText = "Editar precio del producto",
+                CancelButtonText = "Volver al formulario",
+                ConfirmButtonColor = "#0ea5e9"
+            });
+
+            // Cancelar = volver al formulario sin guardar
+            if (decision.IsDismissed)
+                return false;
+
+            // Confirmar = editar precio
+            bool actualizado = await MostrarModalEditarPrecioProductoAsync();
+
+            if (!actualizado)
+                return false;
+
+            // Revalidación después del cambio de precio
+            if (lote.PreCom > productoInfo.PrecioVenta)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Icon = SweetAlertIcon.Warning,
+                    Title = "Precio todavía incorrecto",
+                    Html = "<small>El precio de venta sigue siendo menor al costo. Debes ajustarlo nuevamente.</small>",
+                    ConfirmButtonColor = "#0ea5e9"
+                });
+
+                return false;
+            }
+        }
+
         return true;
     }
+
+    private async Task<bool> MostrarModalEditarPrecioProductoAsync()
+    {
+        if (productoInfo == null)
+            return false;
+
+        // Primer valor sugerido: el mayor entre el precio actual y el costo del lote
+        var valorInicial = Math.Max(productoInfo.PrecioVenta, lote.PreCom);
+
+        var inputOptions = new SweetAlertOptions
+        {
+            Icon = SweetAlertIcon.Info,
+            Title = "Actualizar precio de venta",
+            Html = "<small>Ingresa el nuevo precio de venta para este producto. " +
+                   "Idealmente debe ser mayor o igual al costo actual de compra.</small>",
+            Input = "number",
+            InputValue = valorInicial.ToString("0.00", CultureInfo.InvariantCulture),
+            ShowCancelButton = true,
+            ConfirmButtonText = "Guardar precio",
+            CancelButtonText = "Cancelar",
+            ConfirmButtonColor = "#0ea5e9",
+            InputAttributes = new Dictionary<string, string>
+            {
+                ["min"] = lote.PreCom.ToString(CultureInfo.InvariantCulture),
+                ["step"] = "0.01"
+            }
+        };
+
+        var result = await Swal.FireAsync(inputOptions);
+
+        // Si el usuario cancela, no continuamos con el guardado
+        if (!result.IsConfirmed)
+            return false;
+
+        // Parsear el valor ingresado
+        if (!decimal.TryParse(
+                result.Value?.ToString(),
+                NumberStyles.Any,
+                CultureInfo.InvariantCulture,
+                out var nuevoPrecio))
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Error,
+                Title = "Valor inválido",
+                Html = "<small>No se pudo interpretar el precio ingresado.</small>",
+                ConfirmButtonColor = "#0ea5e9"
+            });
+            return false;
+        }
+
+        if (nuevoPrecio <= 0 || nuevoPrecio < lote.PreCom)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Warning,
+                Title = "Precio no válido",
+                Html = "<small>El nuevo precio debe ser mayor a 0 y no menor al costo de compra actual.</small>",
+                ConfirmButtonColor = "#0ea5e9"
+            });
+            return false;
+        }
+
+        try
+        {
+            // 👇 Ajusta el nombre del DTO y método según tu cliente de productos
+            var updateRequest = new ProductoUpdateRequest
+            {
+                IdCategoria = productoInfo.IdCategoria,
+                IdTipoTributario = productoInfo.IdTipoTributario,
+                Nombre = productoInfo.Nombre,
+                Descripcion = productoInfo.Descripcion,
+                PrecioVenta = nuevoPrecio
+            };
+
+            await ProductosApi.UpdateAsync(productoInfo.Id, updateRequest);
+
+            // Actualizamos el valor en memoria para que futuras validaciones usen el nuevo precio
+            productoInfo.PrecioVenta = nuevoPrecio;
+
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Success,
+                Title = "Precio actualizado",
+                Html = $"<small>El nuevo precio de venta es <strong>$ {nuevoPrecio}</strong>.</small>",
+                Toast = true,
+                Position = SweetAlertPosition.TopEnd,
+                Timer = 1800,
+                ShowConfirmButton = false
+            });
+
+            return true; // seguimos con el guardado del lote
+        }
+        catch (HttpRequestException ex)
+        {
+            await Swal.FireAsync(new SweetAlertOptions
+            {
+                Icon = SweetAlertIcon.Error,
+                Title = "No se pudo actualizar el precio",
+                Html = $"<small>{ex.Message}</small>",
+                ConfirmButtonColor = "#0ea5e9"
+            });
+            return false;
+        }
+    }
+
 
     private async Task<(decimal Min, decimal Max)?> ObtenerRangoPrecioAsync()
     {
