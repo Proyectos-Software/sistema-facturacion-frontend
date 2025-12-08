@@ -1,0 +1,306 @@
+﻿@page "/reportes/parametros"
+@using System.Text
+@using System.Globalization
+@using sistemaFacturacion.Interfaces
+
+@inject NavigationManager Nav
+@inject IVentasPorEmpleadoApiClient VentasPorEmpleadoApi
+@inject IVentasGeneralApiClient VentasGeneralApi
+@inject IInventarioApiClient InventarioApi
+@inject IDashboardVentasApiClient DashboardVentasApi
+@inject CurrieTechnologies.Razor.SweetAlert2.SweetAlertService Swal
+
+<!-- ========================= -->
+<!--  INTERFAZ -->
+<!-- ========================= -->
+
+<section class="report-parameters-page">
+    <div class="page-header mb-4">
+        <h1 class="page-title fw-semibold fs-20">Generador de Reportes</h1>
+        <p class="text-muted fs-13">Aquí configuras el reporte seleccionado.</p>
+    </div>
+
+    @if (!HasValidType)
+    {
+        <div class="alert alert-danger">
+            Error: Tipo de reporte no especificado o inválido. Asegúrate de acceder desde la página de reportes.
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h5 class="mb-3">Reporte seleccionado: <strong>@GetReportTitle(selectedReportType)</strong></h5>
+
+                @* Solo mostrar controles relevantes según el tipo seleccionado *@
+                @if (selectedReportType == ReportType.Inventario)
+                {
+                    <p class="text-muted">Este reporte no requiere parámetros adicionales. Haz clic en "Generar Reporte" para continuar.</p>
+                }
+                else
+                {
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha Inicio:</label>
+                            <input type="date" class="form-control" @bind="fechaInicio" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha Fin:</label>
+                            <input type="date" class="form-control" @bind="fechaFin" />
+                        </div>
+
+                        @if (selectedReportType == ReportType.DashboardVentas)
+                        {
+                            <div class="col-md-6">
+                                <label class="form-label">Empresa ID:</label>
+                                <input type="number" class="form-control" @bind="idEmpresa" min="1" />
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="d-flex justify-content-end gap-3">
+                    <button class="btn btn-secondary" @onclick="GoBackToReports">Cancelar</button>
+                    <button class="btn btn-primary" @onclick="GenerarReporte">Generar Reporte</button>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+<!-- ========================= -->
+<!--    MODAL PARA PDF         -->
+<!-- ========================= -->
+@if (ShowPdfModal)
+{
+    <div class="pdf-modal-backdrop" @onclick="BackdropClick">
+        <div class="pdf-modal-container" @onclick:stopPropagation="true">
+            <div class="pdf-modal-header">
+                <div class="pdf-modal-title">@GetReportTitle(selectedReportType)</div>
+                <div class="pdf-modal-actions">
+                    <button class="btn btn-sm btn-outline-secondary me-2" @onclick="DownloadPdf">Descargar</button>
+                    <button class="btn btn-sm btn-danger" @onclick="CloseModal">Cerrar</button>
+                </div>
+            </div>
+
+            <div class="pdf-modal-body">
+                <iframe src="@PdfUrl" width="100%" height="100%" style="border:none;"></iframe>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // -------------------------
+    // Estado / parámetros
+    // -------------------------
+    private bool HasValidType = false;
+    private ReportType selectedReportType;
+    private DateTime fechaInicio = DateTime.Now.AddMonths(-1).Date;
+    private DateTime fechaFin = DateTime.Now.Date;
+    private int idEmpresa = 1;
+
+    private bool ShowPdfModal = false;
+    private string PdfUrl = "";
+    private byte[] LastPdfBytes = Array.Empty<byte>(); // para descarga
+
+    public enum ReportType
+    {
+        VentasPorEmpleado = 0,
+        VentasGeneral = 1,
+        Inventario = 2,
+        DashboardVentas = 3
+    }
+
+    // -------------------------
+    // Lifecycle
+    // -------------------------
+    protected override void OnInitialized()
+    {
+        // Leer query string sin dependencias externas
+        var uri = new Uri(Nav.Uri);
+        var q = ParseQueryString(uri.Query);
+
+        if (q.TryGetValue("type", out var typeValue) && int.TryParse(typeValue, out var typeInt)
+            && Enum.IsDefined(typeof(ReportType), typeInt))
+        {
+            selectedReportType = (ReportType)typeInt;
+            HasValidType = true;
+
+            // Preconfigurar fechas por tipo si quieres (opcional)
+            if (selectedReportType == ReportType.Inventario)
+            {
+                // inventario no necesita fechas; pero dejamos valores por defecto
+            }
+        }
+        else
+        {
+            HasValidType = false;
+        }
+    }
+
+    // -------------------------
+    // Helpers
+    // -------------------------
+    private static Dictionary<string, string> ParseQueryString(string query)
+    {
+        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (string.IsNullOrEmpty(query))
+            return dict;
+
+        var trimmed = query;
+        if (trimmed.StartsWith("?")) trimmed = trimmed.Substring(1);
+
+        var pairs = trimmed.Split('&', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var p in pairs)
+        {
+            var idx = p.IndexOf('=');
+            if (idx >= 0)
+            {
+                var k = Uri.UnescapeDataString(p.Substring(0, idx));
+                var v = Uri.UnescapeDataString(p.Substring(idx + 1));
+                dict[k] = v;
+            }
+            else
+            {
+                var k = Uri.UnescapeDataString(p);
+                dict[k] = string.Empty;
+            }
+        }
+
+        return dict;
+    }
+
+    private string GetReportTitle(ReportType t) => t switch
+    {
+        ReportType.VentasPorEmpleado => "Ventas por Empleado",
+        ReportType.VentasGeneral => "Ventas Generales",
+        ReportType.Inventario => "Inventario",
+        ReportType.DashboardVentas => "Dashboard Ventas",
+        _ => "Reporte"
+    };
+
+    private void GoBackToReports()
+    {
+        Nav.NavigateTo("/dashboards/reporte-general");
+    }
+
+    // -------------------------
+    // Generar y mostrar PDF
+    // -------------------------
+    private async Task GenerarReporte()
+    {
+        if (!HasValidType)
+        {
+            await Swal.FireAsync("Error", "Tipo de reporte inválido.", SweetAlertIcon.Error);
+            return;
+        }
+
+        // Validaciones básicas
+        if (selectedReportType != ReportType.Inventario)
+        {
+            if (fechaInicio > fechaFin)
+            {
+                await Swal.FireAsync("Fechas inválidas", "La fecha de inicio no puede ser posterior a la fecha fin.", SweetAlertIcon.Warning);
+                return;
+            }
+        }
+
+        try
+        {
+            Stream? pdfStream = null;
+
+            switch (selectedReportType)
+            {
+                case ReportType.VentasPorEmpleado:
+                    pdfStream = await VentasPorEmpleadoApi.GetVentasPorEmpleadoPdfAsync(fechaInicio.Date, fechaFin.Date);
+                    break;
+
+                case ReportType.VentasGeneral:
+                    pdfStream = await VentasGeneralApi.GetVentasGeneralPdfAsync(fechaInicio.Date, fechaFin.Date);
+                    break;
+
+                case ReportType.Inventario:
+                    pdfStream = await InventarioApi.GetInventarioPdfAsync();
+                    break;
+
+                case ReportType.DashboardVentas:
+                    pdfStream = await DashboardVentasApi.GetDashboardVentasPdfAsync(fechaInicio.Date, fechaFin.Date, idEmpresa);
+                    break;
+            }
+
+            if (pdfStream == null)
+            {
+                await Swal.FireAsync("Reporte Vacío", "El servicio devolvió null.", SweetAlertIcon.Warning);
+                return;
+            }
+
+            // Leer bytes para mostrar y para poder descargar
+            using var ms = new MemoryStream();
+            await pdfStream.CopyToAsync(ms);
+            LastPdfBytes = ms.ToArray();
+
+            if (LastPdfBytes.Length == 0)
+            {
+                await Swal.FireAsync("Reporte Vacío", "El reporte no contiene datos.", SweetAlertIcon.Warning);
+                return;
+            }
+
+            // Convertir a base64 y mostrar en modal
+            var base64 = Convert.ToBase64String(LastPdfBytes);
+            PdfUrl = $"data:application/pdf;base64,{base64}";
+
+            ShowPdfModal = true;
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync("Error", $"Ocurrió un error al generar el reporte: {ex.Message}", SweetAlertIcon.Error);
+        }
+    }
+
+    private void CloseModal()
+    {
+        ShowPdfModal = false;
+        PdfUrl = "";
+        LastPdfBytes = Array.Empty<byte>();
+    }
+
+    private void BackdropClick()
+    {
+        // Cerrar al click en backdrop si quieres
+        CloseModal();
+    }
+
+    // Descargar usando blob URL vía JS interop simple
+    // Si prefieres no usar JS, puedo quitar esta función y no mostrar botón descargar.
+    [Inject] private IJSRuntime JS { get; set; }
+
+    private async Task DownloadPdf()
+    {
+        if (LastPdfBytes == null || LastPdfBytes.Length == 0)
+        {
+            await Swal.FireAsync("Error", "No hay PDF para descargar.", SweetAlertIcon.Error);
+            return;
+        }
+
+        // Llamamos a un método JS pequeño y seguro que crea un Blob y fuerza descarga.
+        // Asegúrate de definir window.blazorDownloadFile en wwwroot/js/app.js (yo incluyo el código JS abajo).
+        var base64 = Convert.ToBase64String(LastPdfBytes);
+        var fileName = $"{GetReportFileName(selectedReportType, fechaInicio, fechaFin)}.pdf";
+        await JS.InvokeVoidAsync("blazorDownloadFile", fileName, "application/pdf", base64);
+    }
+
+    private string GetReportFileName(ReportType t, DateTime inicio, DateTime fin)
+    {
+        return t switch
+        {
+            ReportType.VentasPorEmpleado => $"ventas-por-empleado_{inicio:yyyyMMdd}_{fin:yyyyMMdd}",
+            ReportType.VentasGeneral => $"ventas-generales_{inicio:yyyyMMdd}_{fin:yyyyMMdd}",
+            ReportType.Inventario => $"inventario_{DateTime.Now:yyyyMMdd}",
+            ReportType.DashboardVentas => $"dashboard-ventas_{inicio:yyyyMMdd}_{fin:yyyyMMdd}",
+            _ => $"reporte_{DateTime.Now:yyyyMMdd}"
+        };
+    }
+}
