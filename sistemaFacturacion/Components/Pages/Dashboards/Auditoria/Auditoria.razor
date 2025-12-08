@@ -176,25 +176,27 @@ else
             <div class="col-xxl-6 col-md-12 mb-3">
                 <div class="card custom-card">
                     <div class="card-header">
-                        <h5 class="card-title mb-0">Actividad por día</h5>
+                        <h5 class="card-title mb-0">Actividad por hora</h5>
                     </div>
                     <div class="card-body">
-                        @if (ActividadDia.Any())
+                        @if (ActividadHora.Any())
                         {
-                            <ApexChart TItem="ActividadDiaDto" Height="260" Options="ActividadOptions">
-                                <ApexPointSeries TItem="ActividadDiaDto"
-                                                 Items="ActividadDia"
+                            <ApexChart TItem="ActividadHoraDto"
+                                       Height="260"
+                                       Options="ActividadHoraOptions">
+                                <ApexPointSeries TItem="ActividadHoraDto"
+                                                 Items="ActividadHora"
                                                  SeriesType="@SeriesType.Line"
                                                  Name="Acciones"
-                                                 XValue="@(x => x.Fecha.ToString("dd/MM"))"
+                                                 XValue="@(x => $"{x.Hora}:00")"
                                                  YValue="@(x => x.Total)" />
                             </ApexChart>
                         }
                         else
                         {
                             <div class="text-center text-muted py-5">
-                                <i class="bi bi-graph-up fs-40 d-block mb-2 opacity-25"></i>
-                                No hay actividad registrada en el rango seleccionado.
+                                <i class="bi bi-clock-history fs-40 d-block mb-2 opacity-25"></i>
+                                No hay actividad registrada.
                             </div>
                         }
                     </div>
@@ -492,11 +494,16 @@ else
                                             @riesgo
                                         </span>
                                     </td>
-                                    <td>
+                                    <td class="d-flex gap-2">
                                         <button class="btn btn-sm btn-primary-light" @onclick="() => VerDetalle(d.Detalle)">
-                                            <i class="bi bi-eye me-1"></i> Ver detalle
+                                            <i class="bi bi-eye me-1"></i> Detalle
+                                        </button>
+                                        <button class="btn btn-sm btn-info-light"
+                                                @onclick="() => VerHistorial(d.Tabla, d.RegistroId ?? -1)">
+                                            <i class="bi bi-clock-history me-1"></i> Historial
                                         </button>
                                     </td>
+
                                 </tr>
                             }
                         }
@@ -758,30 +765,90 @@ else
         </div>
     </div>
 }
+@if (ShowHistorialModal)
+{
+    <div class="modal fade show d-block" style="background:rgba(0,0,0,.6);" @onclick="CerrarHistorialModal">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
+             @onclick:stopPropagation="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-clock-history me-2"></i> Historial del Registro
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CerrarHistorialModal"></button>
+                </div>
 
+                <div class="modal-body">
+                    @if (!HistorialRegistro.Any())
+                    {
+                        <p class="text-muted text-center my-3">No hay historial disponible.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group">
+                            @foreach (var h in HistorialRegistro)
+                            {
+                                <li class="list-group-item">
+                                    <strong>@h.Fecha.ToString("dd/MM/yyyy HH:mm")</strong> —
+                                    <span class="badge bg-primary">@h.Accion</span>
+
+                                    <p class="mt-2 small">
+                                        @h.Detalle
+                                    </p>
+
+                                    <div class="small text-muted d-flex gap-3">
+                                        <span><strong>Usuario APP:</strong> @h.UsuarioApp</span>
+                                        <span><strong>SQL:</strong> @h.LoginSql</span>
+                                        <span><strong>Host:</strong> @h.Host</span>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CerrarHistorialModal">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 @code {
-    // Estado general
+    // ============================
+    // ESTADO GENERAL
+    // ============================
     private bool IsLoading = true;
     private bool AutoRefresh = false;
     private Timer? RefreshTimer;
     private string TabActiva = "overview";
 
-    // DTOs del backend
+    // ============================
+    // DTOs DEL BACKEND
+    // ============================
     private EstadisticasGeneralesDto Stats = new();
     private List<ActividadDiaDto> ActividadDia = new();
+    private List<ActividadHoraDto> ActividadHora = new();   // 🆕 NUEVO
     private List<ResumenTablaDto> TablasResumen = new();
     private List<CambioManualDto> CambiosManuales = new();
     private List<DeleteDto> Deletes = new();
     private List<ResumenUsuarioDto> ResumenUsuarios = new();
+    private List<HistorialRegistroDto> HistorialRegistro = new(); // 🆕 NUEVO
 
-    // Derivados
+    // ============================
+    // DERIVADOS
+    // ============================
     private List<DeleteDto> DeletesFiltrados = new();
     private List<AuditPiePoint> PieData = new();
     private List<HeatmapPoint> Heatmap = new();
     private List<string> Usuarios = new();
     private string NivelRiesgo = "Bajo";
 
-    // Filtros
+    // ============================
+    // FILTROS
+    // ============================
     private DateTime? FiltroDesde { get; set; } = DateTime.Today.AddDays(-7);
     private DateTime? FiltroHasta { get; set; } = DateTime.Today;
     private string FiltroTabla { get; set; } = "";
@@ -789,30 +856,43 @@ else
     private string FiltroRiesgo { get; set; } = "";
     private string BusquedaDelete { get; set; } = "";
 
-    // Paginación
+    // ============================
+    // PAGINACIÓN
+    // ============================
     private int PaginaActualDeletes = 1;
     private int RegistrosPorPagina = 20;
     private int TotalPaginasDeletes => (int)Math.Ceiling(DeletesFiltrados.Count / (double)RegistrosPorPagina);
-    private List<DeleteDto> DeletesPaginados => DeletesFiltrados
-        .Skip((PaginaActualDeletes - 1) * RegistrosPorPagina)
-        .Take(RegistrosPorPagina)
-        .ToList();
+    private List<DeleteDto> DeletesPaginados =>
+        DeletesFiltrados.Skip((PaginaActualDeletes - 1) * RegistrosPorPagina)
+                        .Take(RegistrosPorPagina)
+                        .ToList();
 
-    // Ordenamiento
+    // ============================
+    // ORDENAMIENTO
+    // ============================
     private string OrdenColumna = "Fecha";
     private bool OrdenAscendente = false;
 
-    // Modal
+    // ============================
+    // MODALES
+    // ============================
     private bool ShowModal = false;
+    private bool ShowHistorialModal = false; // 🆕 NUEVO
     private string DetalleSeleccionado = string.Empty;
 
-    // Alertas
+    // ============================
+    // ALERTAS
+    // ============================
     private bool MostrarTodasAlertas = false;
 
-    // Heatmap
+    // ============================
+    // HEATMAP
+    // ============================
     private DateTime HeatmapMesActual = DateTime.Today;
 
-    // Opciones de gráficos
+    // ============================
+    // OPCIONES DE GRÁFICOS
+    // ============================
     private ApexChartOptions<ActividadDiaDto> ActividadOptions = new()
     {
         Chart = new Chart { Toolbar = new Toolbar { Show = false } },
@@ -835,6 +915,98 @@ else
         DataLabels = new DataLabels { Enabled = false }
     };
 
+    // 🆕 OPCIONES PARA ACTIVIDAD POR HORA
+    private ApexChartOptions<ActividadHoraDto> ActividadHoraOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 },
+        DataLabels = new DataLabels { Enabled = false },
+        Colors = new List<string> { "#6f42c1" } // morado
+    };
+
+
+    private void HeatmapMesAnterior()
+    {
+        HeatmapMesActual = HeatmapMesActual.AddMonths(-1);
+        GenerarHeatmap();
+    }
+
+    private void HeatmapMesSiguiente()
+    {
+        HeatmapMesActual = HeatmapMesActual.AddMonths(1);
+        GenerarHeatmap();
+    }
+
+    private string GetHeatmapClass(int intensity)
+    {
+        return intensity switch
+        {
+            0 => "heatmap-0",
+            1 => "heatmap-1",
+            2 => "heatmap-2",
+            3 => "heatmap-3",
+            4 => "heatmap-4",
+            _ => "heatmap-0"
+        };
+    }
+    private void GenerarHeatmap()
+    {
+        Heatmap.Clear();
+
+        // obtén el primer y último día del mes
+        DateTime inicio = new DateTime(HeatmapMesActual.Year, HeatmapMesActual.Month, 1);
+        DateTime fin = inicio.AddMonths(1).AddDays(-1);
+
+        // agrupa ActividadDia para este mes
+        var actividadMes = ActividadDia
+            .Where(a => a.Fecha.Date >= inicio && a.Fecha.Date <= fin)
+            .ToList();
+
+        foreach (var fecha in Enumerable.Range(1, fin.Day))
+        {
+            var dia = new DateTime(HeatmapMesActual.Year, HeatmapMesActual.Month, fecha);
+
+            int total = actividadMes
+                .Where(a => a.Fecha.Date == dia)
+                .Sum(a => a.Total);
+
+            int intensity =
+                total == 0 ? 0 :
+                total < 5 ? 1 :
+                total < 15 ? 2 :
+                total < 30 ? 3 : 4;
+
+            Heatmap.Add(new HeatmapPoint
+            {
+                Day = dia,
+                Count = total,
+                Intensity = intensity
+            });
+        }
+    }
+    private string GetRiesgoBadgeClass(string riesgo)
+    {
+        return riesgo switch
+        {
+            "Alto" => "bg-danger text-white",
+            "Medio" => "bg-warning text-dark",
+            "Bajo" => "bg-success text-white",
+            "Crítico" => "bg-danger text-white fw-bold",
+            _ => "bg-secondary text-white"
+        };
+    }
+    private void CambiarPagina(int pagina)
+    {
+        if (pagina < 1 || pagina > TotalPaginasDeletes)
+            return;
+
+        PaginaActualDeletes = pagina;
+    }
+
+
+    // ============================
+    // INICIALIZACIÓN
+    // ============================
     protected override async Task OnInitializedAsync()
     {
         await CargarDatos();
@@ -861,6 +1033,10 @@ else
         RefreshTimer?.Dispose();
     }
 
+
+    // ============================
+    // CARGA DE DATOS PRINCIPAL
+    // ============================
     private async Task CargarDatos()
     {
         try
@@ -868,55 +1044,26 @@ else
             IsLoading = true;
 
             Stats = await AuditoriaApi.GetEstadisticas();
-            await JSRuntime.InvokeVoidAsync("console.log", "Stats:", Stats);
-
             ActividadDia = await AuditoriaApi.GetActividadDia();
-            await JSRuntime.InvokeVoidAsync("console.log", "ActividadDia:", ActividadDia);
-
+            ActividadHora = await AuditoriaApi.GetActividadHora();  
             TablasResumen = await AuditoriaApi.GetResumenTablas();
-            await JSRuntime.InvokeVoidAsync("console.log", "TablasResumen:", TablasResumen);
-
             CambiosManuales = await AuditoriaApi.GetCambiosManuales(null, null);
-            await JSRuntime.InvokeVoidAsync("console.log", "CambiosManuales:", CambiosManuales);
-
-            Deletes = await AuditoriaApi.GetDeletes("", null, null);
-
-            await JSRuntime.InvokeVoidAsync("console.log", "Deletes:", Deletes);
-
             ResumenUsuarios = await AuditoriaApi.GetResumenPorUsuariosAsync();
-            await JSRuntime.InvokeVoidAsync("console.log", "ResumenUsuarios:", ResumenUsuarios);
 
-            // Ordenar
             ResumenUsuarios = ResumenUsuarios.OrderByDescending(u => u.Total).ToList();
-            await JSRuntime.InvokeVoidAsync("console.log", "Usuarios ordenados:", ResumenUsuarios);
 
             PieData = new()
-        {
-            new AuditPiePoint("Insert", Stats.TotalInserts),
-            new AuditPiePoint("Update", Stats.TotalUpdates),
-            new AuditPiePoint("Delete", Stats.TotalDeletes)
-        };
-            await JSRuntime.InvokeVoidAsync("console.log", "PieData:", PieData);
-
-            Usuarios = Deletes
-                .Select(d => d.Usuario)
-                .Where(u => !string.IsNullOrWhiteSpace(u))
-                .Distinct()
-                .OrderBy(u => u)
-                .ToList();
-            await JSRuntime.InvokeVoidAsync("console.log", "Usuarios en deletes:", Usuarios);
+            {
+                new AuditPiePoint("Insert", Stats.TotalInserts),
+                new AuditPiePoint("Update", Stats.TotalUpdates),
+                new AuditPiePoint("Delete", Stats.TotalDeletes)
+            };
 
             GenerarHeatmap();
-            await JSRuntime.InvokeVoidAsync("console.log", "Heatmap generado:", Heatmap);
-
             AplicarFiltrosLocal();
-            await JSRuntime.InvokeVoidAsync("console.log", "Deletes filtrados:", DeletesFiltrados);
-
             CalcularNivelRiesgo();
-            await JSRuntime.InvokeVoidAsync("console.log", "NivelRiesgo:", NivelRiesgo);
 
             IsLoading = false;
-            await JSRuntime.InvokeVoidAsync("console.log", "FIN CargarDatos()");
         }
         catch (Exception ex)
         {
@@ -925,73 +1072,14 @@ else
         }
     }
 
-    private void GenerarHeatmap()
-    {
-        Heatmap.Clear();
-
-        if (!ActividadDia.Any())
-            return;
-
-        int year = HeatmapMesActual.Year;
-        int month = HeatmapMesActual.Month;
-        int daysInMonth = DateTime.DaysInMonth(year, month);
-
-        var dic = ActividadDia
-            .Where(a => a.Fecha.Year == year && a.Fecha.Month == month)
-            .GroupBy(a => a.Fecha.Date)
-            .ToDictionary(g => g.Key, g => g.Sum(x => x.Total));
-
-        for (int day = 1; day <= daysInMonth; day++)
-        {
-            var fecha = new DateTime(year, month, day);
-            dic.TryGetValue(fecha.Date, out var count);
-
-            Heatmap.Add(new HeatmapPoint
-            {
-                Day = fecha,
-                Count = count,
-                Intensity = count switch
-                {
-                    > 50 => 4,
-                    > 20 => 3,
-                    > 5 => 2,
-                    > 0 => 1,
-                    _ => 0
-                }
-            });
-        }
-    }
-
-    private string GetHeatmapClass(int intensity) => intensity switch
-    {
-        4 => "bg-success",
-        3 => "bg-success opacity-75",
-        2 => "bg-success opacity-50",
-        1 => "bg-success opacity-25",
-        _ => "bg-light"
-    };
-
-    private void HeatmapMesAnterior()
-    {
-        HeatmapMesActual = HeatmapMesActual.AddMonths(-1);
-        GenerarHeatmap();
-    }
-
-    private void HeatmapMesSiguiente()
-    {
-        if (HeatmapMesActual.Month < DateTime.Today.Month || HeatmapMesActual.Year < DateTime.Today.Year)
-        {
-            HeatmapMesActual = HeatmapMesActual.AddMonths(1);
-            GenerarHeatmap();
-        }
-    }
-
+    // ============================
+    // FILTROS, ORDEN, PÁGINAS
+    // ============================
     private async Task AplicarFiltros()
     {
         string? tablaFiltro = string.IsNullOrWhiteSpace(FiltroTabla) ? null : FiltroTabla;
         Deletes = await AuditoriaApi.GetDeletes(tablaFiltro, FiltroDesde, FiltroHasta);
         AplicarFiltrosLocal();
-        CalcularNivelRiesgo();
         PaginaActualDeletes = 1;
     }
 
@@ -1013,11 +1101,8 @@ else
         }
 
         if (!string.IsNullOrWhiteSpace(FiltroRiesgo))
-        {
             query = query.Where(d => CalcularRiesgoDelete(d) == FiltroRiesgo);
-        }
 
-        // Aplicar ordenamiento
         query = OrdenColumna switch
         {
             "Fecha" => OrdenAscendente ? query.OrderBy(d => d.Fecha) : query.OrderByDescending(d => d.Fecha),
@@ -1041,14 +1126,6 @@ else
         AplicarFiltrosLocal();
     }
 
-    private void CambiarPagina(int pagina)
-    {
-        if (pagina >= 1 && pagina <= TotalPaginasDeletes)
-        {
-            PaginaActualDeletes = pagina;
-        }
-    }
-
     private void ResetFiltros()
     {
         FiltroDesde = DateTime.Today.AddDays(-7);
@@ -1057,12 +1134,32 @@ else
         FiltroUsuario = "";
         FiltroRiesgo = "";
         BusquedaDelete = "";
-
         AplicarFiltrosLocal();
-        CalcularNivelRiesgo();
         PaginaActualDeletes = 1;
     }
 
+    // ============================
+    // HISTORIAL DE REGISTRO (NUEVO)
+    // ============================
+    private async Task VerHistorial(string tabla, int id)
+    {
+        try
+        {
+            HistorialRegistro = await AuditoriaApi.GetHistorialRegistroAsync(tabla, id);
+            ShowHistorialModal = true;
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"ERROR VerHistorial: {ex.Message}");
+        }
+    }
+
+    private void CerrarHistorialModal() => ShowHistorialModal = false;
+
+
+    // ============================
+    // CALCULOS VARIOS
+    // ============================
     private void CalcularNivelRiesgo()
     {
         int deletesUltimaSemana = Deletes
@@ -1081,10 +1178,11 @@ else
     private string CalcularRiesgoDelete(DeleteDto delete)
     {
         var hora = delete.Fecha.Hour;
+
         var deletesUsuarioUltimaHora = Deletes
             .Where(d => d.Usuario == delete.Usuario &&
-                       d.Fecha >= delete.Fecha.AddHours(-1) &&
-                       d.Fecha <= delete.Fecha)
+                        d.Fecha >= delete.Fecha.AddHours(-1) &&
+                        d.Fecha <= delete.Fecha)
             .Count();
 
         if (deletesUsuarioUltimaHora > 10 || hora < 6 || hora > 22)
@@ -1095,31 +1193,21 @@ else
             return "Bajo";
     }
 
-    private string GetRiesgoBadgeClass(string riesgo) => riesgo switch
-    {
-        "Crítico" => "bg-danger text-white",
-        "Alto" => "bg-danger-transparent text-danger",
-        "Medio" => "bg-warning-transparent text-warning",
-        "Bajo" => "bg-success-transparent text-success",
-        _ => "bg-secondary-transparent text-secondary"
-    };
-
     private string GetTiempoRelativo(DateTime fecha)
     {
-        var diferencia = DateTime.Now - fecha;
+        var diff = DateTime.Now - fecha;
 
-        if (diferencia.TotalMinutes < 1)
-            return "Hace unos segundos";
-        else if (diferencia.TotalMinutes < 60)
-            return $"Hace {(int)diferencia.TotalMinutes} min";
-        else if (diferencia.TotalHours < 24)
-            return $"Hace {(int)diferencia.TotalHours}h";
-        else if (diferencia.TotalDays < 7)
-            return $"Hace {(int)diferencia.TotalDays}d";
-        else
-            return fecha.ToString("dd/MM/yyyy");
+        if (diff.TotalMinutes < 1) return "Hace unos segundos";
+        if (diff.TotalMinutes < 60) return $"Hace {(int)diff.TotalMinutes} min";
+        if (diff.TotalHours < 24) return $"Hace {(int)diff.TotalHours}h";
+        if (diff.TotalDays < 7) return $"Hace {(int)diff.TotalDays}d";
+
+        return fecha.ToString("dd/MM/yyyy");
     }
 
+    // ============================
+    // MODAL DETALLE
+    // ============================
     private void VerDetalle(string detalle)
     {
         DetalleSeleccionado = detalle ?? "(Sin detalle)";
@@ -1134,14 +1222,7 @@ else
 
     private async Task CopiarDetalle(string texto)
     {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", texto);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al copiar: {ex.Message}");
-        }
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", texto);
     }
 
     private void ToggleAutoRefresh()
@@ -1149,7 +1230,9 @@ else
         AutoRefresh = !AutoRefresh;
     }
 
-    // DTOs locales
+    // ============================
+    // MODELOS LOCALES
+    // ============================
     public class AuditPiePoint
     {
         public string Label { get; set; }
